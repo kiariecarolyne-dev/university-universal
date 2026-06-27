@@ -1,6 +1,41 @@
-import { Button, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Alert, Button, Text, View } from "react-native";
+
+import useUser from "../hooks/useUser";
 
 export default function HomeScreen({ navigation }) {
+  const user = useUser();
+
+  useEffect(() => {
+    if (!user) return;
+
+    // If premium expired
+    if (
+      user.isPremium === false &&
+      user.premiumUntil
+    ) {
+      const now = new Date();
+      const expiryDate = new Date(user.premiumUntil);
+
+      if (now > expiryDate) {
+        Alert.alert(
+          "Subscription Expired",
+          "Your Premium subscription has expired. Renew now to continue using premium features.",
+          [
+            {
+              text: "Renew Now",
+              onPress: () => navigation.navigate("Premium"),
+            },
+            {
+              text: "Later",
+              style: "cancel",
+            },
+          ]
+        );
+      }
+    }
+  }, [user]);
+
   return (
     <View
       style={{
@@ -40,7 +75,6 @@ export default function HomeScreen({ navigation }) {
         onPress={() => navigation.navigate("Notes")}
       />
 
-      {/* NEW PREMIUM BUTTON */}
       <Button
         title="Upgrade To Premium ⭐"
         onPress={() => navigation.navigate("Premium")}
