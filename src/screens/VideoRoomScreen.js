@@ -1,25 +1,39 @@
-import { Alert, View } from "react-native";
+import { Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import useUser from "../hooks/useUser";
-import { isPremiumUser } from "../utils/access"; // ✅ STEP 5.1 ADDED
+import { isPremiumUser } from "../utils/access";
 
 export default function VideoRoomScreen({ route }) {
   const { roomName } = route.params;
 
-  const user = useUser(); // ✅ STEP 5.2
+  const user = useUser();
 
-  // 🔒 STEP 5.3 — BLOCK FREE USERS
+  // BLOCK NON PREMIUM USERS
   if (!isPremiumUser(user)) {
-    Alert.alert(
-      "Premium Required",
-      "Video study rooms are available for Premium users only."
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 20,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 18,
+            textAlign: "center",
+          }}
+        >
+          Premium subscription required to access Video Study Rooms.
+        </Text>
+      </View>
     );
-    return null;
   }
 
-  const jitsiUrl = `https://meet.jit.si/UniversityUniversal_${roomName}`;
+  const jitsiUrl =
+    `https://meet.jit.si/UniversityUniversal_${roomName}`;
 
-  // 🧱 STEP 5.4 — JITSI ROOM (UNCHANGED LOGIC)
   return (
     <View style={{ flex: 1 }}>
       <WebView
