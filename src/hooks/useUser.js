@@ -72,7 +72,7 @@ export default function useUser() {
         setUserData(data);
       });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   return userData;
