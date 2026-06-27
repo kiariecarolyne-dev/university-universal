@@ -19,12 +19,15 @@ import {
 
 import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
-import { isPremiumUser } from "../utils/access"; // ✅ STEP 4.1 ADDED
+import { isPremiumUser } from "../utils/access";
 
-export default function PrivateChatScreen({ route }) {
+export default function PrivateChatScreen({
+  route,
+  navigation
+}) {
   const { student } = route.params;
 
-  const user = useUser(); // ✅ STEP 4.2
+  const user = useUser();
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
@@ -36,7 +39,7 @@ export default function PrivateChatScreen({ route }) {
       ? `${currentUser}_${student.id}`
       : `${student.id}_${currentUser}`;
 
-  // 🚫 CONTACT DETECTOR
+  // CONTACT DETECTOR
   const containsContactInfo = (text) => {
     const phoneRegex = /(\+254|07|01)\d{8}/;
     const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+/;
@@ -51,15 +54,27 @@ export default function PrivateChatScreen({ route }) {
     );
   };
 
-  // 🔒 STEP 4.3 — BLOCK FREE USERS FROM PRIVATE CHAT
-  if (!isPremiumUser(user)) {
-    Alert.alert(
-      "Premium Required",
-      "Private messaging is a Premium feature."
-    );
+  // PREMIUM CHECK (SAFE)
+  useEffect(() => {
+    if (user && !isPremiumUser(user)) {
+      Alert.alert(
+        "Premium Required",
+        "Private messaging is a Premium feature.",
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    }
+  }, [user]);
+
+  if (!user || !isPremiumUser(user)) {
     return null;
   }
 
+  // LOAD MESSAGES
   useEffect(() => {
     const q = query(
       collection(db, "privateChats", chatId, "messages"),
@@ -81,7 +96,6 @@ export default function PrivateChatScreen({ route }) {
   const sendMessage = async () => {
     if (!message.trim()) return;
 
-    // (Optional safety layer — keeps your system consistent)
     if (!isPremiumUser(user) && containsContactInfo(message)) {
       Alert.alert(
         "Premium Feature",
@@ -128,7 +142,10 @@ export default function PrivateChatScreen({ route }) {
         }}
       />
 
-      <Button title="Send" onPress={sendMessage} />
+      <Button
+        title="Send"
+        onPress={sendMessage}
+      />
 
     </View>
   );
