@@ -5,24 +5,27 @@ import {
   Linking,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-// ✅ IMPORT FIREBASE AUTH
+// FIREBASE AUTH
 import { auth } from "../services/firebase";
 
-// ✅ YOUR REAL BACKEND URL
+// BACKEND URL
 const API_URL = "https://university-universal-backend.onrender.com";
 
 export default function PremiumScreen() {
   const [currency, setCurrency] = useState("kes");
+  const [phone, setPhone] = useState("");
 
-  // ✅ REAL LOGGED IN USER ID
   const userId = auth.currentUser?.uid;
 
+  // =========================
+  // STRIPE PAYMENT
+  // =========================
   const handlePayment = async (plan) => {
-    // safety check
     if (!userId) {
       Alert.alert("Error", "You must be logged in first.");
       return;
@@ -41,7 +44,6 @@ export default function PremiumScreen() {
       const checkoutUrl = response.data.url;
 
       if (checkoutUrl) {
-        // Open Stripe checkout page
         await Linking.openURL(checkoutUrl);
       } else {
         Alert.alert("Error", "Could not start payment.");
@@ -52,11 +54,56 @@ export default function PremiumScreen() {
     }
   };
 
+  // =========================
+  // MPESA PAYMENT
+  // =========================
+  const handleMpesaPayment = async (plan, amount) => {
+    if (!userId) {
+      Alert.alert("Error", "You must be logged in first.");
+      return;
+    }
+
+    if (!phone) {
+      Alert.alert("Error", "Enter phone number.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/mpesa-payment`,
+        {
+          phone,
+          amount,
+          userId,
+          plan,
+        }
+      );
+
+      if (response.data.success) {
+        Alert.alert(
+          "M-Pesa Sent",
+          "Check your phone and enter PIN."
+        );
+      }
+
+    } catch (error) {
+      console.log(
+        "MPESA ERROR:",
+        error.response?.data || error.message
+      );
+
+      Alert.alert(
+        "Payment Error",
+        "M-Pesa payment failed."
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Upgrade to Premium</Text>
 
-      <Text style={styles.subtitle}>Choose Currency</Text>
+      <Text style={styles.subtitle}>Choose Card Currency</Text>
 
       <View style={styles.currencyRow}>
         <TouchableOpacity
@@ -80,33 +127,69 @@ export default function PremiumScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 2 DAYS PLAN */}
+      {/* PHONE INPUT */}
+      <TextInput
+        style={styles.input}
+        placeholder="254712345678"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+      />
+
+      {/* 2 DAYS */}
       <TouchableOpacity
         style={styles.planButton}
         onPress={() => handlePayment("2days")}
       >
         <Text style={styles.planText}>
-          2 Days — {currency === "kes" ? "KSh 100" : "$1.00"}
+          Card: 2 Days — {currency === "kes" ? "KSh 100" : "$1.00"}
         </Text>
       </TouchableOpacity>
 
-      {/* WEEKLY PLAN */}
+      <TouchableOpacity
+        style={styles.mpesaButton}
+        onPress={() => handleMpesaPayment("2days", 100)}
+      >
+        <Text style={styles.planText}>
+          M-Pesa: 2 Days — KSh 100
+        </Text>
+      </TouchableOpacity>
+
+      {/* WEEKLY */}
       <TouchableOpacity
         style={styles.planButton}
         onPress={() => handlePayment("weekly")}
       >
         <Text style={styles.planText}>
-          Weekly — {currency === "kes" ? "KSh 250" : "$2.50"}
+          Card: Weekly — {currency === "kes" ? "KSh 250" : "$2.50"}
         </Text>
       </TouchableOpacity>
 
-      {/* MONTHLY PLAN */}
+      <TouchableOpacity
+        style={styles.mpesaButton}
+        onPress={() => handleMpesaPayment("weekly", 250)}
+      >
+        <Text style={styles.planText}>
+          M-Pesa: Weekly — KSh 250
+        </Text>
+      </TouchableOpacity>
+
+      {/* MONTHLY */}
       <TouchableOpacity
         style={styles.planButton}
         onPress={() => handlePayment("monthly")}
       >
         <Text style={styles.planText}>
-          Monthly — {currency === "kes" ? "KSh 1000" : "$10.00"}
+          Card: Monthly — {currency === "kes" ? "KSh 1000" : "$10.00"}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.mpesaButton}
+        onPress={() => handleMpesaPayment("monthly", 1000)}
+      >
+        <Text style={styles.planText}>
+          M-Pesa: Monthly — KSh 1000
         </Text>
       </TouchableOpacity>
     </View>
@@ -136,7 +219,7 @@ const styles = StyleSheet.create({
   currencyRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 30,
+    marginBottom: 20,
   },
 
   currencyButton: {
@@ -150,15 +233,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#d3f4ff",
   },
 
+  input: {
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 20,
+    borderRadius: 10,
+  },
+
   planButton: {
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderRadius: 12,
-    marginBottom: 15,
+    marginBottom: 10,
+  },
+
+  mpesaButton: {
+    padding: 18,
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 18,
   },
 
   planText: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: "center",
     fontWeight: "600",
   },
