@@ -20,7 +20,25 @@ export default function UploadNotesScreen({ navigation }) {
   const [university, setUniversity] = useState("");
   const [description, setDescription] = useState("");
 
+  // =========================
+  // BLOCK CONTACT SHARING
+  // =========================
+  const containsContactInfo = (text) => {
+    const phoneRegex = /(\+254|07|01)\d{8}/;
+    const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+    const whatsappRegex = /wa\.me|whatsapp/i;
+    const telegramRegex = /t\.me|telegram/i;
+
+    return (
+      phoneRegex.test(text) ||
+      emailRegex.test(text) ||
+      whatsappRegex.test(text) ||
+      telegramRegex.test(text)
+    );
+  };
+
   const uploadNote = async () => {
+    // CHECK EMPTY FIELDS
     if (
       !title ||
       !course ||
@@ -30,6 +48,18 @@ export default function UploadNotesScreen({ navigation }) {
       Alert.alert(
         "Error",
         "Please fill all fields"
+      );
+      return;
+    }
+
+    // BLOCK CONTACT DETAILS
+    if (
+      containsContactInfo(title) ||
+      containsContactInfo(description)
+    ) {
+      Alert.alert(
+        "Blocked",
+        "Do not post phone numbers, emails or WhatsApp links in notes."
       );
       return;
     }
@@ -62,7 +92,7 @@ export default function UploadNotesScreen({ navigation }) {
         "Notes posted successfully"
       );
 
-      // clear form
+      // CLEAR FORM
       setTitle("");
       setCourse("");
       setUniversity("");
