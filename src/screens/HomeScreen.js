@@ -24,7 +24,8 @@ export default function HomeScreen({ navigation }) {
           [
             {
               text: "Renew Now",
-              onPress: () => navigation.navigate("Premium"),
+              onPress: () =>
+                navigation.navigate("Premium"),
             },
             {
               text: "Later",
@@ -44,40 +45,65 @@ export default function HomeScreen({ navigation }) {
         alignItems: "center",
       }}
     >
-      <Text>Welcome To University Universal</Text>
+      <Text>
+        Welcome To University Universal
+      </Text>
 
       <Button
         title="My Profile"
-        onPress={() => navigation.navigate("Profile")}
+        onPress={() =>
+          navigation.navigate("Profile")
+        }
       />
 
       <Button
         title="Study Groups"
-        onPress={() => navigation.navigate("Groups")}
+        onPress={() =>
+          navigation.navigate("Groups")
+        }
       />
 
       <Button
         title="Discover Students"
-        onPress={() => navigation.navigate("Discover")}
+        onPress={() =>
+          navigation.navigate("Discover")
+        }
       />
 
       <Button
         title="Join Study Room"
         onPress={() =>
-          navigation.navigate("VideoRoom", {
-            roomName: "General",
-          })
+          navigation.navigate(
+            "VideoRoom",
+            {
+              roomName: "General",
+            }
+          )
         }
       />
 
       <Button
         title="Study Notes"
-        onPress={() => navigation.navigate("Notes")}
+        onPress={() =>
+          navigation.navigate("Notes")
+        }
+      />
+
+      {/* NEW BUTTON */}
+      <Button
+        title="Post My Notes 📚"
+        onPress={() =>
+          navigation.navigate(
+            "UploadNotes"
+          )
+        }
       />
 
       <Button
         title="Upgrade To Premium ⭐"
-        onPress={() => navigation.navigate("Premium")}
+        onPress={() =>
+          navigation.navigate("Premium")
+        }
       />
     </View>
   );

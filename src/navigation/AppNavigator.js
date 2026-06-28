@@ -11,6 +11,7 @@ import PremiumScreen from "../screens/PremiumScreen";
 import PrivateChatScreen from "../screens/PrivateChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import RegisterScreen from "../screens/RegisterScreen";
+import UploadNotesScreen from "../screens/UploadNotesScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
 
 const Stack = createNativeStackNavigator();
@@ -73,6 +74,11 @@ export default function AppNavigator() {
          <Stack.Screen
           name="Premium"
           component={PremiumScreen}
+         />
+
+         <Stack.Screen
+          name="UploadNotes"
+          component={UploadNotesScreen}
          />
 
 
