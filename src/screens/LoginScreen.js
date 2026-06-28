@@ -1,6 +1,7 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import { Alert, Button, TextInput, View } from "react-native";
+
 import { auth } from "../services/firebase";
 
 export default function LoginScreen({ navigation }) {
@@ -14,19 +15,36 @@ export default function LoginScreen({ navigation }) {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // LOGIN USER
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
-      Alert.alert("Success", "Logged in successfully");
+      Alert.alert(
+        "Success",
+        "Logged in successfully"
+      );
 
       navigation.navigate("Home");
 
     } catch (error) {
-      Alert.alert("Login Error", error.message);
+      Alert.alert(
+        "Login Error",
+        error.message
+      );
     }
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        padding: 20
+      }}
+    >
       <TextInput
         placeholder="Email"
         value={email}
@@ -50,11 +68,16 @@ export default function LoginScreen({ navigation }) {
         }}
       />
 
-      <Button title="Login" onPress={loginUser} />
+      <Button
+        title="Login"
+        onPress={loginUser}
+      />
 
       <Button
         title="Go To Register"
-        onPress={() => navigation.navigate("Register")}
+        onPress={() =>
+          navigation.navigate("Register")
+        }
       />
     </View>
   );
