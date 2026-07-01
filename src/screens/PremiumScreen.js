@@ -3,401 +3,553 @@ import { useState } from "react";
 import {
   Alert,
   Linking,
-  StyleSheet,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-// FIREBASE AUTH
 import { auth } from "../services/firebase";
 
-// BACKEND URL
-const API_URL =
-  "https://university-universal-backend.onrender.com";
+const API_URL = "https://university-universal-backend.onrender.com";
 
 export default function PremiumScreen() {
-  const [currency, setCurrency] =
-    useState("kes");
+  const [currency, setCurrency] = useState("kes");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [phone, setPhone] =
-    useState("");
+  const userId = auth.currentUser?.uid;
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const userId =
-    auth.currentUser?.uid;
-
-  // =========================
-  // FORMAT PHONE NUMBER
-  // =========================
   const formatPhone = (number) => {
-    let cleaned =
-      number.replace(/\s/g, "");
+    let cleaned = number.replace(/\s/g, "");
 
-    // 0712345678 → 254712345678
-    if (cleaned.startsWith("07")) {
-      return "254" + cleaned.substring(1);
-    }
-
-    // 0112345678 → 254112345678
-    if (cleaned.startsWith("01")) {
-      return "254" + cleaned.substring(1);
-    }
-
-    // already correct
-    if (cleaned.startsWith("254")) {
-      return cleaned;
-    }
+    if (cleaned.startsWith("07")) return "254" + cleaned.substring(1);
+    if (cleaned.startsWith("01")) return "254" + cleaned.substring(1);
+    if (cleaned.startsWith("254")) return cleaned;
 
     return null;
   };
 
   // =========================
-  // STRIPE PAYMENT
+  // CARD PAYMENT
   // =========================
-  const handlePayment =
-    async (plan) => {
-      if (!userId) {
-        Alert.alert(
-          "Error",
-          "You must be logged in first."
-        );
+  const handlePayment = async (plan) => {
+    if (!userId) {
+      Alert.alert("Error", "Please login first");
+      return;
+    }
+
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      console.log("STARTING CARD PAYMENT");
+      console.log("PLAN:", plan);
+
+      const response = await axios.post(
+        `${API_URL}/create-checkout-session`,
+        {
+          userId,
+          plan,
+          currency,
+        }
+      );
+
+      const checkoutUrl = response.data?.url;
+
+      if (!checkoutUrl) {
+        Alert.alert("Error", "Payment session not created");
         return;
       }
 
-      try {
-        setLoading(true);
+      await Linking.openURL(checkoutUrl);
 
-        const response =
-          await axios.post(
-            `${API_URL}/create-checkout-session`,
-            {
-              userId,
-              plan,
-              currency,
-            }
-          );
+      Alert.alert(
+        "Complete Payment",
+        "Finish payment in browser, then return to app."
+      );
+    } catch (error) {
+      console.log(
+        "CARD PAYMENT ERROR:",
+        error.response?.data || error.message
+      );
 
-        const checkoutUrl =
-          response.data.url;
-
-        if (checkoutUrl) {
-          await Linking.openURL(
-            checkoutUrl
-          );
-        } else {
-          Alert.alert(
-            "Error",
-            "Could not start payment."
-          );
-        }
-
-      } catch (error) {
-        console.log(
-          "Payment error:",
-          error.response?.data ||
-            error.message
-        );
-
-        Alert.alert(
-          "Payment Error",
-          "Something went wrong."
-        );
-
-      } finally {
-        setLoading(false);
-      }
-    };
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Card payment failed."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // =========================
   // MPESA PAYMENT
   // =========================
-  const handleMpesaPayment =
-    async (plan, amount) => {
+  const handleMpesaPayment = async (plan, amount) => {
+    if (!userId) {
+      Alert.alert("Error", "Please login first");
+      return;
+    }
 
-      if (!userId) {
-        Alert.alert(
-          "Error",
-          "You must be logged in first."
-        );
-        return;
-      }
+    if (loading) return;
 
-      const formattedPhone =
-        formatPhone(phone);
+    const formattedPhone = formatPhone(phone);
 
-      if (!formattedPhone) {
-        Alert.alert(
-          "Invalid Number",
-          "Enter valid Safaricom number.\nExample: 0712345678"
-        );
-        return;
-      }
+    if (!formattedPhone) {
+      Alert.alert(
+        "Invalid Number",
+        "Enter number like 0712345678"
+      );
+      return;
+    }
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const response =
-          await axios.post(
-            `${API_URL}/mpesa-payment`,
-            {
-              phone: formattedPhone,
-              amount,
-              userId,
-              plan,
-            }
-          );
+      console.log("STARTING MPESA PAYMENT");
+      console.log("PLAN:", plan);
+      console.log("AMOUNT:", amount);
 
-        if (response.data.success) {
-          Alert.alert(
-            "M-Pesa Sent",
-            "Check phone and enter M-Pesa PIN."
-          );
+      const response = await axios.post(
+        `${API_URL}/mpesa-payment`,
+        {
+          phone: formattedPhone,
+          amount,     // MUST MATCH BACKEND
+          userId,
+          plan,
         }
+      );
 
-      } catch (error) {
-        console.log(
-          "MPESA ERROR:",
-          error.response?.data ||
-            error.message
-        );
-
+      if (response.data.success) {
         Alert.alert(
-          "Payment Error",
-          "M-Pesa payment failed."
+          "Success",
+          "Check your phone for M-Pesa prompt."
         );
-
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+  console.log("MPESA FRONTEND ERROR:", error.message);
+
+  console.log(
+    "SERVER RESPONSE:",
+    error.response?.data
+  );
+
+  Alert.alert(
+    "Error",
+    JSON.stringify(
+      error.response?.data || error.message
+    )
+  );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
 
-      <Text style={styles.title}>
-        Upgrade to Premium
-      </Text>
-
-      <Text style={styles.subtitle}>
-        Choose Card Currency
-      </Text>
-
-      <View style={styles.currencyRow}>
-
-        <TouchableOpacity
-          disabled={loading}
-          style={[
-            styles.currencyButton,
-            currency === "kes" &&
-              styles.activeButton,
-          ]}
-          onPress={() =>
-            setCurrency("kes")
-          }
-        >
-          <Text>KES 🇰🇪</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          disabled={loading}
-          style={[
-            styles.currencyButton,
-            currency === "usd" &&
-              styles.activeButton,
-          ]}
-          onPress={() =>
-            setCurrency("usd")
-          }
-        >
-          <Text>USD 🇺🇸</Text>
-        </TouchableOpacity>
-
+      <View style={styles.header}>
+        <Text style={styles.title}>Unlock Premium</Text>
+        <Text style={styles.subtitle}>
+          Access the full global student network
+        </Text>
       </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="0712345678"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
+      <View style={styles.trustBox}>
+        <Text style={styles.trustTitle}>
+          Trusted by students worldwide 🌍
+        </Text>
+
+        <Text style={styles.trustText}>
+          Secure payments via :contentReference[oaicite:0]{index=0} & M-Pesa
+        </Text>
+      </View>
+
+      <View style={styles.featuresCard}>
+        <Text style={styles.cardTitle}>Premium Features</Text>
+        <Text style={styles.feature}>✓ Private Student Messaging</Text>
+        <Text style={styles.feature}>✓ Video Study Rooms</Text>
+        <Text style={styles.feature}>✓ Full Notes Marketplace</Text>
+        <Text style={styles.feature}>✓ Upload Notes & Earn</Text>
+        <Text style={styles.feature}>✓ Premium Student Visibility</Text>
+      </View>
+
+      <Text style={styles.sectionTitle}>Choose Currency</Text>
+
+      <View style={styles.row}>
+        <TouchableOpacity
+          disabled={loading}
+          style={[
+            styles.currencyBtn,
+            currency === "kes" && styles.activeCurrency,
+          ]}
+          onPress={() => setCurrency("kes")}
+        >
+          <Text style={styles.currencyText}>KES 🇰🇪</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          disabled={loading}
+          style={[
+            styles.currencyBtn,
+            currency === "usd" && styles.activeCurrency,
+          ]}
+          onPress={() => setCurrency("usd")}
+        >
+          <Text style={styles.currencyText}>USD 🇺🇸</Text>
+        </TouchableOpacity>
+      </View>
+
+      {currency === "kes" && (
+        <TextInput
+          style={styles.input}
+          placeholder="M-Pesa Number (0712345678)"
+          placeholderTextColor="#9CA3AF"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+        />
+      )}
 
       {/* 2 DAYS */}
-
-      <TouchableOpacity
-        disabled={loading}
-        style={styles.planButton}
-        onPress={() =>
-          handlePayment("2days")
-        }
-      >
-        <Text style={styles.planText}>
-          Card: 2 Days —{" "}
-          {currency === "kes"
-            ? "KSh 100"
-            : "$1.00"}
+      <View style={styles.planCard}>
+        <Text style={styles.planTitle}>Starter Plan</Text>
+        <Text style={styles.planDesc}>
+          Perfect for testing premium access
         </Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        disabled={loading}
-        style={styles.mpesaButton}
-        onPress={() =>
-          handleMpesaPayment(
-            "2days",
-            100
-          )
-        }
-      >
-        <Text style={styles.planText}>
-          M-Pesa: 2 Days — KSh 100
+        <Text style={styles.price}>
+          {currency === "kes" ? "KSh 50" : "$0.50"}
         </Text>
-      </TouchableOpacity>
+
+        <TouchableOpacity
+          disabled={loading}
+          style={styles.primaryBtn}
+          onPress={() => handlePayment("2days")}
+        >
+          <Text style={styles.primaryText}>
+            Subscribe with Card
+          </Text>
+        </TouchableOpacity>
+
+        {currency === "kes" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.secondaryBtn}
+            onPress={() => handleMpesaPayment("2days", 50)}
+          >
+            <Text style={styles.secondaryText}>
+              Instant M-Pesa Payment
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* WEEKLY */}
+      <View style={[styles.planCard, styles.popularCard]}>
+        <Text style={styles.popularBadge}>MOST POPULAR</Text>
+        <Text style={styles.planTitle}>Student Pro</Text>
 
-      <TouchableOpacity
-        disabled={loading}
-        style={styles.planButton}
-        onPress={() =>
-          handlePayment("weekly")
-        }
-      >
-        <Text style={styles.planText}>
-          Card: Weekly —{" "}
-          {currency === "kes"
-            ? "KSh 250"
-            : "$2.50"}
+        <Text style={styles.planDesc}>
+          Best for active university students
         </Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        disabled={loading}
-        style={styles.mpesaButton}
-        onPress={() =>
-          handleMpesaPayment(
-            "weekly",
-            250
-          )
-        }
-      >
-        <Text style={styles.planText}>
-          M-Pesa: Weekly — KSh 250
+        <Text style={styles.price}>
+          {currency === "kes" ? "KSh 150" : "$1.50"}
         </Text>
-      </TouchableOpacity>
+
+        <TouchableOpacity
+          disabled={loading}
+          style={styles.primaryBtn}
+          onPress={() => handlePayment("weekly")}
+        >
+          <Text style={styles.primaryText}>
+            Subscribe with Card
+          </Text>
+        </TouchableOpacity>
+
+        {currency === "kes" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.secondaryBtn}
+            onPress={() => handleMpesaPayment("weekly", 150)}
+          >
+            <Text style={styles.secondaryText}>
+              Instant M-Pesa Payment
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* MONTHLY */}
+      <View style={[styles.planCard, styles.premiumCard]}>
+        <Text style={styles.goldBadge}>UNLIMITED PREMIUM ⭐</Text>
+        <Text style={styles.planTitle}>Unlimited Access</Text>
 
-      <TouchableOpacity
-        disabled={loading}
-        style={styles.planButton}
-        onPress={() =>
-          handlePayment("monthly")
-        }
-      >
-        <Text style={styles.planText}>
-          Card: Monthly —{" "}
-          {currency === "kes"
-            ? "KSh 1000"
-            : "$10.00"}
+        <Text style={styles.planDesc}>
+          Full unrestricted premium experience
         </Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        disabled={loading}
-        style={styles.mpesaButton}
-        onPress={() =>
-          handleMpesaPayment(
-            "monthly",
-            1000
-          )
-        }
-      >
-        <Text style={styles.planText}>
-          M-Pesa: Monthly — KSh 1000
+        <Text style={styles.price}>
+          {currency === "kes" ? "KSh 500" : "$5.00"}
         </Text>
-      </TouchableOpacity>
+
+        <TouchableOpacity
+          disabled={loading}
+          style={styles.primaryBtn}
+          onPress={() => handlePayment("monthly")}
+        >
+          <Text style={styles.primaryText}>
+            Subscribe with Card
+          </Text>
+        </TouchableOpacity>
+
+        {currency === "kes" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.secondaryBtn}
+            onPress={() => handleMpesaPayment("monthly", 500)}
+          >
+            <Text style={styles.secondaryText}>
+              Instant M-Pesa Payment
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.warningBox}>
+        <Text style={styles.warningTitle}>
+          Your free trial may expire soon
+        </Text>
+
+        <Text style={styles.warningText}>
+          Upgrade now to keep uninterrupted access.
+        </Text>
+      </View>
+
+      <Text style={styles.security}>
+        🔒 256-bit Secure Payments
+      </Text>
 
       {loading && (
-        <Text
-          style={{
-            textAlign: "center",
-            marginTop: 20,
-          }}
-        >
+        <Text style={styles.loading}>
           Processing payment...
         </Text>
       )}
-
-    </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+
+const styles = {
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: "center",
+    backgroundColor: "#05070A",
+    padding: 16,
+  },
+
+  header: {
+    marginTop: 45,
+    alignItems: "center",
+    marginBottom: 20,
   },
 
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "bold",
-    marginBottom: 30,
-    textAlign: "center",
+    color: "#FFFFFF",
   },
 
   subtitle: {
-    fontSize: 18,
-    marginBottom: 10,
+    color: "#9CA3AF",
     textAlign: "center",
+    marginTop: 6,
   },
 
-  currencyRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-
-  currencyButton: {
-    padding: 12,
-    marginHorizontal: 10,
-    borderWidth: 1,
-    borderRadius: 10,
-  },
-
-  activeButton: {
-    backgroundColor: "#d3f4ff",
-  },
-
-  input: {
-    borderWidth: 1,
-    padding: 12,
-    marginBottom: 20,
-    borderRadius: 10,
-  },
-
-  planButton: {
-    padding: 18,
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-
-  mpesaButton: {
-    padding: 18,
-    borderWidth: 1,
-    borderRadius: 12,
+  trustBox: {
+    backgroundColor: "#111827",
+    padding: 15,
+    borderRadius: 14,
     marginBottom: 18,
   },
 
-  planText: {
+  trustTitle: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+
+  trustText: {
+    color: "#9CA3AF",
+    marginTop: 4,
+  },
+
+  featuresCard: {
+    backgroundColor: "#111827",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+
+  cardTitle: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    marginBottom: 10,
     fontSize: 16,
-    textAlign: "center",
+  },
+
+  feature: {
+    color: "#9CA3AF",
+    marginTop: 4,
+  },
+
+  sectionTitle: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
+
+  currencyBtn: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 12,
+    marginHorizontal: 8,
+    minWidth: 100,
+    alignItems: "center",
+  },
+
+  activeCurrency: {
+    backgroundColor: "#4F46E5",
+    borderColor: "#4F46E5",
+  },
+
+  currencyText: {
+    color: "#FFFFFF",
     fontWeight: "600",
   },
-});
+
+  input: {
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    padding: 14,
+    borderRadius: 12,
+    color: "#FFFFFF",
+    marginBottom: 18,
+  },
+
+  planCard: {
+    backgroundColor: "#111827",
+    padding: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    marginBottom: 16,
+  },
+
+  popularCard: {
+    borderColor: "#4F46E5",
+    borderWidth: 2,
+  },
+
+  premiumCard: {
+    borderColor: "#F59E0B",
+    borderWidth: 2,
+  },
+
+  popularBadge: {
+    color: "#4F46E5",
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+
+  goldBadge: {
+    color: "#F59E0B",
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+
+  planTitle: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+
+  planDesc: {
+    color: "#9CA3AF",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+
+  price: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+
+  primaryBtn: {
+    backgroundColor: "#4F46E5",
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+
+  primaryText: {
+    color: "#FFFFFF",
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+
+  secondaryBtn: {
+    backgroundColor: "#1F2937",
+    padding: 14,
+    borderRadius: 12,
+  },
+
+  secondaryText: {
+    color: "#FFFFFF",
+    textAlign: "center",
+  },
+
+  warningBox: {
+    backgroundColor: "#111827",
+    padding: 15,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+
+  warningTitle: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+
+  warningText: {
+    color: "#9CA3AF",
+    marginTop: 4,
+  },
+
+  security: {
+    color: "#6B7280",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 20,
+  },
+
+  loading: {
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginBottom: 30,
+  },
+};

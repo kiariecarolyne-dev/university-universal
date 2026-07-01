@@ -1,14 +1,18 @@
 {
   "expo": {
-    "name": "university-universal",
+    "name": "University Universal",
     "slug": "university-universal",
     "version": "1.0.0",
     "orientation": "portrait",
+
     "userInterfaceStyle": "automatic",
+
+    "icon": "./assets/expo.icon/Assets/assetsicon.png",
 
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE"
+        "foregroundImage": "./assets/expo.icon/Assets/assetsicon.png",
+        "backgroundColor": "#05070A"
       }
     },
 
@@ -16,7 +20,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF"
+          "backgroundColor": "#05070A",
+          "image": "./assets/expo.icon/Assets/assetsicon.png",
+          "resizeMode": "contain"
         }
       ]
     ]
