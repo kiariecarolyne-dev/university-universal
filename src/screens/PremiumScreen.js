@@ -164,7 +164,7 @@ export default function PremiumScreen() {
         </Text>
 
         <Text style={styles.trustText}>
-          Secure payments via :contentReference[oaicite:0]{index=0} & M-Pesa
+          Secure payments via Card & M-Pesa
         </Text>
       </View>
 
@@ -214,7 +214,7 @@ export default function PremiumScreen() {
         />
       )}
 
-      {/* 2 DAYS */}
+            {/* 2 DAYS */}
       <View style={styles.planCard}>
         <Text style={styles.planTitle}>Starter Plan</Text>
         <Text style={styles.planDesc}>
@@ -225,15 +225,17 @@ export default function PremiumScreen() {
           {currency === "kes" ? "KSh 50" : "$0.50"}
         </Text>
 
-        <TouchableOpacity
-          disabled={loading}
-          style={styles.primaryBtn}
-          onPress={() => handlePayment("2days")}
-        >
-          <Text style={styles.primaryText}>
-            Subscribe with Card
-          </Text>
-        </TouchableOpacity>
+        {currency === "usd" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.primaryBtn}
+            onPress={() => handlePayment("2days")}
+          >
+            <Text style={styles.primaryText}>
+              Subscribe with Card
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {currency === "kes" && (
           <TouchableOpacity
@@ -248,6 +250,7 @@ export default function PremiumScreen() {
         )}
       </View>
 
+
       {/* WEEKLY */}
       <View style={[styles.planCard, styles.popularCard]}>
         <Text style={styles.popularBadge}>MOST POPULAR</Text>
@@ -261,15 +264,17 @@ export default function PremiumScreen() {
           {currency === "kes" ? "KSh 150" : "$1.50"}
         </Text>
 
-        <TouchableOpacity
-          disabled={loading}
-          style={styles.primaryBtn}
-          onPress={() => handlePayment("weekly")}
-        >
-          <Text style={styles.primaryText}>
-            Subscribe with Card
-          </Text>
-        </TouchableOpacity>
+        {currency === "usd" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.primaryBtn}
+            onPress={() => handlePayment("weekly")}
+          >
+            <Text style={styles.primaryText}>
+              Subscribe with Card
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {currency === "kes" && (
           <TouchableOpacity
@@ -284,6 +289,7 @@ export default function PremiumScreen() {
         )}
       </View>
 
+
       {/* MONTHLY */}
       <View style={[styles.planCard, styles.premiumCard]}>
         <Text style={styles.goldBadge}>UNLIMITED PREMIUM ⭐</Text>
@@ -297,15 +303,17 @@ export default function PremiumScreen() {
           {currency === "kes" ? "KSh 500" : "$5.00"}
         </Text>
 
-        <TouchableOpacity
-          disabled={loading}
-          style={styles.primaryBtn}
-          onPress={() => handlePayment("monthly")}
-        >
-          <Text style={styles.primaryText}>
-            Subscribe with Card
-          </Text>
-        </TouchableOpacity>
+        {currency === "usd" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.primaryBtn}
+            onPress={() => handlePayment("monthly")}
+          >
+            <Text style={styles.primaryText}>
+              Subscribe with Card
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {currency === "kes" && (
           <TouchableOpacity
@@ -342,7 +350,6 @@ export default function PremiumScreen() {
     </ScrollView>
   );
 }
-
 
 const styles = {
   container: {
