@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Text,
   TouchableOpacity,
   View,
@@ -34,12 +35,16 @@ export default function NotesScreen({ navigation }) {
     try {
       setLoading(true);
 
-      const snapshot = await getDocs(collection(db, "notes_marketplace"));
+      const snapshot = await getDocs(collection(db, "notes"));
 
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const data = snapshot.docs.map((doc) => {
+  console.log(doc.data());
+
+  return {
+    id: doc.id,
+    ...doc.data(),
+  };
+});
 
       setNotes(data);
     } catch (error) {
@@ -88,36 +93,55 @@ export default function NotesScreen({ navigation }) {
   };
 
   const handleNotePress = (item) => {
-    if (!canChat) {
-      Alert.alert(
-        "Premium Required",
-        "Private messaging requires Premium access."
-      );
-
-      navigation.navigate("Premium");
-      return;
-    }
-
+  if (!canChat) {
     Alert.alert(
-      "Contact Student",
-      `Message ${item.ownerEmail}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Message",
-          onPress: () =>
-            navigation.navigate("PrivateChat", {
-              student: {
-                id: item.ownerId,
-                email: item.ownerEmail,
-              },
-            }),
-        },
-      ]
+      "Premium Required",
+      "Private messaging requires Premium access."
     );
-  };
 
-  if (!user) return null;
+    navigation.navigate("Premium");
+    return;
+  }
+
+  Alert.alert(
+    "Contact Student",
+    `Message ${item.ownerEmail}?`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Message",
+        onPress: () =>
+          navigation.navigate("PrivateChat", {
+            student: {
+              id: item.ownerId,
+              email: item.ownerEmail,
+            },
+          }),
+      },
+    ]
+  );
+};
+
+const downloadPDF = async (item) => {
+  if (!item.fileUrl) {
+    Alert.alert(
+      "Unavailable",
+      "This note has no downloadable PDF."
+    );
+    return;
+  }
+
+  try {
+    await Linking.openURL(item.fileUrl);
+  } catch (error) {
+    Alert.alert(
+      "Error",
+      "Unable to open the PDF."
+    );
+  }
+};
+
+if (!user) return null;
 
   if (!canViewNotes) {
     return (
@@ -179,15 +203,35 @@ export default function NotesScreen({ navigation }) {
               </Text>
 
               <Text style={styles.owner}>
-                Posted by: {item.ownerEmail}
-              </Text>
+  Posted by: {item.ownerEmail}
+</Text>
 
-              <TouchableOpacity
-                onPress={() => reportUser(item)}
-                style={styles.reportBtn}
-              >
-                <Text style={styles.reportText}>Report User</Text>
-              </TouchableOpacity>
+<TouchableOpacity
+  style={styles.downloadBtn}
+  onPress={() => downloadPDF(item)}
+>
+  <Text style={styles.downloadText}>
+    📥 Download PDF
+  </Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  style={styles.messageBtn}
+  onPress={() => handleNotePress(item)}
+>
+  <Text style={styles.messageText}>
+    💬 Message Student
+  </Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  onPress={() => reportUser(item)}
+  style={styles.reportBtn}
+>
+  <Text style={styles.reportText}>
+    🚩 Report User
+  </Text>
+</TouchableOpacity>
 
             </TouchableOpacity>
           )}
@@ -281,6 +325,32 @@ const styles = {
     marginTop: 10,
     fontSize: 11,
   },
+
+  downloadBtn: {
+  marginTop: 12,
+  backgroundColor: "#2563EB",
+  padding: 12,
+  borderRadius: 10,
+  alignItems: "center",
+},
+
+downloadText: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+},
+
+messageBtn: {
+  marginTop: 10,
+  backgroundColor: "#22C55E",
+  padding: 12,
+  borderRadius: 10,
+  alignItems: "center",
+},
+
+messageText: {
+  color: "#000000",
+  fontWeight: "bold",
+},
 
   reportBtn: {
     marginTop: 12,
