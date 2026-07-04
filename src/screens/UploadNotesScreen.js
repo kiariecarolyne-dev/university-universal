@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import axios from "axios";
+import * as DocumentPicker from "expo-document-picker";
 
 import useUser from "../hooks/useUser";
 import { auth } from "../services/firebase";
@@ -23,6 +24,7 @@ export default function UploadNotesScreen({ navigation }) {
   const [course, setCourse] = useState("");
   const [university, setUniversity] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const isAllowed = user && isPremiumUser(user);
@@ -41,9 +43,28 @@ export default function UploadNotesScreen({ navigation }) {
     );
   };
 
-  /* =========================
-     PREMIUM LOCK SCREEN
-  ========================= */
+  /* PICK PDF */
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/pdf",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled) {
+        setSelectedFile(result.assets[0]);
+
+        Alert.alert(
+          "PDF Selected",
+          result.assets[0].name
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not select file");
+    }
+  };
+
+  /* PREMIUM LOCK */
   if (!isAllowed) {
     return (
       <View style={styles.lockContainer}>
@@ -69,81 +90,106 @@ export default function UploadNotesScreen({ navigation }) {
     );
   }
 
-  /* =========================
-     UPLOAD NOTE
-  ========================= */
+  /* UPLOAD NOTE */
   const uploadNote = async () => {
-    if (loading) return;
+  if (loading) return;
 
-    if (!title || !course || !university || !description) {
-      Alert.alert("Error", "Please fill all fields");
-      return;
-    }
+  if (
+    !title ||
+    !course ||
+    !university ||
+    !description
+  ) {
+    Alert.alert("Error", "Please fill all fields");
+    return;
+  }
 
-    if (
-      containsContactInfo(title) ||
-      containsContactInfo(description)
-    ) {
-      Alert.alert(
-        "Blocked",
-        "Phone numbers, emails and WhatsApp links are not allowed."
-      );
-      return;
-    }
+  if (!selectedFile) {
+    Alert.alert(
+      "PDF Required",
+      "Please select a PDF file"
+    );
+    return;
+  }
 
-    try {
-      setLoading(true);
+  if (
+    containsContactInfo(title) ||
+    containsContactInfo(description)
+  ) {
+    Alert.alert(
+      "Blocked",
+      "Phone numbers, emails and WhatsApp links are not allowed."
+    );
+    return;
+  }
 
-      const response = await axios.post(
-        `${API_URL}/upload-note`,
-        {
-          userId: auth.currentUser.uid,
+  try {
+    setLoading(true);
 
-          email: auth.currentUser.email,
+    const formData = new FormData();
 
-          // NEW
-          ownerName: user.fullName || "Unknown Student",
+    formData.append("userId", auth.currentUser.uid);
+    formData.append("email", auth.currentUser.email);
+    formData.append(
+      "ownerName",
+      user.fullName || "Unknown Student"
+    );
 
-          title,
-          course,
-          university,
-          description,
-        }
-      );
+    formData.append("title", title);
+    formData.append("course", course);
+    formData.append("university", university);
+    formData.append("description", description);
 
-      if (response.data.success) {
-        Alert.alert(
-          "Success",
-          "Notes published successfully"
-        );
+    formData.append("file", {
+      uri: selectedFile.uri,
+      name: selectedFile.name,
+      type: "application/pdf",
+    });
 
-        setTitle("");
-        setCourse("");
-        setUniversity("");
-        setDescription("");
-
-        navigation.goBack();
-      } else {
-        Alert.alert("Error", "Upload failed");
+    const response = await axios.post(
+      `${API_URL}/upload-note`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       }
+    );
 
-    } catch (error) {
+    if (response.data.success) {
       Alert.alert(
-        "Error",
-        error.response?.data?.error || "Server error"
+        "Success",
+        "Notes uploaded successfully!"
       );
-    } finally {
-      setLoading(false);
+
+      setTitle("");
+      setCourse("");
+      setUniversity("");
+      setDescription("");
+      setSelectedFile(null);
+
+      navigation.goBack();
+    } else {
+      Alert.alert("Error", "Upload failed");
     }
-  };
+
+  } catch (error) {
+    console.log(error.response?.data || error);
+
+    Alert.alert(
+      "Upload Failed",
+      error.response?.data?.error || "Something went wrong."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-
-      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>
           Upload Notes
@@ -154,9 +200,7 @@ export default function UploadNotesScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* FORM */}
       <View style={styles.card}>
-
         <Text style={styles.label}>Title</Text>
         <TextInput
           placeholder="Introduction to Calculus Notes"
@@ -194,6 +238,23 @@ export default function UploadNotesScreen({ navigation }) {
           style={[styles.input, styles.textArea]}
         />
 
+        <Text style={styles.label}>PDF Document</Text>
+
+        <TouchableOpacity
+          style={styles.fileBtn}
+          onPress={pickDocument}
+        >
+          <Text style={styles.fileText}>
+            Select PDF
+          </Text>
+        </TouchableOpacity>
+
+        {selectedFile && (
+          <Text style={styles.fileName}>
+            Selected: {selectedFile.name}
+          </Text>
+        )}
+
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={uploadNote}
@@ -201,19 +262,14 @@ export default function UploadNotesScreen({ navigation }) {
         >
           <Text style={styles.primaryText}>
             {loading
-              ? "Publishing..."
+              ? "Uploading..."
               : "Publish Notes"}
           </Text>
         </TouchableOpacity>
-
       </View>
     </ScrollView>
   );
 }
-
-/* =========================
-   SAAS DARK DESIGN
-========================= */
 
 const styles = {
   container: {
@@ -266,6 +322,24 @@ const styles = {
   textArea: {
     height: 100,
     textAlignVertical: "top",
+  },
+
+  fileBtn: {
+    backgroundColor: "#1E293B",
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  fileText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+
+  fileName: {
+    color: "#10B981",
+    marginBottom: 10,
   },
 
   primaryBtn: {

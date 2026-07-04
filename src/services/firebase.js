@@ -8,6 +8,9 @@ import {
 
 import { getFirestore } from "firebase/firestore";
 
+/* NEW */
+import { getStorage } from "firebase/storage";
+
 const firebaseConfig = {
   apiKey: "AIzaSyD5h0f_eaLt98xk_fIy5DdnSSKAhmnGuME",
   authDomain: "university-universal-e6787.firebaseapp.com",
@@ -22,9 +25,13 @@ const app =
     ? initializeApp(firebaseConfig)
     : getApp();
 
-// AUTH with persistence
+/* AUTH */
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage)
 });
 
+/* FIRESTORE */
 export const db = getFirestore(app);
+
+/* NEW STORAGE */
+export const storage = getStorage(app);

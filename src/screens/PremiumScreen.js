@@ -164,7 +164,7 @@ export default function PremiumScreen() {
         </Text>
 
         <Text style={styles.trustText}>
-          Secure payments via Card & M-Pesa
+          USD via Card • KES via M-Pesa
         </Text>
       </View>
 
@@ -339,7 +339,7 @@ export default function PremiumScreen() {
       </View>
 
       <Text style={styles.security}>
-        🔒 256-bit Secure Payments
+        🔒 Secure Payments • Protected Checkout
       </Text>
 
       {loading && (
