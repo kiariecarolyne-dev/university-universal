@@ -30,9 +30,15 @@ export default function NotesScreen({ navigation }) {
   const [reportCooldown, setReportCooldown] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
 
+const filters = [
+  { key: "all", label: "🎓 All Universities" },
+  { key: "university", label: "📚 My University" },
+  { key: "course", label: "⭐ My Course" },
+];
 
-  const user = useUser();
+const user = useUser();
 
   const canViewNotes = user && canAccessNotes(user);
   const canChat = user && isPremiumUser(user);
@@ -153,20 +159,39 @@ const downloadPDF = async (item) => {
 };
 
 const filteredNotes = notes.filter((note) => {
-
   const search = searchText.trim().toLowerCase();
 
-  if (!search) return true;
-
-  const matches =
+  // =========================
+  // 1. SEARCH FILTER
+  // =========================
+  const matchesSearch =
+    !search ||
     note.title?.toLowerCase().includes(search) ||
     note.course?.toLowerCase().includes(search) ||
     note.university?.toLowerCase().includes(search) ||
     note.description?.toLowerCase().includes(search);
 
-  
+  // =========================
+  // 2. TAB FILTER
+  // =========================
+  let matchesFilter = true;
 
-  return matches;
+  if (activeFilter === "university") {
+    matchesFilter = note.university === user?.university;
+  }
+
+  if (activeFilter === "course") {
+    matchesFilter = note.course === user?.course;
+  }
+
+  if (activeFilter === "all") {
+    matchesFilter = true;
+  }
+
+  // =========================
+  // FINAL COMBINATION
+  // =========================
+  return matchesSearch && matchesFilter;
 });
 
 if (!user) return null;
@@ -208,6 +233,27 @@ if (!user) return null;
     value={searchText}
     onChangeText={setSearchText}
   />
+</View>
+
+{/* 🧩 FILTER BUTTONS — ADD HERE */}
+<View style={{ flexDirection: "row", marginBottom: 10, paddingHorizontal: 16 }}>
+  {filters.map((f) => (
+    <TouchableOpacity key={f.key} onPress={() => setActiveFilter(f.key)}>
+      <Text
+        style={{
+          marginRight: 10,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          backgroundColor: activeFilter === f.key ? "#000" : "#eee",
+          color: activeFilter === f.key ? "#fff" : "#000",
+          borderRadius: 20,
+          fontSize: 12,
+        }}
+      >
+        {f.label}
+      </Text>
+    </TouchableOpacity>
+  ))}
 </View>
 
       {loading ? (
