@@ -22,7 +22,8 @@
           "image": "./assets/expo.icon/Assets/assetsicon.png",
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "eas": {

@@ -11,15 +11,15 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Linking,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
 import { canAccessNotes, isPremiumUser } from "../utils/access";
@@ -141,20 +141,40 @@ data.sort((a, b) => {
 
 const downloadPDF = async (item) => {
   if (!item.fileUrl) {
-    Alert.alert(
-      "Unavailable",
-      "This note has no downloadable PDF."
-    );
+    Alert.alert("Unavailable", "This note has no downloadable PDF.");
     return;
   }
 
   try {
-    await Linking.openURL(item.fileUrl);
-  } catch (error) {
-    Alert.alert(
-      "Error",
-      "Unable to open the PDF."
+    setDownloadingId(item.id);
+
+    const fileName =
+      item.title?.replace(/\s+/g, "_") || "note_file";
+
+    const fileUri =
+      FileSystem.documentDirectory + fileName + ".pdf";
+
+    const { uri } = await FileSystem.downloadAsync(
+      item.fileUrl,
+      fileUri
     );
+
+    setDownloadingId(null);
+
+    const canShare = await Sharing.isAvailableAsync();
+
+    if (canShare) {
+      await Sharing.shareAsync(uri);
+    } else {
+      Alert.alert(
+        "Download Complete",
+        "File saved but cannot be opened on this device."
+      );
+    }
+  } catch (error) {
+    console.log("Download error:", error);
+    setDownloadingId(null);
+    Alert.alert("Error", "Download failed. Please try again.");
   }
 };
 
