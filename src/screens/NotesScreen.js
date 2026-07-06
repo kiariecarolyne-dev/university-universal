@@ -43,13 +43,14 @@ export default function NotesScreen({ navigation }) {
 
       const snapshot = await getDocs(collection(db, "notes"));
 
-      const data = snapshot.docs.map((doc) => {
-  console.log(doc.data());
+      const data = snapshot.docs.map((doc) => ({
+  id: doc.id,
+  ...doc.data(),
+}));
 
-  return {
-    id: doc.id,
-    ...doc.data(),
-  };
+// Show newest notes first
+data.sort((a, b) => {
+  return new Date(b.createdAt) - new Date(a.createdAt);
 });
 
       setNotes(data);
