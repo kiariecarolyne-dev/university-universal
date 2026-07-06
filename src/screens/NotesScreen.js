@@ -13,10 +13,13 @@ import {
   FlatList,
   Linking,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
+
+import * as FileSystem from "expo-file-system";
 import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
 import { canAccessNotes, isPremiumUser } from "../utils/access";
@@ -25,6 +28,9 @@ export default function NotesScreen({ navigation }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reportCooldown, setReportCooldown] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+
 
   const user = useUser();
 
@@ -65,6 +71,10 @@ export default function NotesScreen({ navigation }) {
 
     loadNotes();
   }, [user, canViewNotes]);
+
+  useEffect(() => {
+  console.log("FILESYSTEM:", FileSystem);
+}, []);
 
   const reportUser = async (item) => {
     if (reportCooldown) {
@@ -141,6 +151,23 @@ const downloadPDF = async (item) => {
   }
 };
 
+const filteredNotes = notes.filter((note) => {
+
+  const search = searchText.trim().toLowerCase();
+
+  if (!search) return true;
+
+  const matches =
+    note.title?.toLowerCase().includes(search) ||
+    note.course?.toLowerCase().includes(search) ||
+    note.university?.toLowerCase().includes(search) ||
+    note.description?.toLowerCase().includes(search);
+
+  
+
+  return matches;
+});
+
 if (!user) return null;
 
   if (!canViewNotes) {
@@ -166,12 +193,21 @@ if (!user) return null;
     <View style={styles.container}>
 
       {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>📚 Notes Marketplace</Text>
-        <Text style={styles.subtitle}>
-          Buy, share and connect with students
-        </Text>
-      </View>
+<View style={styles.header}>
+  <Text style={styles.title}>📚 Notes Marketplace</Text>
+
+  <Text style={styles.subtitle}>
+    Buy, share and connect with students
+  </Text>
+
+  <TextInput
+    style={styles.searchInput}
+    placeholder="🔍 Search notes..."
+    placeholderTextColor="#9CA3AF"
+    value={searchText}
+    onChangeText={setSearchText}
+  />
+</View>
 
       {loading ? (
         <View style={styles.loader}>
@@ -180,7 +216,7 @@ if (!user) return null;
         </View>
       ) : (
         <FlatList
-          data={notes}
+          data={filteredNotes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
           ListEmptyComponent={
@@ -208,10 +244,13 @@ if (!user) return null;
 
 <TouchableOpacity
   style={styles.downloadBtn}
+  disabled={downloadingId === item.id}
   onPress={() => downloadPDF(item)}
 >
   <Text style={styles.downloadText}>
-    📥 Download PDF
+    {downloadingId === item.id
+      ? "⏳ Downloading..."
+      : "📥 Download PDF"}
   </Text>
 </TouchableOpacity>
 
@@ -258,6 +297,18 @@ const styles = {
     borderBottomWidth: 1,
     borderBottomColor: "#1F2937",
   },
+
+searchInput: {
+  marginTop: 15,
+  backgroundColor: "#121826",
+  color: "#FFFFFF",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  borderRadius: 12,
+  paddingHorizontal: 15,
+  paddingVertical: 12,
+  fontSize: 15,
+},
 
   title: {
     fontSize: 22,
