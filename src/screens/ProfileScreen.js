@@ -97,41 +97,49 @@ export default function ProfileScreen() {
 
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.title}>My Profile</Text>
-        <Text style={styles.subtitle}>
-          Build your academic identity 🌍
-        </Text>
-      </View>
+  <Text style={styles.title}>My Profile</Text>
+
+  <Text style={styles.subtitle}>
+    Build your academic identity 🌍
+  </Text>
+
+  <Text style={styles.email}>
+    {auth.currentUser?.email}
+  </Text>
+</View>
 
       {/* PROFILE CARD */}
       <View style={styles.card}>
 
         <Text style={styles.label}>Full Name</Text>
-        <TextInput
-          placeholder="Enter full name"
-          placeholderTextColor="#6B7280"
-          value={fullName}
-          onChangeText={setFullName}
-          style={styles.input}
-        />
+<TextInput
+  placeholder="Enter full name"
+  placeholderTextColor="#6B7280"
+  autoCapitalize="words"
+  value={fullName}
+  onChangeText={setFullName}
+  style={styles.input}
+/>
 
         <Text style={styles.label}>University</Text>
-        <TextInput
-          placeholder="Enter university"
-          placeholderTextColor="#6B7280"
-          value={university}
-          onChangeText={setUniversity}
-          style={styles.input}
-        />
+<TextInput
+  placeholder="Enter university"
+  placeholderTextColor="#6B7280"
+  autoCapitalize="words"
+  value={university}
+  onChangeText={setUniversity}
+  style={styles.input}
+/>
 
         <Text style={styles.label}>Course</Text>
-        <TextInput
-          placeholder="Enter course"
-          placeholderTextColor="#6B7280"
-          value={course}
-          onChangeText={setCourse}
-          style={styles.input}
-        />
+<TextInput
+  placeholder="Enter course"
+  placeholderTextColor="#6B7280"
+  autoCapitalize="words"
+  value={course}
+  onChangeText={setCourse}
+  style={styles.input}
+/>
 
         <Text style={styles.label}>Country</Text>
         <TextInput
@@ -143,13 +151,14 @@ export default function ProfileScreen() {
         />
 
         <Text style={styles.label}>Year of Study</Text>
-        <TextInput
-          placeholder="e.g. 1st Year"
-          placeholderTextColor="#6B7280"
-          value={year}
-          onChangeText={setYear}
-          style={styles.input}
-        />
+<TextInput
+  placeholder="e.g. 1st Year"
+  placeholderTextColor="#6B7280"
+  autoCorrect={false}
+  value={year}
+  onChangeText={setYear}
+  style={styles.input}
+/>
 
         <TouchableOpacity
           style={styles.primaryBtn}
@@ -157,7 +166,7 @@ export default function ProfileScreen() {
           disabled={loading}
         >
           <Text style={styles.primaryText}>
-            {loading ? "Saving..." : "Save Profile"}
+            {loading ? "Saving..." : "💾 Save Profile"}
           </Text>
         </TouchableOpacity>
 
@@ -189,9 +198,15 @@ const styles = {
   },
 
   subtitle: {
-    color: "#9CA3AF",
-    marginTop: 6,
-  },
+  color: "#9CA3AF",
+  marginTop: 6,
+},
+
+email: {
+  color: "#6B7280",
+  marginTop: 4,
+  fontSize: 13,
+},
 
   card: {
     backgroundColor: "rgba(15, 23, 42, 0.90)",
