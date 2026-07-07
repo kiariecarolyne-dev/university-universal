@@ -243,8 +243,8 @@ if (!user) return null;
   <Text style={styles.title}>📚 Notes Marketplace</Text>
 
   <Text style={styles.subtitle}>
-    Buy, share and connect with students
-  </Text>
+  Discover quality study materials from university students worldwide 🌍
+</Text>
 
   <TextInput
     style={styles.searchInput}
@@ -255,20 +255,22 @@ if (!user) return null;
   />
 </View>
 
-{/* 🧩 FILTER BUTTONS — ADD HERE */}
-<View style={{ flexDirection: "row", marginBottom: 10, paddingHorizontal: 16 }}>
+{/* FILTER BUTTONS */}
+<View style={styles.filterRow}>
   {filters.map((f) => (
-    <TouchableOpacity key={f.key} onPress={() => setActiveFilter(f.key)}>
+    <TouchableOpacity
+      key={f.key}
+      style={[
+        styles.filterChip,
+        activeFilter === f.key && styles.activeFilterChip,
+      ]}
+      onPress={() => setActiveFilter(f.key)}
+    >
       <Text
-        style={{
-          marginRight: 10,
-          paddingVertical: 8,
-          paddingHorizontal: 12,
-          backgroundColor: activeFilter === f.key ? "#000" : "#eee",
-          color: activeFilter === f.key ? "#fff" : "#000",
-          borderRadius: 20,
-          fontSize: 12,
-        }}
+        style={[
+          styles.filterText,
+          activeFilter === f.key && styles.activeFilterText,
+        ]}
       >
         {f.label}
       </Text>
@@ -287,7 +289,11 @@ if (!user) return null;
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No notes posted yet.</Text>
+            <Text style={styles.emptyText}>
+  📚 No notes found.
+  {"\n\n"}
+  Try another search or be the first to upload study materials.
+</Text>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -375,6 +381,38 @@ searchInput: {
   paddingHorizontal: 15,
   paddingVertical: 12,
   fontSize: 15,
+},
+
+filterRow: {
+  flexDirection: "row",
+  paddingHorizontal: 16,
+  marginTop: 12,
+  marginBottom: 8,
+},
+
+filterChip: {
+  backgroundColor: "#111827",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  paddingVertical: 9,
+  paddingHorizontal: 14,
+  borderRadius: 20,
+  marginRight: 10,
+},
+
+activeFilterChip: {
+  backgroundColor: "#4F46E5",
+  borderColor: "#4F46E5",
+},
+
+filterText: {
+  color: "#9CA3AF",
+  fontSize: 12,
+  fontWeight: "600",
+},
+
+activeFilterText: {
+  color: "#FFFFFF",
 },
 
   title: {
