@@ -152,29 +152,35 @@ export default function PremiumScreen() {
     <ScrollView style={styles.container}>
 
       <View style={styles.header}>
-        <Text style={styles.title}>Unlock Premium</Text>
+        <Text style={styles.title}>
+  🚀 Upgrade to Premium
+</Text>
         <Text style={styles.subtitle}>
-          Access the full global student network
-        </Text>
+  Unlock messaging, notes, study rooms and more.
+</Text>
       </View>
 
       <View style={styles.trustBox}>
         <Text style={styles.trustTitle}>
-          Trusted by students worldwide 🌍
-        </Text>
+  🔒 Safe & Secure Payments
+</Text>
 
-        <Text style={styles.trustText}>
-          USD via Card • KES via M-Pesa
-        </Text>
+<Text style={styles.trustText}>
+  Pay securely with M-Pesa or international cards powered by Stripe.
+</Text>
       </View>
+
+      <Text style={styles.sectionTitle}>
+  Why Upgrade?
+</Text>
 
       <View style={styles.featuresCard}>
         <Text style={styles.cardTitle}>Premium Features</Text>
-        <Text style={styles.feature}>✓ Private Student Messaging</Text>
-        <Text style={styles.feature}>✓ Video Study Rooms</Text>
-        <Text style={styles.feature}>✓ Full Notes Marketplace</Text>
+        <Text style={styles.feature}>✓ Chat privately with students worldwide</Text>
+        <Text style={styles.feature}>✓ Join unlimited video study rooms</Text>
+        <Text style={styles.feature}>✓ Access premium study notes</Text>
         <Text style={styles.feature}>✓ Upload Notes & Earn</Text>
-        <Text style={styles.feature}>✓ Premium Student Visibility</Text>
+        <Text style={styles.feature}>✓ Get priority visibility across the app</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Choose Currency</Text>
@@ -310,7 +316,7 @@ export default function PremiumScreen() {
             onPress={() => handlePayment("monthly")}
           >
             <Text style={styles.primaryText}>
-              Subscribe with Card
+              💳 Pay with Card
             </Text>
           </TouchableOpacity>
         )}
@@ -322,7 +328,7 @@ export default function PremiumScreen() {
             onPress={() => handleMpesaPayment("monthly", 500)}
           >
             <Text style={styles.secondaryText}>
-              Instant M-Pesa Payment
+              📲 Pay with M-Pesa
             </Text>
           </TouchableOpacity>
         )}
@@ -330,11 +336,11 @@ export default function PremiumScreen() {
 
       <View style={styles.warningBox}>
         <Text style={styles.warningTitle}>
-          Your free trial may expire soon
+          Don't lose access to Premium features
         </Text>
 
         <Text style={styles.warningText}>
-          Upgrade now to keep uninterrupted access.
+          Upgrade today to continue messaging, studying and earning without interruption.
         </Text>
       </View>
 
@@ -344,7 +350,7 @@ export default function PremiumScreen() {
 
       {loading && (
         <Text style={styles.loading}>
-          Processing payment...
+          🔄 Preparing secure checkout...
         </Text>
       )}
     </ScrollView>
