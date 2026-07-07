@@ -18,12 +18,17 @@ export default function VideoRoomScreen({ route, navigation }) {
   if (!isAllowed) {
     return (
       <View style={styles.lockContainer}>
-        <Text style={styles.lockTitle}>🔒 Premium Feature</Text>
+        <Text style={styles.lockTitle}>
+  🔒 Premium Video Rooms
+</Text>
 
         <Text style={styles.lockText}>
-          Video Study Rooms are designed for collaborative learning.{"\n"}
-          Upgrade to join live sessions.
-        </Text>
+  Join live study sessions, collaborate with classmates, and discuss coursework in real time.
+
+  {"\n\n"}
+
+  Upgrade to Premium to unlock unlimited Video Study Rooms.
+</Text>
 
         <TouchableOpacity
           style={styles.upgradeBtn}
@@ -49,7 +54,13 @@ export default function VideoRoomScreen({ route, navigation }) {
 
       {/* HEADER BAR */}
       <View style={styles.header}>
-        <Text style={styles.title}>Video Room</Text>
+        <Text style={styles.title}>
+  🎥 Video Study Room
+</Text>
+
+<Text style={styles.subtitle}>
+  Meet and study with students in real time
+</Text>
         <View style={styles.roomBadge}>
           <Text style={styles.roomText}>{safeRoomName}</Text>
         </View>
@@ -92,14 +103,20 @@ const styles = {
     fontWeight: "bold",
   },
 
+  subtitle: {
+  color: "#9CA3AF",
+  marginTop: 4,
+  fontSize: 13,
+},
+
   roomBadge: {
-    marginTop: 8,
-    alignSelf: "flex-start",
-    backgroundColor: "#1F2937",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-  },
+  marginTop: 12,
+  alignSelf: "flex-start",
+  backgroundColor: "#4F46E5",
+  paddingVertical: 5,
+  paddingHorizontal: 12,
+  borderRadius: 20,
+},
 
   roomText: {
     color: "#9CA3AF",
