@@ -158,9 +158,9 @@ export default function UploadNotesScreen({ navigation }) {
 
     if (response.data.success) {
       Alert.alert(
-        "Success",
-        "Notes uploaded successfully!"
-      );
+  "🎉 Upload Successful",
+  "Your notes are now available in the Marketplace."
+);
 
       setTitle("");
       setCourse("");
@@ -191,14 +191,40 @@ export default function UploadNotesScreen({ navigation }) {
       contentContainerStyle={{ paddingBottom: 40 }}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>
-          Upload Notes
-        </Text>
+  <Text style={styles.title}>
+    📤 Upload Notes
+  </Text>
 
-        <Text style={styles.subtitle}>
-          Share knowledge • Build reputation • Earn value
-        </Text>
-      </View>
+  <Text style={styles.badge}>
+    Premium Creator
+  </Text>
+
+  <Text style={styles.subtitle}>
+    Share knowledge • Build reputation • Earn value
+  </Text>
+</View>
+
+{/* CREATOR TIPS */}
+<View style={styles.tipCard}>
+  <Text style={styles.tipTitle}>
+    💡 Creator Tips
+  </Text>
+
+  <Text style={styles.tipText}>
+    • Upload clear, high-quality PDF notes.
+  </Text>
+
+  <Text style={styles.tipText}>
+    • Avoid personal contact information.
+  </Text>
+
+  <Text style={styles.tipText}>
+    • Well-written notes are more likely to attract students.
+  </Text>
+</View>
+
+{/* PROFILE CARD */}
+<View style={styles.card}></View>
 
       <View style={styles.card}>
         <Text style={styles.label}>Title</Text>
@@ -245,8 +271,8 @@ export default function UploadNotesScreen({ navigation }) {
           onPress={pickDocument}
         >
           <Text style={styles.fileText}>
-            Select PDF
-          </Text>
+  📄 Choose PDF File
+</Text>
         </TouchableOpacity>
 
         {selectedFile && (
@@ -262,8 +288,8 @@ export default function UploadNotesScreen({ navigation }) {
         >
           <Text style={styles.primaryText}>
             {loading
-              ? "Uploading..."
-              : "Publish Notes"}
+  ? "⏳ Uploading..."
+  : "🚀 Publish Notes"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -293,6 +319,26 @@ const styles = {
     color: "#9CA3AF",
     marginTop: 5,
   },
+
+  tipCard: {
+  backgroundColor: "#111827",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 18,
+},
+
+tipTitle: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+  marginBottom: 8,
+},
+
+tipText: {
+  color: "#9CA3AF",
+  marginTop: 4,
+},
 
   card: {
     backgroundColor: "#0F172A",
