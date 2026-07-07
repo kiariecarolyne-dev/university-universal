@@ -71,6 +71,7 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.subtitle}>
   {user.university || "University Student"} • The Global Student Network 🌍
 </Text>
+</View>
 
       {/* PLAN STATUS */}
       <View style={styles.planCard}>
