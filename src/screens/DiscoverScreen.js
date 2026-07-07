@@ -9,7 +9,7 @@ import {
 
 import { collection, getDocs } from "firebase/firestore";
 import useUser from "../hooks/useUser";
-import { db } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 
 import {
   canAccessDiscover,
@@ -30,7 +30,11 @@ export default function DiscoverScreen({ navigation }) {
         ...doc.data(),
       }));
 
-      setStudents(data);
+      const filtered = data.filter(
+  (student) => student.id !== auth.currentUser?.uid
+);
+
+setStudents(filtered);
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -73,7 +77,9 @@ export default function DiscoverScreen({ navigation }) {
 
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.title}>Discover Students</Text>
+        <Text style={styles.title}>
+  🌍 Discover Students
+</Text>
         <Text style={styles.subtitle}>
           Build academic connections worldwide 🌍
         </Text>
@@ -83,7 +89,7 @@ export default function DiscoverScreen({ navigation }) {
       {isInTrialPeriod(user) && (
         <View style={styles.trialBanner}>
           <Text style={styles.trialText}>
-            Trial active • Messaging requires Premium
+            🚀 Trial Active • Upgrade to unlock private messaging
           </Text>
         </View>
       )}
@@ -94,7 +100,9 @@ export default function DiscoverScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 30 }}
         ListEmptyComponent={
-          <Text style={styles.empty}>No students found</Text>
+          <Text style={styles.empty}>
+  No students found yet.
+</Text>
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -139,7 +147,7 @@ export default function DiscoverScreen({ navigation }) {
               onPress={() => handlePrivateMessage(item)}
             >
               <Text style={styles.btnText}>
-                Message Student
+                💬 Message Student
               </Text>
             </TouchableOpacity>
 
