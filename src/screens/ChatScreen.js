@@ -110,8 +110,16 @@ export default function ChatScreen({ route }) {
       <FlatList
         data={messages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.messageCard}>
+        renderItem={({ item }) => {
+  const isMe = item.sender === auth.currentUser.email;
+
+  return (
+    <View
+      style={[
+        styles.messageCard,
+        isMe && styles.myMessageCard,
+      ]}
+    >
   <Text style={styles.sender}>
     {item.sender}
   </Text>
@@ -120,8 +128,9 @@ export default function ChatScreen({ route }) {
     {item.text}
   </Text>
 </View>
-        )}
-      />
+    );
+  }}
+/>
 
       <TextInput
   placeholder="Type your message..."
