@@ -69,20 +69,19 @@ export default function HomeScreen({ navigation }) {
         </Text>
 
         <Text style={styles.subtitle}>
-          The Global Student Network 🌍
-        </Text>
-      </View>
+  {user.university || "University Student"} • The Global Student Network 🌍
+</Text>
 
       {/* PLAN STATUS */}
       <View style={styles.planCard}>
-        <Text style={styles.planLabel}>Current Membership</Text>
+        <Text style={styles.planLabel}>Membership Status</Text>
 
         <Text style={styles.planText}>
           {plan === "premium"
-            ? "⭐ Premium Member"
+            ? "⭐ Premium"
             : plan === "trial"
-            ? "🚀 Trial Member"
-            : "🆓 Free Member"}
+            ? "🚀 Trial"
+            : "🆓 Free"}
         </Text>
 
         {plan === "trial" && (
@@ -93,7 +92,7 @@ export default function HomeScreen({ navigation }) {
 
         {plan !== "premium" && (
           <Text style={styles.upgradeHint}>
-            Upgrade to unlock everything
+            Unlock private chats, Notes Marketplace, study rooms and more.
           </Text>
         )}
       </View>
