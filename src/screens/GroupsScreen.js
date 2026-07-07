@@ -51,11 +51,23 @@ export default function GroupsScreen({ navigation }) {
 
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.title}>Study Groups</Text>
+        <Text style={styles.title}>
+  👥 Study Groups
+</Text>
         <Text style={styles.subtitle}>
-          Recommended communities based on your profile
+          Join study communities matched to your university and course
         </Text>
       </View>
+
+      <View style={styles.infoCard}>
+  <Text style={styles.infoTitle}>
+    🌍 Learn Together
+  </Text>
+
+  <Text style={styles.infoText}>
+    Join discussions, ask questions, share ideas and collaborate with students studying similar courses.
+  </Text>
+</View>
 
       {/* LIST */}
       <FlatList
@@ -87,7 +99,7 @@ export default function GroupsScreen({ navigation }) {
 
             {/* CTA hint */}
             <Text style={styles.hint}>
-              Tap to enter discussion →
+              💬 Tap to join the conversation
             </Text>
 
           </TouchableOpacity>
@@ -122,6 +134,27 @@ const styles = {
     color: "#9CA3AF",
     marginTop: 5,
   },
+
+  infoCard: {
+  backgroundColor: "#111827",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 18,
+},
+
+infoTitle: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+  marginBottom: 6,
+  fontSize: 15,
+},
+
+infoText: {
+  color: "#9CA3AF",
+  lineHeight: 20,
+},
 
   card: {
     backgroundColor: "#0F172A",
