@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Button,
   FlatList,
   Text,
   TextInput,
+  TouchableOpacity,
   View
 } from "react-native";
 
@@ -95,32 +95,119 @@ export default function ChatScreen({ route }) {
   };
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
+    <View style={styles.container}>
+
+      <View style={styles.header}>
+  <Text style={styles.title}>
+    💬 {group.name}
+  </Text>
+
+  <Text style={styles.subtitle}>
+    Collaborate with fellow students
+  </Text>
+</View>
 
       <FlatList
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={{ marginBottom: 10 }}>
-            <Text>{item.sender}</Text>
-            <Text>{item.text}</Text>
-          </View>
+          <View style={styles.messageCard}>
+  <Text style={styles.sender}>
+    {item.sender}
+  </Text>
+
+  <Text style={styles.message}>
+    {item.text}
+  </Text>
+</View>
         )}
       />
 
       <TextInput
-        placeholder="Type message..."
-        value={message}
-        onChangeText={setMessage}
-        style={{
-          borderWidth: 1,
-          marginBottom: 10,
-          padding: 10
-        }}
-      />
+  placeholder="Type your message..."
+  placeholderTextColor="#6B7280"
+  value={message}
+  onChangeText={setMessage}
+  style={styles.input}
+/>
 
-      <Button title="Send" onPress={sendMessage} />
+      <TouchableOpacity
+  style={styles.sendButton}
+  onPress={sendMessage}
+>
+  <Text style={styles.sendText}>
+    Send Message
+  </Text>
+</TouchableOpacity>
 
     </View>
   );
 }
+
+const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: "#05070A",
+    padding: 16,
+    paddingTop: 50,
+  },
+
+  header: {
+    marginBottom: 18,
+  },
+
+  title: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+
+  subtitle: {
+    color: "#9CA3AF",
+    marginTop: 4,
+  },
+
+  messageCard: {
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+
+  sender: {
+    color: "#4F46E5",
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+
+  message: {
+    color: "#FFFFFF",
+    lineHeight: 20,
+  },
+
+  input: {
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 12,
+    padding: 14,
+    color: "#FFFFFF",
+    marginTop: 10,
+    marginBottom: 10,
+  },
+
+  sendButton: {
+    backgroundColor: "#4F46E5",
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  sendText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+};
