@@ -109,18 +109,13 @@ export default function PrivateChatScreen({ route, navigation }) {
     }
 
     try {
-      await addDoc(collection(db, "privateChats", chatId, "messages"), {
-        sender: auth.currentUser.email,
-        senderId: auth.currentUser.uid,
-        receiver: student.email,
-        text: message,
-        createdAt: serverTimestamp(),
-      });
-
       await setDoc(
-  doc(db, "conversations", chatId),
+  doc(db, "privateChats", chatId),
   {
-    participants: [auth.currentUser.uid, student.id],
+    participants: [
+      auth.currentUser.uid,
+      student.id,
+    ],
     participantEmails: [
       auth.currentUser.email,
       student.email,
@@ -130,6 +125,14 @@ export default function PrivateChatScreen({ route, navigation }) {
   },
   { merge: true }
 );
+      await addDoc(collection(db, "privateChats", chatId, "messages"), {
+        sender: auth.currentUser.email,
+        senderId: auth.currentUser.uid,
+        receiver: student.email,
+        text: message,
+        createdAt: serverTimestamp(),
+      });
+
 
       setMessage("");
     } catch (error) {

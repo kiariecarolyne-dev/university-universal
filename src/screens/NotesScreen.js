@@ -127,14 +127,23 @@ data.sort((a, b) => {
       { text: "Cancel", style: "cancel" },
       {
         text: "Message",
-        onPress: () =>
+        onPress: () => {
+          if (item.userId === auth.currentUser.uid) {
+            Alert.alert(
+              "Your Note",
+              "You cannot message yourself."
+            );
+            return;
+          }
+
           navigation.navigate("PrivateChat", {
             student: {
-  id: item.userId,
-  email: item.email,
-  name: item.ownerName,
-},
-          }),
+              id: item.userId,
+              email: item.email,
+              name: item.ownerName,
+            },
+          });
+        },
       },
     ]
   );
