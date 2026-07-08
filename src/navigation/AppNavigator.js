@@ -11,6 +11,7 @@ import ChatScreen from "../screens/ChatScreen";
 import DiscoverScreen from "../screens/DiscoverScreen";
 import GroupsScreen from "../screens/GroupsScreen";
 import HomeScreen from "../screens/HomeScreen";
+import InboxScreen from "../screens/InboxScreen";
 import LoginScreen from "../screens/LoginScreen";
 import NotesScreen from "../screens/NotesScreen";
 import PremiumScreen from "../screens/PremiumScreen";
@@ -119,6 +120,12 @@ export default function AppNavigator() {
               component={PrivateChatScreen}
               options={{ title: "Private Chat" }}
             />
+
+            <Stack.Screen
+  name="Inbox"
+  component={InboxScreen}
+  options={{ title: "Private Messages" }}
+/>
 
             <Stack.Screen
               name="VideoRoom"

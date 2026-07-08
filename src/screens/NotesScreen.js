@@ -122,7 +122,7 @@ data.sort((a, b) => {
 
   Alert.alert(
     "Contact Student",
-    `Message ${item.ownerEmail}?`,
+    `Message ${item.ownerName}?`,
     [
       { text: "Cancel", style: "cancel" },
       {
@@ -130,9 +130,10 @@ data.sort((a, b) => {
         onPress: () =>
           navigation.navigate("PrivateChat", {
             student: {
-              id: item.ownerId,
-              email: item.ownerEmail,
-            },
+  id: item.userId,
+  email: item.email,
+  name: item.ownerName,
+},
           }),
       },
     ]
@@ -312,7 +313,7 @@ if (!user) return null;
               </Text>
 
               <Text style={styles.owner}>
-  Posted by: {item.ownerEmail}
+  Posted by: {item.email}
 </Text>
 
 <TouchableOpacity

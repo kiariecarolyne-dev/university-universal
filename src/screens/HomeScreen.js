@@ -157,6 +157,11 @@ export default function HomeScreen({ navigation }) {
         />
 
         <NavButton
+  title="💬 Messages"
+  onPress={() => navigation.navigate("Inbox")}
+/>
+
+        <NavButton
           title="🎥 Video Room"
           onPress={() =>
             navigation.navigate("VideoRoom", {

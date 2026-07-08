@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   Alert,
   FlatList,
@@ -10,13 +11,17 @@ import {
   View,
 } from "react-native";
 
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import {
   addDoc,
   collection,
+  doc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 
 import useUser from "../hooks/useUser";
@@ -112,6 +117,20 @@ export default function PrivateChatScreen({ route, navigation }) {
         createdAt: serverTimestamp(),
       });
 
+      await setDoc(
+  doc(db, "conversations", chatId),
+  {
+    participants: [auth.currentUser.uid, student.id],
+    participantEmails: [
+      auth.currentUser.email,
+      student.email,
+    ],
+    lastMessage: message,
+    lastUpdated: serverTimestamp(),
+  },
+  { merge: true }
+);
+
       setMessage("");
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -168,13 +187,17 @@ export default function PrivateChatScreen({ route, navigation }) {
   };
 
   return (
+  <SafeAreaView
+    style={{ flex: 1, backgroundColor: "#0B0F14" }}
+    edges={["bottom"]}
+  >
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>{student.email}</Text>
+        <Text style={styles.headerText}>{student.name}</Text>
         <Text style={styles.subHeader}>Private Chat</Text>
       </View>
 
@@ -200,8 +223,9 @@ export default function PrivateChatScreen({ route, navigation }) {
           <Text style={styles.sendText}>Send</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
-  );
+        </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 }
 
 /* ======================
@@ -274,13 +298,14 @@ const styles = {
   },
 
   inputContainer: {
-    flexDirection: "row",
-    padding: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#1F2937",
-    backgroundColor: "#0F172A",
-    alignItems: "center",
-  },
+  flexDirection: "row",
+  padding: 10,
+  paddingBottom: 20,
+  borderTopWidth: 1,
+  borderTopColor: "#1F2937",
+  backgroundColor: "#0F172A",
+  alignItems: "center",
+},
 
   input: {
     flex: 1,
