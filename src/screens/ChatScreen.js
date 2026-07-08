@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -28,6 +30,7 @@ export default function ChatScreen({ route }) {
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const flatListRef = useRef(null);
 
   // 🚫 CONTACT DETECTOR
   const containsContactInfo = (text) => {
@@ -50,14 +53,20 @@ export default function ChatScreen({ route }) {
       orderBy("createdAt", "asc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+    const unsubscribe = onSnapshot(q, (snapshot) => { 
+  const data = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data()
+  }));
 
-      setMessages(data);
+  setMessages(data);
+
+  setTimeout(() => {
+    flatListRef.current?.scrollToEnd({
+      animated: true,
     });
+  }, 100);
+});
 
     return unsubscribe;
   }, []);
@@ -95,62 +104,77 @@ export default function ChatScreen({ route }) {
   };
 
   return (
-    <View style={styles.container}>
+  <KeyboardAvoidingView
+    style={styles.container}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+  >
 
-      <View style={styles.header}>
-  <Text style={styles.title}>
-    💬 {group.name}
-  </Text>
+    <View style={styles.header}>
+      <Text style={styles.title}>
+        💬 {group.name}
+      </Text>
 
-  <Text style={styles.subtitle}>
-    Collaborate with fellow students
-  </Text>
-</View>
-
-      <FlatList
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-  const isMe = item.sender === auth.currentUser.email;
-
-  return (
-    <View
-      style={[
-        styles.messageCard,
-        isMe && styles.myMessageCard,
-      ]}
-    >
-  <Text style={styles.sender}>
-    {item.sender}
-  </Text>
-
-  <Text style={styles.message}>
-    {item.text}
-  </Text>
-</View>
-    );
-  }}
-/>
-
-      <TextInput
-  placeholder="Type your message..."
-  placeholderTextColor="#6B7280"
-  value={message}
-  onChangeText={setMessage}
-  style={styles.input}
-/>
-
-      <TouchableOpacity
-  style={styles.sendButton}
-  onPress={sendMessage}
->
-  <Text style={styles.sendText}>
-    Send Message
-  </Text>
-</TouchableOpacity>
-
+      <Text style={styles.subtitle}>
+        Collaborate with fellow students
+      </Text>
     </View>
-  );
+
+
+    <FlatList
+      ref={flatListRef}
+      data={messages}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => {
+        const isMe = item.sender === auth.currentUser.email;
+
+        return (
+          <View
+            style={[
+              styles.messageCard,
+              isMe && styles.myMessageCard,
+            ]}
+          >
+            <Text style={styles.sender}>
+              {isMe ? "You" : item.sender}
+            </Text>
+
+            <Text style={styles.message}>
+              {item.text}
+            </Text>
+
+            <Text style={styles.time}>
+              {item.createdAt?.toDate
+                ? item.createdAt.toDate().toLocaleTimeString()
+                : ""}
+            </Text>
+
+          </View>
+        );
+      }}
+    />
+
+
+    <TextInput
+      placeholder="Type your message..."
+      placeholderTextColor="#6B7280"
+      value={message}
+      onChangeText={setMessage}
+      style={styles.input}
+    />
+
+
+    <TouchableOpacity
+      style={styles.sendButton}
+      onPress={sendMessage}
+    >
+      <Text style={styles.sendText}>
+        Send Message
+      </Text>
+    </TouchableOpacity>
+
+
+  </KeyboardAvoidingView>
+);
 }
 
 const styles = {
@@ -185,6 +209,13 @@ const styles = {
     marginBottom: 10,
   },
 
+  myMessageCard: {
+  backgroundColor: "#312E81",
+  borderColor: "#4F46E5",
+  alignSelf: "flex-end",
+  maxWidth: "85%",
+},
+
   sender: {
     color: "#4F46E5",
     fontWeight: "bold",
@@ -195,6 +226,13 @@ const styles = {
     color: "#FFFFFF",
     lineHeight: 20,
   },
+
+  time: {
+  color: "#6B7280",
+  fontSize: 11,
+  marginTop: 6,
+  textAlign: "right",
+},
 
   input: {
     backgroundColor: "#111827",
