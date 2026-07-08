@@ -200,7 +200,7 @@ export default function UploadNotesScreen({ navigation }) {
   </Text>
 
   <Text style={styles.subtitle}>
-    Share knowledge • Build reputation • Earn value
+    Share knowledge • Build reputation
   </Text>
 </View>
 
