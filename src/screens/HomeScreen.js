@@ -98,6 +98,31 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
+<View style={styles.statsCard}>
+  <Text style={styles.cardTitle}>Your Dashboard</Text>
+
+  <View style={styles.statsRow}>
+    <View style={styles.statBox}>
+      <Text style={styles.statNumber}>{plan === "premium" ? "∞" : "3"}</Text>
+      <Text style={styles.statLabel}>Study Groups</Text>
+    </View>
+
+    <View style={styles.statBox}>
+      <Text style={styles.statNumber}>
+        {plan === "premium" ? "✓" : "🔒"}
+      </Text>
+      <Text style={styles.statLabel}>Private Chat</Text>
+    </View>
+
+    <View style={styles.statBox}>
+      <Text style={styles.statNumber}>
+        {plan === "premium" ? "✓" : "🔒"}
+      </Text>
+      <Text style={styles.statLabel}>Notes</Text>
+    </View>
+  </View>
+</View>
+
       {/* FEATURES */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Free Access</Text>
@@ -211,6 +236,38 @@ const styles = {
     borderWidth: 1,
     borderColor: "#1F2937",
   },
+
+  statsCard: {
+  backgroundColor: "#111827",
+  borderRadius: 16,
+  padding: 18,
+  marginBottom: 16,
+  borderWidth: 1,
+  borderColor: "#1F2937",
+},
+
+statsRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  marginTop: 15,
+},
+
+statBox: {
+  alignItems: "center",
+  flex: 1,
+},
+
+statNumber: {
+  color: "#FFFFFF",
+  fontSize: 22,
+  fontWeight: "bold",
+},
+
+statLabel: {
+  color: "#9CA3AF",
+  fontSize: 12,
+  marginTop: 5,
+},
 
   planLabel: {
     color: "#9CA3AF",
