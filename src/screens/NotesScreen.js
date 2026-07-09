@@ -140,7 +140,7 @@ data.sort((a, b) => {
             student: {
               id: item.userId,
               email: item.email,
-              name: item.ownerName,
+              fullName: item.ownerName,
             },
           });
         },

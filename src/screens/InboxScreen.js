@@ -11,9 +11,8 @@ import {
   doc,
   getDoc,
   getDocs,
-  limit,
   orderBy,
-  query,
+  query
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
@@ -27,8 +26,11 @@ export default function InboxScreen({ navigation }) {
 
  const loadConversations = async () => {
   const snapshot = await getDocs(
-    collection(db, "privateChats")
-  );
+  query(
+    collection(db, "privateChats"),
+    orderBy("lastUpdated", "desc")
+  )
+);
 
   const chats = await Promise.all(
     snapshot.docs
@@ -62,19 +64,34 @@ const messageSnapshot = await getDocs(
   query(
     collection(db, "privateChats", docSnap.id, "messages"),
     orderBy("createdAt", "desc"),
-    limit(1)
   )
 );
 
 if (!messageSnapshot.empty) {
-  lastMessage = messageSnapshot.docs[0].data().text;
+  const allMessages = messageSnapshot.docs.map((doc) => doc.data());
+
+  lastMessage = allMessages[allMessages.length - 1].text;
 }
+
+let unreadCount = 0;
+
+messageSnapshot.docs.forEach((doc) => {
+  const message = doc.data();
+
+  if (
+    message.receiverId === auth.currentUser.uid &&
+    !message.read
+  ) {
+    unreadCount++;
+  }
+});
 
 return {
   id: docSnap.id,
   student: otherUser,
   studentId: otherUserId,
   lastMessage,
+  unreadCount,
 };
       })
   );
@@ -111,7 +128,7 @@ return {
       student: {
         id: item.studentId,
         email: item.student.email,
-        name: item.student.fullName,
+        fullName: item.student.fullName,
       },
     })
   }
@@ -122,14 +139,47 @@ return {
     marginBottom: 10,
   }}
 >
-            <Text
+            <View
   style={{
-    color: "#FFFFFF",
-    fontWeight: "bold",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   }}
 >
-  {item.student.fullName}
-</Text>
+  <Text
+    style={{
+      color: "#FFFFFF",
+      fontWeight: "bold",
+      fontSize: 16,
+    }}
+  >
+    {item.student.fullName}
+  </Text>
+
+  {item.unreadCount > 0 && (
+    <View
+      style={{
+        backgroundColor: "#2563EB",
+        minWidth: 22,
+        height: 22,
+        borderRadius: 11,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 6,
+      }}
+    >
+      <Text
+        style={{
+          color: "#FFFFFF",
+          fontWeight: "bold",
+          fontSize: 12,
+        }}
+      >
+        {item.unreadCount}
+      </Text>
+    </View>
+  )}
+</View>
 
 <Text
   style={{

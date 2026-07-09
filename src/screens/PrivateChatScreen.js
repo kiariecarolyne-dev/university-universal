@@ -22,6 +22,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 
 import useUser from "../hooks/useUser";
@@ -75,24 +76,38 @@ export default function PrivateChatScreen({ route, navigation }) {
   }, [user]);
 
   useEffect(() => {
-    if (!isAllowed) return;
+  if (!isAllowed) return;
 
-    const q = query(
-      collection(db, "privateChats", chatId, "messages"),
-      orderBy("createdAt", "asc")
-    );
+  const q = query(
+    collection(db, "privateChats", chatId, "messages"),
+    orderBy("createdAt", "asc")
+  );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+  const unsubscribe = onSnapshot(q, async (snapshot) => {
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-      setMessages(data);
-    });
+    setMessages(data);
 
-    return unsubscribe;
-  }, [isAllowed]);
+    // Mark unread messages sent to the current user as read
+    for (const messageDoc of snapshot.docs) {
+      const message = messageDoc.data();
+
+      if (
+        message.receiverId === auth.currentUser.uid &&
+        message.read === false
+      ) {
+        await updateDoc(messageDoc.ref, {
+          read: true,
+        });
+      }
+    }
+  });
+
+  return unsubscribe;
+}, [isAllowed, chatId]);
 
   const sendMessage = async () => {
     if (!message.trim()) return;
@@ -119,18 +134,28 @@ export default function PrivateChatScreen({ route, navigation }) {
     participantEmails: [
       auth.currentUser.email,
       student.email,
+      ],
+    participantNames: [
+      user.fullName,
+      student.fullName,
     ],
     lastMessage: message,
     lastUpdated: serverTimestamp(),
   },
   { merge: true }
 );
-      await addDoc(collection(db, "privateChats", chatId, "messages"), {
-        sender: auth.currentUser.email,
-        senderId: auth.currentUser.uid,
-        receiver: student.email,
-        text: message,
-        createdAt: serverTimestamp(),
+      await addDoc(
+  collection(db, "privateChats", chatId, "messages"),
+  {
+    sender: auth.currentUser.email,
+    senderId: auth.currentUser.uid,
+    receiver: student.email,
+    receiverId: student.id,
+
+    text: message,
+    createdAt: serverTimestamp(),
+
+    read: false,
       });
 
 
@@ -200,7 +225,7 @@ export default function PrivateChatScreen({ route, navigation }) {
     >
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>{student.name}</Text>
+        <Text style={styles.headerText}>{student.fullName}</Text>
         <Text style={styles.subHeader}>Private Chat</Text>
       </View>
 
