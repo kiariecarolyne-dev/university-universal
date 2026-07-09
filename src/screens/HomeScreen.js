@@ -1,17 +1,59 @@
 import { useEffect } from "react";
 import {
   Alert,
+  AppState,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { auth, db } from "../services/firebase";
+
 import useUser from "../hooks/useUser";
 import { getUserPlan, isInTrialPeriod } from "../utils/access";
 
 export default function HomeScreen({ navigation }) {
   const user = useUser();
+
+  useEffect(() => {
+  if (!auth.currentUser) return;
+
+  updateDoc(doc(db, "users", auth.currentUser.uid), {
+    online: true,
+    lastSeen: serverTimestamp(),
+  });
+}, []);
+
+useEffect(() => {
+  if (!auth.currentUser) return;
+
+  const subscription = AppState.addEventListener(
+    "change",
+    async (nextState) => {
+      if (nextState === "active") {
+        await updateDoc(
+          doc(db, "users", auth.currentUser.uid),
+          {
+            online: true,
+            lastSeen: serverTimestamp(),
+          }
+        );
+      } else {
+        await updateDoc(
+          doc(db, "users", auth.currentUser.uid),
+          {
+            online: false,
+            lastSeen: serverTimestamp(),
+          }
+        );
+      }
+    }
+  );
+
+  return () => subscription.remove();
+}, []);
 
   useEffect(() => {
     if (!user) return;

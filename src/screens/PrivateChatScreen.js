@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Alert,
@@ -22,12 +22,23 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc,
+  updateDoc
 } from "firebase/firestore";
 
 import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
 import { isPremiumUser } from "../utils/access";
+
+const formatMessageTime = (timestamp) => {
+  if (!timestamp) return "";
+
+  const date = timestamp.toDate();
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 export default function PrivateChatScreen({ route, navigation }) {
   const { student } = route.params;
@@ -36,6 +47,13 @@ export default function PrivateChatScreen({ route, navigation }) {
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+
+  const [studentStatus, setStudentStatus] = useState({
+  online: false,
+  lastSeen: null,
+});
+
+  const flatListRef = useRef(null);
 
   const currentUser = auth.currentUser?.uid;
 
@@ -108,6 +126,26 @@ export default function PrivateChatScreen({ route, navigation }) {
 
   return unsubscribe;
 }, [isAllowed, chatId]);
+
+useEffect(() => {
+  if (!student?.id) return;
+
+  const unsubscribe = onSnapshot(
+    doc(db, "users", student.id),
+    (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+
+        setStudentStatus({
+          online: data.online || false,
+          lastSeen: data.lastSeen || null,
+        });
+      }
+    }
+  );
+
+  return unsubscribe;
+}, [student.id]);
 
   const sendMessage = async () => {
     if (!message.trim()) return;
@@ -196,20 +234,29 @@ export default function PrivateChatScreen({ route, navigation }) {
         ]}
       >
         <View
-          style={[
-            styles.messageBubble,
-            isMe ? styles.myBubble : styles.theirBubble,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              isMe ? styles.myText : styles.theirText,
-            ]}
-          >
-            {item.text}
-          </Text>
-        </View>
+  style={[
+    styles.messageBubble,
+    isMe ? styles.myBubble : styles.theirBubble,
+  ]}
+>
+  <Text
+    style={[
+      styles.messageText,
+      isMe ? styles.myText : styles.theirText,
+    ]}
+  >
+    {item.text}
+  </Text>
+
+  <Text
+    style={[
+      styles.timeText,
+      isMe ? styles.myTime : styles.theirTime,
+    ]}
+  >
+    {formatMessageTime(item.createdAt)}
+  </Text>
+</View>
       </View>
     );
   };
@@ -225,17 +272,32 @@ export default function PrivateChatScreen({ route, navigation }) {
     >
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>{student.fullName}</Text>
-        <Text style={styles.subHeader}>Private Chat</Text>
+        <Text style={styles.headerText}>{student.fullName || student.name}</Text>
+        <Text style={styles.subHeader}>
+  {studentStatus.online
+    ? "🟢 Online"
+    : studentStatus.lastSeen
+    ? `Last seen ${studentStatus.lastSeen
+        .toDate()
+        .toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`
+    : "Offline"}
+</Text>
       </View>
 
       {/* CHAT */}
       <FlatList
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.chatContainer}
-      />
+  ref={flatListRef}
+  data={messages}
+  keyExtractor={(item) => item.id}
+  renderItem={renderItem}
+  contentContainerStyle={styles.chatContainer}
+  onContentSizeChange={() =>
+    flatListRef.current?.scrollToEnd({ animated: true })
+  }
+/>
 
       {/* INPUT */}
       <View style={styles.inputContainer}>
@@ -355,6 +417,21 @@ const styles = {
     color: "#000",
     fontWeight: "bold",
   },
+
+  timeText: {
+  fontSize: 10,
+  marginTop: 6,
+},
+
+myTime: {
+  color: "#DBEAFE",
+  textAlign: "right",
+},
+
+theirTime: {
+  color: "#9CA3AF",
+  textAlign: "left",
+},
 
   lockScreen: {
     flex: 1,

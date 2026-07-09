@@ -1,8 +1,10 @@
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
 
 import { useEffect, useState } from "react";
@@ -56,10 +58,33 @@ const user = useUser();
 
 // Show newest notes first
 data.sort((a, b) => {
+  const downloadsA = a.downloads || 0;
+  const downloadsB = b.downloads || 0;
+
+  // Higher downloads first
+  if (downloadsB !== downloadsA) {
+    return downloadsB - downloadsA;
+  }
+
+  // If downloads are equal, newest first
   return new Date(b.createdAt) - new Date(a.createdAt);
 });
 
-      setNotes(data);
+      // Count uploads per creator
+const uploadCounts = {};
+
+data.forEach((note) => {
+  uploadCounts[note.userId] =
+    (uploadCounts[note.userId] || 0) + 1;
+});
+
+// Attach upload count to every note
+const updatedNotes = data.map((note) => ({
+  ...note,
+  creatorUploads: uploadCounts[note.userId] || 0,
+}));
+
+setNotes(updatedNotes);
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
@@ -168,6 +193,10 @@ const downloadPDF = async (item) => {
       item.fileUrl,
       fileUri
     );
+
+    await updateDoc(doc(db, "notes", item.id), {
+  downloads: (item.downloads || 0) + 1,
+});
 
     setDownloadingId(null);
 
@@ -311,6 +340,78 @@ if (!user) return null;
               style={styles.card}
             >
 
+              {Date.now() - new Date(item.createdAt).getTime() <
+  3 * 24 * 60 * 60 * 1000 && (
+  <View
+    style={{
+      alignSelf: "flex-start",
+      backgroundColor: "#22C55E",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 20,
+      marginBottom: 8,
+    }}
+  >
+    <Text
+      style={{
+        color: "#000",
+        fontWeight: "bold",
+        fontSize: 11,
+      }}
+    >
+      NEW
+    </Text>
+  </View>
+)}
+
+{(item.downloads || 0) >= 10 && (
+  <View
+    style={{
+      alignSelf: "flex-start",
+      backgroundColor: "#EF4444",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 20,
+      marginBottom: 8,
+      marginTop: 6,
+    }}
+  >
+    <Text
+      style={{
+        color: "#FFFFFF",
+        fontWeight: "bold",
+        fontSize: 11,
+      }}
+    >
+      🔥 POPULAR
+    </Text>
+  </View>
+)}
+
+{(item.creatorUploads || 0) >= 5 && (
+  <View
+    style={{
+      alignSelf: "flex-start",
+      backgroundColor: "#F59E0B",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 20,
+      marginBottom: 8,
+      marginTop: 6,
+    }}
+  >
+    <Text
+      style={{
+        color: "#000",
+        fontWeight: "bold",
+        fontSize: 11,
+      }}
+    >
+      🏆 TOP CREATOR
+    </Text>
+  </View>
+)}
+
               <Text style={styles.cardTitle}>{item.title}</Text>
 
               <Text style={styles.meta}>
@@ -322,7 +423,18 @@ if (!user) return null;
               </Text>
 
               <Text style={styles.owner}>
-  Posted by: {item.email}
+  {(item.creatorUploads || 0) >= 5 ? "✅" : "👤"}{" "}
+  {item.ownerName || item.email}
+</Text>
+
+<Text
+  style={{
+    color: "#9CA3AF",
+    marginTop: 4,
+    fontSize: 12,
+  }}
+>
+  📥 {item.downloads || 0} downloads
 </Text>
 
 <TouchableOpacity
