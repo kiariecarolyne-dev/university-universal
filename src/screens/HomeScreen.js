@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   AppState,
@@ -8,7 +8,14 @@ import {
   View,
 } from "react-native";
 
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+
 import { auth, db } from "../services/firebase";
 
 import useUser from "../hooks/useUser";
@@ -16,6 +23,10 @@ import { getUserPlan, isInTrialPeriod } from "../utils/access";
 
 export default function HomeScreen({ navigation }) {
   const user = useUser();
+
+  const [roomCounts, setRoomCounts] = useState({
+  GlobalStudyHall: 0,
+});
 
   useEffect(() => {
   if (!auth.currentUser) return;
@@ -78,7 +89,61 @@ useEffect(() => {
     }
   }, [user]);
 
+  useEffect(() => {
+  if (!user) return;
+
+  const rooms = ["GlobalStudyHall"];
+
+  if (
+    user.course &&
+    user.course !== "Not set yet"
+  ) {
+    rooms.push(user.course);
+  }
+
+
+  const unsubscribes = rooms.map((room) => {
+    return onSnapshot(
+      collection(
+        db,
+        "videoRooms",
+        room,
+        "participants"
+      ),
+      (snapshot) => {
+        setRoomCounts((prev) => ({
+          ...prev,
+          [room]: snapshot.size,
+        }));
+      }
+    );
+  });
+
+  return () => {
+    unsubscribes.forEach((unsub) => unsub());
+  };
+}, []);
+
   if (!user) return null;
+
+  const rooms = [
+  {
+    id: "GlobalStudyHall",
+    emoji: "🌍",
+    title: "Global Study Hall",
+  },
+];
+
+if (
+  user.course &&
+  user.course !== "Not set yet"
+) {
+  rooms.push({
+    id: user.course,
+    emoji: "📚",
+    title: user.course,
+  });
+}
 
   const plan = getUserPlan(user);
 
@@ -203,14 +268,42 @@ useEffect(() => {
   onPress={() => navigation.navigate("Inbox")}
 />
 
-        <NavButton
-          title="🎥 Video Room"
-          onPress={() =>
-            navigation.navigate("VideoRoom", {
-              roomName: "General",
-            })
-          }
-        />
+        {/* VIDEO STUDY HALLS */}
+
+<View style={styles.videoSection}>
+  <Text style={styles.videoTitle}>
+    🎥 Live Study Halls
+  </Text>
+
+  <Text style={styles.videoSubtitle}>
+    Join voice and video study rooms with students worldwide.
+  </Text>
+
+  <View style={styles.videoGrid}>
+  {rooms.map((room) => (
+    <TouchableOpacity
+      key={room.id}
+      style={styles.videoCard}
+      onPress={() =>
+        navigation.navigate("VideoRoom", {
+          roomName: room.id,
+        })
+      }
+    >
+      <Text style={styles.videoEmoji}>
+        {room.emoji}
+      </Text>
+
+      <Text style={styles.videoCardTitle}>
+        {room.title}
+      </Text>
+
+      <Text style={styles.videoCardHint}>
+        👥 {roomCounts[room.id] || 0} students studying
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
 
         <NavButton
           title="📚 Notes"
@@ -221,6 +314,8 @@ useEffect(() => {
           title="⬆ Upload"
           onPress={() => navigation.navigate("UploadNotes")}
         />
+      </View>
+      
       </View>
 
       {/* PREMIUM CTA */}
@@ -395,4 +490,53 @@ statLabel: {
     fontWeight: "bold",
     fontSize: 15,
   },
+
+  videoSection: {
+  marginTop: 20,
+},
+
+videoTitle: {
+  color: "#FFFFFF",
+  fontSize: 20,
+  fontWeight: "bold",
+  marginBottom: 6,
+},
+
+videoSubtitle: {
+  color: "#9CA3AF",
+  marginBottom: 14,
+},
+
+videoGrid: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+},
+
+videoCard: {
+  width: "48%",
+  backgroundColor: "#111827",
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 12,
+  borderWidth: 1,
+  borderColor: "#1F2937",
+},
+
+videoEmoji: {
+  fontSize: 28,
+  marginBottom: 8,
+},
+
+videoCardTitle: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+  fontSize: 14,
+},
+
+videoCardHint: {
+  color: "#9CA3AF",
+  fontSize: 12,
+  marginTop: 6,
+},
 };

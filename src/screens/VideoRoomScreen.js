@@ -1,87 +1,248 @@
+import { useEffect, useRef } from "react";
+
 import { Text, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
+
+import {
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  setDoc,
+  updateDoc
+} from "firebase/firestore";
+
+import { auth, db } from "../services/firebase";
 
 import useUser from "../hooks/useUser";
 import { isPremiumUser } from "../utils/access";
 
+
 export default function VideoRoomScreen({ route, navigation }) {
   const user = useUser();
-  const roomName = route.params?.roomName || "General";
 
-  if (!user) return null;
+  const sessionStartRef = useRef(null);
 
-  const isAllowed = isPremiumUser(user);
+  const today = new Date().toDateString();
 
-  /* =========================
-     PREMIUM GATE UI
-  ========================= */
-  if (!isAllowed) {
-    return (
-      <View style={styles.lockContainer}>
-        <Text style={styles.lockTitle}>
-  🔒 Premium Video Rooms
-</Text>
+ const roomName =
+  route.params?.roomName || "GlobalStudyHall";
 
-        <Text style={styles.lockText}>
-  Join live study sessions, collaborate with classmates, and discuss coursework in real time.
+const safeRoomName = String(roomName)
+  .replace(/[^a-zA-Z0-9_-]/g, "")
+  .slice(0, 50);
 
-  {"\n\n"}
+useEffect(() => {
+  if (!auth.currentUser || !user) return;
 
-  Upgrade to Premium to unlock unlimited Video Study Rooms.
-</Text>
+  const participantRef = doc(
+    db,
+    "videoRooms",
+    safeRoomName,
+    "participants",
+    auth.currentUser.uid
+  );
 
-        <TouchableOpacity
-          style={styles.upgradeBtn}
-          onPress={() => navigation.navigate("Premium")}
-        >
-          <Text style={styles.upgradeText}>Upgrade to Premium</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const joinRoom = async () => {
+    try {
+      if (
+        !isPremiumUser(user) &&
+        (user.videoMinutesDate || today) !== today
+      ) {
+        await updateDoc(
+          doc(db, "users", auth.currentUser.uid),
+          {
+            videoMinutesUsed: 0,
+            videoMinutesDate: today,
+          }
+        );
+      }
 
-  /* =========================
-     SAFE ROOM NAME
-  ========================= */
-  const safeRoomName = String(roomName)
-    .replace(/[^a-zA-Z0-9_-]/g, "")
-    .slice(0, 50);
+      await setDoc(participantRef, {
+        userId: auth.currentUser.uid,
+        fullName: user.fullName || "Student",
+        joinedAt: serverTimestamp(),
+      });
 
-  const jitsiUrl = `https://meet.jit.si/UniversityUniversal_${safeRoomName}`;
+      if (!isPremiumUser(user)) {
+        sessionStartRef.current = Date.now();
+      }
+    } catch (error) {
+      console.log(
+        "Failed to join room:",
+        error
+      );
+    }
+  };
+
+  joinRoom();
+
+  return () => {
+    const leaveRoom = async () => {
+      try {
+        if (
+          !isPremiumUser(user) &&
+          sessionStartRef.current
+        ) {
+          const sessionMinutes = Math.ceil(
+            (Date.now() -
+              sessionStartRef.current) /
+              (1000 * 60)
+          );
+
+          await updateDoc(
+            doc(
+              db,
+              "users",
+              auth.currentUser.uid
+            ),
+            {
+              videoMinutesUsed:
+                (user.videoMinutesUsed || 0) +
+                sessionMinutes,
+            }
+          );
+        }
+
+        await deleteDoc(participantRef);
+      } catch (error) {
+        console.log(
+          "Failed to leave room:",
+          error
+        );
+      }
+    };
+
+    leaveRoom();
+  };
+}, [safeRoomName, user]);
+
+if (!user) return null;
+
+const isAllowed = isPremiumUser(user);
+
+const FREE_MINUTES_PER_DAY = 30;
+
+const videoMinutesUsed =
+  user.videoMinutesUsed || 0;
+
+const videoMinutesDate =
+  user.videoMinutesDate || today;
+
+const roomTitle =
+  roomName === "GlobalStudyHall"
+    ? "🌍 Global Study Hall"
+    : `📚 ${roomName}`;
+
+if (
+  !isAllowed &&
+  videoMinutesDate === today &&
+  videoMinutesUsed >= FREE_MINUTES_PER_DAY
+) {
+  return (
+    <View style={styles.lockContainer}>
+      <Text style={styles.lockTitle}>
+        ⏳ Daily limit reached
+      </Text>
+
+      <Text style={styles.lockText}>
+        You have used your free 30 study minutes
+        for today.
+
+        {"\n\n"}
+
+        Upgrade to Premium for unlimited
+        video study rooms.
+      </Text>
+
+      <TouchableOpacity
+        style={styles.upgradeBtn}
+        onPress={() =>
+          navigation.navigate("Premium")
+        }
+      >
+        <Text style={styles.upgradeText}>
+          Upgrade to Premium
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+  /*
+   ==================================
+   IMPROVED JITSI CONFIG (STAGE 1)
+   ==================================
+  */
+
+  const jitsiUrl =
+    `https://meet.jit.si/UniversityUniversal_${safeRoomName}` +
+    "#config.startWithAudioMuted=true" +
+    "&config.startWithVideoMuted=true" +
+    "&config.prejoinPageEnabled=false" +
+    "&config.disableDeepLinking=true" +
+    "&config.resolution=360" +
+    "&config.enableWelcomePage=false" +
+    "&config.toolbarButtons=" +
+    JSON.stringify([
+      "microphone",
+      "camera",
+      "chat",
+      "participants-pane",
+      "raisehand",
+      "tileview",
+      "desktop",
+      "hangup",
+    ]);
 
   return (
     <View style={styles.container}>
+      {/* HEADER */}
 
-      {/* HEADER BAR */}
       <View style={styles.header}>
         <Text style={styles.title}>
-  🎥 Video Study Room
-</Text>
+          🎥 Video Study Room
+        </Text>
 
-<Text style={styles.subtitle}>
-  Meet and study with students in real time
-</Text>
+        <Text style={styles.subtitle}>
+          Join the study hall and collaborate in real time.
+        </Text>
+
         <View style={styles.roomBadge}>
-          <Text style={styles.roomText}>{safeRoomName}</Text>
+          <Text style={styles.roomText}>
+            {roomTitle}
+          </Text>
         </View>
+
+        <Text style={styles.hint}>
+          🎙️ Microphone OFF by default
+        </Text>
+
+        <Text style={styles.hint}>
+          📷 Camera OFF by default
+        </Text>
+
+        <Text style={styles.hint}>
+          ✋ Raise your hand to speak
+        </Text>
       </View>
 
       {/* VIDEO */}
+
       <View style={styles.videoContainer}>
         <WebView
           source={{ uri: jitsiUrl }}
           style={styles.webview}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
+          javaScriptEnabled
+          domStorageEnabled
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback
+          originWhitelist={["*"]}
         />
       </View>
     </View>
   );
 }
 
-/* =========================
-   DARK SaaS UI SYSTEM
-========================= */
 const styles = {
   container: {
     flex: 1,
@@ -104,23 +265,30 @@ const styles = {
   },
 
   subtitle: {
-  color: "#9CA3AF",
-  marginTop: 4,
-  fontSize: 13,
-},
+    color: "#9CA3AF",
+    marginTop: 4,
+    fontSize: 13,
+  },
 
   roomBadge: {
-  marginTop: 12,
-  alignSelf: "flex-start",
-  backgroundColor: "#4F46E5",
-  paddingVertical: 5,
-  paddingHorizontal: 12,
-  borderRadius: 20,
-},
+    marginTop: 12,
+    alignSelf: "flex-start",
+    backgroundColor: "#4F46E5",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
 
   roomText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+
+  hint: {
     color: "#9CA3AF",
     fontSize: 12,
+    marginTop: 6,
   },
 
   videoContainer: {
@@ -137,9 +305,6 @@ const styles = {
     backgroundColor: "#000",
   },
 
-  /* =========================
-     PREMIUM SCREEN
-  ========================= */
   lockContainer: {
     flex: 1,
     backgroundColor: "#05070A",
@@ -159,7 +324,7 @@ const styles = {
     textAlign: "center",
     color: "#9CA3AF",
     marginBottom: 20,
-    lineHeight: 20,
+    lineHeight: 22,
   },
 
   upgradeBtn: {

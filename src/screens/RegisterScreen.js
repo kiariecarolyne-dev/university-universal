@@ -68,6 +68,9 @@ export default function RegisterScreen({ navigation }) {
 
           createdAt:
             new Date().toISOString(),
+
+            videoMinutesUsed: 0,
+videoMinutesDate: new Date().toDateString(),
         }
       );
 
