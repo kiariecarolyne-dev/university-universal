@@ -58,10 +58,11 @@ useEffect(() => {
       }
 
       await setDoc(participantRef, {
-        userId: auth.currentUser.uid,
-        fullName: user.fullName || "Student",
-        joinedAt: serverTimestamp(),
-      });
+  userId: auth.currentUser.uid,
+  fullName: user.fullName || "Student",
+  photo: user.photo || "",
+  joinedAt: serverTimestamp(),
+});
 
       if (!isPremiumUser(user)) {
         sessionStartRef.current = Date.now();
