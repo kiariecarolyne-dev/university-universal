@@ -1,15 +1,24 @@
+import * as ImagePicker from "expo-image-picker";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import { useEffect, useState } from "react";
+
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth, db } from "../services/firebase";
+
+import { auth, db, storage } from "../services/firebase";
 
 export default function ProfileScreen() {
   const [fullName, setFullName] = useState("");
@@ -17,6 +26,7 @@ export default function ProfileScreen() {
   const [course, setCourse] = useState("");
   const [country, setCountry] = useState("");
   const [year, setYear] = useState("");
+  const [photo, setPhoto] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
@@ -36,6 +46,7 @@ export default function ProfileScreen() {
         setCourse(data.course || "");
         setCountry(data.country || "");
         setYear(data.year || "");
+        setPhoto(data.photo || "");
       }
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -44,36 +55,90 @@ export default function ProfileScreen() {
     }
   };
 
+  const pickImage = async () => {
+  const permission =
+    await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  if (!permission.granted) {
+    Alert.alert(
+      "Permission needed",
+      "Please allow access to your photos."
+    );
+    return;
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+  allowsEditing: true,
+  aspect: [1, 1],
+  quality: 0.7,
+});
+
+  if (!result.canceled) {
+    setPhoto(result.assets[0].uri);
+  }
+};
+
   // SAVE PROFILE (SAFE UPDATE)
   const saveProfile = async () => {
-    if (!fullName || !university || !course || !country || !year) {
-      Alert.alert("Error", "Please fill all fields");
-      return;
-    }
+  if (
+    !fullName ||
+    !university ||
+    !course ||
+    !country ||
+    !year ||
+    !photo
+  ) {
+    Alert.alert(
+      "Error",
+      "Please fill all fields and upload a profile picture."
+    );
+    return;
+  }
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      await setDoc(
-        doc(db, "users", userId),
-        {
-          fullName,
-          university,
-          course,
-          country,
-          year,
-          email: auth.currentUser.email,
-        },
-        { merge: true }   // IMPORTANT → prevents overwriting premium/trial data
+    let photoURL = photo;
+
+    if (photo.startsWith("file")) {
+      const response = await fetch(photo);
+
+      const blob = await response.blob();
+
+      const imageRef = ref(
+        storage,
+        `profilePictures/${userId}`
       );
 
-      Alert.alert("Success", "Profile updated successfully");
-    } catch (error) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setLoading(false);
+      await uploadBytes(imageRef, blob);
+
+      photoURL = await getDownloadURL(imageRef);
     }
-  };
+
+    await setDoc(
+      doc(db, "users", userId),
+      {
+        fullName,
+        university,
+        course,
+        country,
+        year,
+        photo: photoURL,
+        email: auth.currentUser.email,
+      },
+      { merge: true }
+    );
+
+    Alert.alert(
+      "Success",
+      "Profile updated successfully"
+    );
+  } catch (error) {
+    Alert.alert("Error", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     loadProfile();
@@ -107,6 +172,35 @@ export default function ProfileScreen() {
     {auth.currentUser?.email}
   </Text>
 </View>
+
+<TouchableOpacity
+  onPress={pickImage}
+  style={{ alignItems: "center", marginTop: 20 }}
+>
+  <Image
+    source={{
+      uri:
+        photo ||
+        "https://via.placeholder.com/150",
+    }}
+    style={{
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "#E5E7EB",
+    }}
+  />
+
+  <Text
+    style={{
+      color: "#4F46E5",
+      marginTop: 10,
+      fontWeight: "bold",
+    }}
+  >
+    Upload Profile Photo
+  </Text>
+</TouchableOpacity>
 
       {/* PROFILE CARD */}
       <View style={styles.card}>

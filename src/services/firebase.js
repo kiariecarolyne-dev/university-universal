@@ -8,7 +8,7 @@ import {
 
 import { getFirestore } from "firebase/firestore";
 
-/* NEW */
+/* NEW STORAGE */
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
