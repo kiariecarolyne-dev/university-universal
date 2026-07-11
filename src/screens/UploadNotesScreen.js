@@ -135,6 +135,11 @@ export default function UploadNotesScreen({ navigation }) {
       user.fullName || "Unknown Student"
     );
 
+    formData.append(
+  "ownerPhoto",
+  user.photo || ""
+);
+
     formData.append("title", title);
     formData.append("course", course);
     formData.append("university", university);
