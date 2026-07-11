@@ -20,6 +20,9 @@ import {
 
 export default function DiscoverScreen({ navigation }) {
   const [students, setStudents] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("All");
+  const [courses, setCourses] = useState([]);
+const [selectedCountry, setSelectedCountry] = useState("All");
   const user = useUser();
 
   const loadStudents = async () => {
@@ -36,6 +39,17 @@ export default function DiscoverScreen({ navigation }) {
 );
 
 setStudents(filtered);
+
+const uniqueCourses = [
+  "All",
+  ...new Set(
+    filtered
+      .map((student) => student.course)
+      .filter(Boolean)
+  ),
+];
+
+setCourses(uniqueCourses);
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -55,7 +69,7 @@ setStudents(filtered);
     }
 
     loadStudents();
-  }, [user]);
+  }, [user, selectedCourse]);
 
   const handlePrivateMessage = (student) => {
     if (!isPremiumUser(user)) {
@@ -70,6 +84,12 @@ setStudents(filtered);
 
     navigation.navigate("PrivateChat", { student });
   };
+
+  const displayedStudents = students.filter(
+  (student) =>
+    selectedCourse === "All" ||
+    student.course === selectedCourse
+);
 
   if (!user) return null;
 
@@ -95,9 +115,36 @@ setStudents(filtered);
         </View>
       )}
 
+      <View style={styles.filtersRow}>
+  <FlatList
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    data={courses}
+    keyExtractor={(item) => item}
+    renderItem={({ item }) => (
+      <TouchableOpacity
+        style={[
+          styles.filterChip,
+          selectedCourse === item &&
+            styles.activeChip,
+        ]}
+        onPress={() => setSelectedCourse(item)}
+      >
+        <Text style={styles.filterText}>
+          {item}
+        </Text>
+      </TouchableOpacity>
+    )}
+  />
+</View>
+
       {/* STUDENTS */}
       <FlatList
-        data={students}
+  data={displayedstudents}
+  numColumns={2}
+  columnWrapperStyle={{
+    justifyContent: "space-between",
+  }}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 30 }}
         ListEmptyComponent={
@@ -105,61 +152,89 @@ setStudents(filtered);
   No students found yet.
 </Text>
         }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
+       renderItem={({ item }) => (
+  <TouchableOpacity
+    style={styles.studentCard}
+    onPress={() => handlePrivateMessage(item)}
+    activeOpacity={0.9}
+  >
+    {/* PHOTO */}
 
-            {/* AVATAR + NAME */}
-            <View style={styles.topRow}>
-              {item.photo ? (
-  <Image
-    source={{ uri: item.photo }}
-    style={styles.avatarImage}
-  />
-) : (
-  <View style={styles.avatar}>
-    <Text style={styles.avatarText}>
-      {item.fullName
-        ? item.fullName.charAt(0).toUpperCase()
-        : "S"}
+    <View>
+
+  {item.photo ? (
+    <Image
+      source={{ uri: item.photo }}
+      style={styles.studentImage}
+    />
+  ) : (
+    <View style={styles.studentPlaceholder}>
+      <Text style={styles.studentLetter}>
+        {item.fullName
+          ? item.fullName.charAt(0).toUpperCase()
+          : "S"}
+      </Text>
+    </View>
+  )}
+
+  <View style={styles.onlineDot} />
+
+</View>
+
+    {/* NAME */}
+
+    <Text numberOfLines={1} style={styles.studentName}>
+      {item.fullName || "Student"}
+    </Text>
+
+    {/* UNIVERSITY */}
+
+    <Text numberOfLines={1} style={styles.studentUniversity}>
+      🎓 {item.university || "University"}
+    </Text>
+
+    {/* COURSE */}
+
+    <Text numberOfLines={1} style={styles.studentCourse}>
+      <View style={styles.badgesRow}>
+
+  <View style={styles.badge}>
+    <Text style={styles.badgeText}>
+      🎓 {item.year || "Year"}
     </Text>
   </View>
-)}
 
-              <View>
-                <Text style={styles.name}>
-                  {item.fullName || "Student"}
-                </Text>
+  <View style={styles.badge}>
+    <Text style={styles.badgeText}>
+      📚 {item.course || "Student"}
+    </Text>
+  </View>
 
-                <Text style={styles.country}>
-                  {item.country || "Country not set"}
-                </Text>
-              </View>
-            </View>
+</View>
+      📚 {item.course || "Course"}
+    </Text>
 
-            {/* DETAILS */}
-            <Text style={styles.meta}>
-              🎓 {item.university || "University not set"}
-            </Text>
+    {/* YEAR */}
 
-            <Text style={styles.meta}>
-              📚 {item.course || "Course not set"}
-            </Text>
+    <Text style={styles.studentYear}>
+      {item.year || "Year"}
+    </Text>
 
-            <Text style={styles.meta}>
-              🏛 Year: {item.year || "Not set"}
-            </Text>
+    {/* COUNTRY */}
 
-            {/* BUTTON */}
-            <TouchableOpacity
-              style={styles.btn}
-              onPress={() => handlePrivateMessage(item)}
-            >
-              <Text style={styles.btnText}>
-                💬 Message Student
-              </Text>
-            </TouchableOpacity>
+    <Text numberOfLines={1} style={styles.studentCountry}>
+      🌍 {item.country || "Country"}
+    </Text>
 
-          </View>
+    {/* ONLINE BUTTON */}
+
+    <View style={styles.messageButton}>
+      <Text style={styles.messageText}>
+        💬 Connect
+      </Text>
+    </View>
+  </TouchableOpacity>
+
         )}
       />
     </View>
@@ -278,4 +353,135 @@ const styles = {
     textAlign: "center",
     marginTop: 40,
   },
+
+studentCard: {
+  width: "48%",
+  backgroundColor: "#0F172A",
+  borderRadius: 20,
+  padding: 12,
+  marginBottom: 16,
+  borderWidth: 1,
+  borderColor: "#1F2937",
+},
+
+studentImage: {
+  width: "100%",
+  height: 170,
+  borderRadius: 16,
+  marginBottom: 10,
+},
+
+studentPlaceholder: {
+  width: "100%",
+  height: 170,
+  borderRadius: 16,
+  backgroundColor: "#4F46E5",
+  justifyContent: "center",
+  alignItems: "center",
+  marginBottom: 10,
+},
+
+studentLetter: {
+  color: "#FFFFFF",
+  fontSize: 42,
+  fontWeight: "bold",
+},
+
+studentName: {
+  color: "#FFFFFF",
+  fontSize: 16,
+  fontWeight: "bold",
+},
+
+studentUniversity: {
+  color: "#CBD5E1",
+  fontSize: 12,
+  marginTop: 6,
+},
+
+studentCourse: {
+  color: "#94A3B8",
+  fontSize: 12,
+  marginTop: 4,
+},
+
+studentYear: {
+  color: "#FBBF24",
+  marginTop: 6,
+  fontWeight: "bold",
+},
+
+studentCountry: {
+  color: "#9CA3AF",
+  fontSize: 11,
+  marginTop: 4,
+},
+
+messageButton: {
+  backgroundColor: "#4F46E5",
+  marginTop: 12,
+  paddingVertical: 8,
+  borderRadius: 10,
+  alignItems: "center",
+},
+
+messageText: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+  fontSize: 12,
+},
+
+filtersRow: {
+  flexDirection: "row",
+  marginBottom: 15,
+},
+
+filterChip: {
+  backgroundColor: "#1F2937",
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  borderRadius: 20,
+  marginRight: 10,
+},
+
+activeChip: {
+  backgroundColor: "#4F46E5",
+},
+
+filterText: {
+  color: "#FFFFFF",
+  fontSize: 12,
+},
+
+badgesRow: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  marginTop: 10,
+},
+
+badge: {
+  backgroundColor: "#1F2937",
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 10,
+  marginRight: 6,
+  marginBottom: 6,
+},
+
+badgeText: {
+  color: "#FFFFFF",
+  fontSize: 10,
+},
+
+onlineDot: {
+  position: "absolute",
+  top: 10,
+  right: 10,
+  width: 14,
+  height: 14,
+  borderRadius: 7,
+  backgroundColor: "#10B981",
+  borderWidth: 2,
+  borderColor: "#FFFFFF",
+},
 };
