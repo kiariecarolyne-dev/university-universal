@@ -179,7 +179,6 @@ export default function PremiumScreen() {
         <Text style={styles.feature}>✓ Chat privately with students worldwide</Text>
         <Text style={styles.feature}>✓ Join unlimited video study rooms</Text>
         <Text style={styles.feature}>✓ Access premium study notes</Text>
-        <Text style={styles.feature}>✓ Upload Notes & Earn</Text>
         <Text style={styles.feature}>✓ Get priority visibility across the app</Text>
       </View>
 
