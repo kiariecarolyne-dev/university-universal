@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -92,13 +93,15 @@ export default function ChatScreen({ route }) {
     }
 
     await addDoc(
-      collection(db, "groups", group.id, "messages"),
-      {
-        text: message,
-        sender: auth.currentUser.email,
-        createdAt: serverTimestamp()
-      }
-    );
+  collection(db, "groups", group.id, "messages"),
+  {
+    text: message,
+    sender: auth.currentUser.email,
+    senderName: user?.fullName || "Student",
+    senderPhoto: user?.photo || "",
+    createdAt: serverTimestamp(),
+  }
+);
 
     setMessage("");
   };
@@ -134,13 +137,36 @@ export default function ChatScreen({ route }) {
               isMe && styles.myMessageCard,
             ]}
           >
-            <Text style={styles.sender}>
-              {isMe ? "You" : item.sender}
-            </Text>
+            <View
+  style={{
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  }}
+>
+  {item.senderPhoto ? (
+    <Image
+      source={{ uri: item.senderPhoto }}
+      style={styles.chatAvatar}
+    />
+  ) : (
+    <View style={styles.chatAvatar}>
+      <Text>
+        {(item.senderName || "S")
+          .charAt(0)
+          .toUpperCase()}
+      </Text>
+    </View>
+  )}
 
-            <Text style={styles.message}>
-              {item.text}
-            </Text>
+  <Text style={styles.sender}>
+    {isMe ? "You" : item.senderName}
+  </Text>
+</View>
+
+<Text style={styles.message}>
+  {item.text}
+</Text>
 
             <Text style={styles.time}>
               {item.createdAt?.toDate
@@ -214,6 +240,16 @@ const styles = {
   borderColor: "#4F46E5",
   alignSelf: "flex-end",
   maxWidth: "85%",
+},
+
+chatAvatar: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  marginRight: 10,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "#D1D5DB",
 },
 
   sender: {
