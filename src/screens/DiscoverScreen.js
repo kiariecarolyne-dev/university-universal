@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Text,
   TouchableOpacity,
   View,
@@ -109,13 +110,20 @@ setStudents(filtered);
 
             {/* AVATAR + NAME */}
             <View style={styles.topRow}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {item.fullName
-                    ? item.fullName.charAt(0).toUpperCase()
-                    : "S"}
-                </Text>
-              </View>
+              {item.photo ? (
+  <Image
+    source={{ uri: item.photo }}
+    style={styles.avatarImage}
+  />
+) : (
+  <View style={styles.avatar}>
+    <Text style={styles.avatarText}>
+      {item.fullName
+        ? item.fullName.charAt(0).toUpperCase()
+        : "S"}
+    </Text>
+  </View>
+)}
 
               <View>
                 <Text style={styles.name}>
@@ -221,6 +229,13 @@ const styles = {
     alignItems: "center",
     marginRight: 12,
   },
+
+  avatarImage: {
+  width: 56,
+  height: 56,
+  borderRadius: 28,
+  marginRight: 12,
+},
 
   avatarText: {
     color: "#FFFFFF",
