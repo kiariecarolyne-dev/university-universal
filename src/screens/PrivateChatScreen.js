@@ -187,15 +187,19 @@ useEffect(() => {
   {
     sender: auth.currentUser.email,
     senderId: auth.currentUser.uid,
+    senderName: user?.fullName || "Student",
+    senderPhoto: user?.photo || "",
+
     receiver: student.email,
     receiverId: student.id,
+    receiverPhoto: student?.photo || "",
 
     text: message,
     createdAt: serverTimestamp(),
 
     read: false,
-      });
-
+  }
+);
 
       setMessage("");
     } catch (error) {
@@ -272,20 +276,37 @@ useEffect(() => {
     >
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>{student.fullName || student.name}</Text>
-        <Text style={styles.subHeader}>
-  {studentStatus.online
-    ? "🟢 Online"
-    : studentStatus.lastSeen
-    ? `Last seen ${studentStatus.lastSeen
-        .toDate()
-        .toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}`
-    : "Offline"}
-</Text>
-      </View>
+        <View style={styles.header}>
+
+  {student.photo ? (
+    <Image
+      source={{ uri: student.photo }}
+      style={styles.headerAvatar}
+    />
+  ) : (
+    <View style={styles.headerAvatar} />
+  )}
+
+  <View>
+    <Text style={styles.headerText}>
+      {student.fullName || student.name}
+    </Text>
+
+    <Text style={styles.subHeader}>
+      {studentStatus.online
+        ? "🟢 Online"
+        : studentStatus.lastSeen
+        ? `Last seen ${studentStatus.lastSeen
+            .toDate()
+            .toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}`
+        : "Offline"}
+    </Text>
+  </View>
+
+</View>
 
       {/* CHAT */}
       <FlatList
@@ -336,6 +357,14 @@ const styles = {
     borderBottomColor: "#1F2937",
     backgroundColor: "#0F172A",
   },
+
+  headerAvatar: {
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  marginRight: 12,
+  backgroundColor: "#374151",
+},
 
   headerText: {
     color: "#FFFFFF",
