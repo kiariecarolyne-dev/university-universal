@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -276,7 +277,6 @@ useEffect(() => {
     >
       {/* HEADER */}
       <View style={styles.header}>
-        <View style={styles.header}>
 
   {student.photo ? (
     <Image
@@ -305,7 +305,6 @@ useEffect(() => {
         : "Offline"}
     </Text>
   </View>
-
 </View>
 
       {/* CHAT */}

@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Text,
   TextInput,
   TouchableOpacity,
@@ -412,6 +413,45 @@ if (!user) return null;
   </View>
 )}
 
+<View
+  style={{
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  }}
+>
+  {item.ownerPhoto ? (
+    <Image
+      source={{ uri: item.ownerPhoto }}
+      style={styles.ownerAvatar}
+    />
+  ) : (
+    <View style={styles.ownerAvatar}>
+      <Text style={{ fontWeight: "bold" }}>
+        {(item.ownerName || "S")
+          .charAt(0)
+          .toUpperCase()}
+      </Text>
+    </View>
+  )}
+
+  <View>
+    <Text style={styles.owner}>
+      {(item.creatorUploads || 0) >= 5 ? "✅" : "👤"}{" "}
+      {item.ownerName || item.email}
+    </Text>
+
+    <Text
+      style={{
+        color: "#9CA3AF",
+        fontSize: 12,
+      }}
+    >
+      📥 {item.downloads || 0} downloads
+    </Text>
+  </View>
+</View>
+
               <Text style={styles.cardTitle}>{item.title}</Text>
 
               <Text style={styles.meta}>
@@ -422,20 +462,6 @@ if (!user) return null;
                 {item.description}
               </Text>
 
-              <Text style={styles.owner}>
-  {(item.creatorUploads || 0) >= 5 ? "✅" : "👤"}{" "}
-  {item.ownerName || item.email}
-</Text>
-
-<Text
-  style={{
-    color: "#9CA3AF",
-    marginTop: 4,
-    fontSize: 12,
-  }}
->
-  📥 {item.downloads || 0} downloads
-</Text>
 
 <TouchableOpacity
   style={styles.downloadBtn}
@@ -597,6 +623,16 @@ activeFilterText: {
     marginTop: 8,
     lineHeight: 18,
   },
+
+  ownerAvatar: {
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  marginRight: 12,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "#374151",
+},
 
   owner: {
     color: "#6B7280",
