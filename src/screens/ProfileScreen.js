@@ -1,11 +1,8 @@
+import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import {
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "firebase/storage";
 import { useEffect, useState } from "react";
+const API_URL = "https://university-universal-backend.onrender.com";
 
 import {
   ActivityIndicator,
@@ -18,7 +15,7 @@ import {
   View,
 } from "react-native";
 
-import { auth, db, storage } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 
 export default function ProfileScreen() {
   const [fullName, setFullName] = useState("");
@@ -79,7 +76,7 @@ export default function ProfileScreen() {
 };
 
   // SAVE PROFILE (SAFE UPDATE)
-  const saveProfile = async () => {
+ const saveProfile = async () => {
   if (
     !fullName ||
     !university ||
@@ -100,19 +97,33 @@ export default function ProfileScreen() {
 
     let photoURL = photo;
 
+    // Upload only if this is a newly selected local file
     if (photo.startsWith("file")) {
-      const response = await fetch(photo);
+      const formData = new FormData();
 
-      const blob = await response.blob();
+      formData.append("userId", userId);
 
-      const imageRef = ref(
-        storage,
-        `profilePictures/${userId}`
+      formData.append("photo", {
+        uri: photo,
+        name: "profile.jpg",
+        type: "image/jpeg",
+      });
+
+      const response = await axios.post(
+        `${API_URL}/upload-profile-photo`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
-      await uploadBytes(imageRef, blob);
+      if (!response.data.success) {
+        throw new Error("Photo upload failed.");
+      }
 
-      photoURL = await getDownloadURL(imageRef);
+      photoURL = response.data.photoUrl;
     }
 
     await setDoc(
@@ -131,10 +142,16 @@ export default function ProfileScreen() {
 
     Alert.alert(
       "Success",
-      "Profile updated successfully"
+      "Profile updated successfully."
     );
+
   } catch (error) {
-    Alert.alert("Error", error.message);
+    console.log(error);
+
+    Alert.alert(
+      "Error",
+      error.response?.data?.error || error.message
+    );
   } finally {
     setLoading(false);
   }
