@@ -7,13 +7,26 @@
     "userInterfaceStyle": "automatic",
     "icon": "./assets/expo.icon/Assets/assetsicon.png",
     "android": {
-      "package": "com.universityuniversal.app",
-      "versionCode": 1,
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/expo.icon/Assets/assetsicon.png",
-        "backgroundColor": "#05070A"
-      }
-    },
+  "package": "com.universityuniversal.app",
+  "versionCode": 1,
+
+  "permissions": [
+    "CAMERA",
+    "RECORD_AUDIO",
+    "MODIFY_AUDIO_SETTINGS"
+  ],
+
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/expo.icon/Assets/assetsicon.png",
+    "backgroundColor": "#05070A"
+  }
+},
+"ios": {
+  "infoPlist": {
+    "NSCameraUsageDescription": "This app uses the camera for video study rooms.",
+    "NSMicrophoneUsageDescription": "This app uses the microphone for video study rooms."
+  }
+},
     "plugins": [
       [
         "expo-splash-screen",

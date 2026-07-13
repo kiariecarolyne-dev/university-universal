@@ -138,105 +138,58 @@ setCourses(uniqueCourses);
   />
 </View>
 
-      {/* STUDENTS */}
-      <FlatList
-  data={displayedstudents}
-  numColumns={2}
+{/* STUDENTS */}
+
+<FlatList
+  data={displayedStudents}
+  numColumns={3}
+  keyExtractor={(item) => item.id}
+  showsVerticalScrollIndicator={false}
+  contentContainerStyle={{ paddingBottom: 30 }}
   columnWrapperStyle={{
     justifyContent: "space-between",
+    marginBottom: 15,
   }}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 30 }}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-  No students found yet.
-</Text>
-        }
-       renderItem={({ item }) => (
-  <TouchableOpacity
-    style={styles.studentCard}
-    onPress={() => handlePrivateMessage(item)}
-    activeOpacity={0.9}
-  >
-    {/* PHOTO */}
+  ListEmptyComponent={
+    <Text style={styles.empty}>
+      No students found yet.
+    </Text>
+  }
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      style={styles.studentCard}
+      onPress={() => handlePrivateMessage(item)}
+      activeOpacity={0.9}
+    >
+      {item.photo ? (
+        <Image
+          source={{ uri: item.photo }}
+          style={styles.studentImage}
+        />
+      ) : (
+        <View style={styles.studentPlaceholder}>
+          <Text style={styles.studentLetter}>
+            {item.fullName
+              ? item.fullName.charAt(0).toUpperCase()
+              : "S"}
+          </Text>
+        </View>
+      )}
 
-    <View>
-
-  {item.photo ? (
-    <Image
-      source={{ uri: item.photo }}
-      style={styles.studentImage}
-    />
-  ) : (
-    <View style={styles.studentPlaceholder}>
-      <Text style={styles.studentLetter}>
-        {item.fullName
-          ? item.fullName.charAt(0).toUpperCase()
-          : "S"}
+      <Text numberOfLines={1} style={styles.studentName}>
+        {item.fullName || "Student"}
       </Text>
-    </View>
+
+      <Text numberOfLines={1} style={styles.studentUniversity}>
+        {item.university || "University"}
+      </Text>
+
+      <Text numberOfLines={1} style={styles.studentCourse}>
+        {item.course || "Course"}
+      </Text>
+    </TouchableOpacity>
   )}
-
-  <View style={styles.onlineDot} />
-
-</View>
-
-    {/* NAME */}
-
-    <Text numberOfLines={1} style={styles.studentName}>
-      {item.fullName || "Student"}
-    </Text>
-
-    {/* UNIVERSITY */}
-
-    <Text numberOfLines={1} style={styles.studentUniversity}>
-      🎓 {item.university || "University"}
-    </Text>
-
-    {/* COURSE */}
-
-    <Text numberOfLines={1} style={styles.studentCourse}>
-      <View style={styles.badgesRow}>
-
-  <View style={styles.badge}>
-    <Text style={styles.badgeText}>
-      🎓 {item.year || "Year"}
-    </Text>
-  </View>
-
-  <View style={styles.badge}>
-    <Text style={styles.badgeText}>
-      📚 {item.course || "Student"}
-    </Text>
-  </View>
-
-</View>
-      📚 {item.course || "Course"}
-    </Text>
-
-    {/* YEAR */}
-
-    <Text style={styles.studentYear}>
-      {item.year || "Year"}
-    </Text>
-
-    {/* COUNTRY */}
-
-    <Text numberOfLines={1} style={styles.studentCountry}>
-      🌍 {item.country || "Country"}
-    </Text>
-
-    {/* ONLINE BUTTON */}
-
-    <View style={styles.messageButton}>
-      <Text style={styles.messageText}>
-        💬 Connect
-      </Text>
-    </View>
-  </TouchableOpacity>
-
-        )}
-      />
+/>
     </View>
   );
 }
@@ -355,30 +308,23 @@ const styles = {
   },
 
 studentCard: {
-  width: "48%",
-  backgroundColor: "#0F172A",
-  borderRadius: 20,
-  padding: 12,
-  marginBottom: 16,
-  borderWidth: 1,
-  borderColor: "#1F2937",
+  width: "31%",
+  marginBottom: 18,
 },
 
 studentImage: {
   width: "100%",
-  height: 170,
-  borderRadius: 16,
-  marginBottom: 10,
+  height: 150,
+  borderRadius: 18,
 },
 
 studentPlaceholder: {
   width: "100%",
-  height: 170,
-  borderRadius: 16,
+  height: 150,
+  borderRadius: 18,
   backgroundColor: "#4F46E5",
   justifyContent: "center",
   alignItems: "center",
-  marginBottom: 10,
 },
 
 studentLetter: {
@@ -389,46 +335,20 @@ studentLetter: {
 
 studentName: {
   color: "#FFFFFF",
-  fontSize: 16,
-  fontWeight: "bold",
+  fontSize: 15,
+  fontWeight: "700",
+  marginTop: 8,
 },
 
 studentUniversity: {
   color: "#CBD5E1",
-  fontSize: 12,
-  marginTop: 6,
+  fontSize: 11,
+  marginTop: 2,
 },
 
 studentCourse: {
   color: "#94A3B8",
-  fontSize: 12,
-  marginTop: 4,
-},
-
-studentYear: {
-  color: "#FBBF24",
-  marginTop: 6,
-  fontWeight: "bold",
-},
-
-studentCountry: {
-  color: "#9CA3AF",
   fontSize: 11,
-  marginTop: 4,
-},
-
-messageButton: {
-  backgroundColor: "#4F46E5",
-  marginTop: 12,
-  paddingVertical: 8,
-  borderRadius: 10,
-  alignItems: "center",
-},
-
-messageText: {
-  color: "#FFFFFF",
-  fontWeight: "bold",
-  fontSize: 12,
 },
 
 filtersRow: {
@@ -451,37 +371,5 @@ activeChip: {
 filterText: {
   color: "#FFFFFF",
   fontSize: 12,
-},
-
-badgesRow: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  marginTop: 10,
-},
-
-badge: {
-  backgroundColor: "#1F2937",
-  paddingHorizontal: 8,
-  paddingVertical: 4,
-  borderRadius: 10,
-  marginRight: 6,
-  marginBottom: 6,
-},
-
-badgeText: {
-  color: "#FFFFFF",
-  fontSize: 10,
-},
-
-onlineDot: {
-  position: "absolute",
-  top: 10,
-  right: 10,
-  width: 14,
-  height: 14,
-  borderRadius: 7,
-  backgroundColor: "#10B981",
-  borderWidth: 2,
-  borderColor: "#FFFFFF",
 },
 };

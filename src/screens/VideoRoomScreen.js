@@ -178,7 +178,7 @@ if (
   const jitsiUrl =
     `https://meet.jit.si/UniversityUniversal_${safeRoomName}` +
     "#config.startWithAudioMuted=true" +
-    "&config.startWithVideoMuted=true" +
+    "&config.startWithVideoMuted=false" +
     "&config.prejoinPageEnabled=false" +
     "&config.disableDeepLinking=true" +
     "&config.resolution=360" +
@@ -219,7 +219,7 @@ if (
         </Text>
 
         <Text style={styles.hint}>
-          📷 Camera OFF by default
+          📷 Camera ON by default
         </Text>
 
         <Text style={styles.hint}>
