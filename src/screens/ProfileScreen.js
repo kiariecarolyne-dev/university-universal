@@ -127,14 +127,16 @@ const createStudyGroupIfNeeded = async (photoURL) => {
 if (!memberSnap.exists()) {
 
   await setDoc(memberRef, {
-    userId,
-    fullName,
-    university,
-    country,
-    year,
-    photo: photoURL,
-    joinedAt: serverTimestamp(),
-  });
+  userId,
+  email: auth.currentUser.email,
+  fullName,
+  university,
+  course,
+  country,
+  year,
+  photo: photoURL,
+  joinedAt: serverTimestamp(),
+});
 
   await updateDoc(groupRef, {
     memberCount: increment(1),
@@ -144,16 +146,18 @@ if (!memberSnap.exists()) {
 
   // Existing member → update profile information
   await setDoc(
-    memberRef,
-    {
-      fullName,
-      university,
-      country,
-      year,
-      photo: photoURL,
-    },
-    { merge: true }
-  );
+  memberRef,
+  {
+    email: auth.currentUser.email,
+    fullName,
+    university,
+    course,
+    country,
+    year,
+    photo: photoURL,
+  },
+  { merge: true }
+);
 
 }
 

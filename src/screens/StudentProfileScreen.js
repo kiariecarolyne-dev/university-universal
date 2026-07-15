@@ -2,6 +2,7 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function StudentProfileScreen({ route, navigation }) {
   const { member } = route.params;
+  const currentUserId = auth.currentUser?.uid;
 
   return (
     <ScrollView style={styles.container}>
