@@ -70,17 +70,24 @@ export default function StudentProfileScreen({ route, navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.videoButton}
-        onPress={() =>
-          navigation.navigate("VideoRoom", {
-            roomName: `private-${member.userId}`,
-          })
-        }
-      >
-        <Text style={styles.buttonText}>
-          📹 Start Video Call
-        </Text>
-      </TouchableOpacity>
+  style={styles.videoButton}
+  onPress={() => {
+    const currentUserId = auth.currentUser.uid;
+
+    const roomName =
+      currentUserId < member.userId
+        ? `private-${currentUserId}-${member.userId}`
+        : `private-${member.userId}-${currentUserId}`;
+
+    navigation.navigate("VideoRoom", {
+      roomName,
+    });
+  }}
+>
+  <Text style={styles.buttonText}>
+    📹 Start Video Call
+  </Text>
+</TouchableOpacity>
 
     </ScrollView>
   );

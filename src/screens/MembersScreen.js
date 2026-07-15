@@ -67,10 +67,13 @@ export default function MembersScreen({ route, navigation }) {
     <TouchableOpacity
       style={styles.card}
       onPress={() =>
-        navigation.navigate("StudentProfile", {
-          member: item,
-        })
-      }
+  navigation.navigate("StudentProfile", {
+    member: {
+      ...item,
+      userId: item.userId || item.id,
+    },
+  })
+}
     >
 
       {item.photo ? (
