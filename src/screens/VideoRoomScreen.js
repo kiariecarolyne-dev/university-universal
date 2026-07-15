@@ -1,7 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Text, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
+
+import { Audio } from "expo-av";
+import { Camera } from "expo-camera";
+
 
 import {
   deleteDoc,
@@ -22,6 +26,8 @@ export default function VideoRoomScreen({ route, navigation }) {
 
   const sessionStartRef = useRef(null);
 
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+
   const today = new Date().toDateString();
 
  const roomName =
@@ -30,6 +36,26 @@ export default function VideoRoomScreen({ route, navigation }) {
 const safeRoomName = String(roomName)
   .replace(/[^a-zA-Z0-9_-]/g, "")
   .slice(0, 50);
+
+  useEffect(() => {
+  const requestPermissions = async () => {
+    const camera = await Camera.requestCameraPermissionsAsync();
+    const microphone = await Audio.requestPermissionsAsync();
+
+    if (
+      camera.status === "granted" &&
+      microphone.status === "granted"
+    ) {
+      setPermissionsGranted(true);
+    } else {
+      alert(
+        "Camera and microphone permissions are required to join the video room."
+      );
+    }
+  };
+
+  requestPermissions();
+}, []);
 
 useEffect(() => {
   if (!auth.currentUser || !user) return;
@@ -165,6 +191,23 @@ if (
           Upgrade to Premium
         </Text>
       </TouchableOpacity>
+    </View>
+  );
+}
+
+if (!permissionsGranted) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#05070A",
+      }}
+    >
+      <Text style={{ color: "white" }}>
+        Requesting camera and microphone permissions...
+      </Text>
     </View>
   );
 }
