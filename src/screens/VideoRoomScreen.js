@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
 
-import { Audio } from "expo-av";
 import { Camera } from "expo-camera";
 
 
@@ -39,8 +38,12 @@ const safeRoomName = String(roomName)
 
   useEffect(() => {
   const requestPermissions = async () => {
-    const camera = await Camera.requestCameraPermissionsAsync();
-    const microphone = await Audio.requestPermissionsAsync();
+
+    const camera =
+      await Camera.requestCameraPermissionsAsync();
+
+    const microphone =
+      await Camera.requestMicrophonePermissionsAsync();
 
     if (
       camera.status === "granted" &&
@@ -49,12 +52,13 @@ const safeRoomName = String(roomName)
       setPermissionsGranted(true);
     } else {
       alert(
-        "Camera and microphone permissions are required to join the video room."
+        "Camera and microphone permissions are required for video rooms."
       );
     }
   };
 
   requestPermissions();
+
 }, []);
 
 useEffect(() => {
@@ -218,12 +222,17 @@ if (!permissionsGranted) {
    ==================================
   */
 
-  const jitsiUrl =
+ const jitsiUrl =
     `https://meet.jit.si/UniversityUniversal_${safeRoomName}` +
     "#config.startWithAudioMuted=true" +
     "&config.startWithVideoMuted=false" +
+    "&config.audioQuality=true" +
+    "&config.enableNoiseSuppression=true" +
+    "&config.enableEchoCancellation=true" +
+    "&config.enableAutoGainControl=true" +
     "&config.prejoinPageEnabled=false" +
     "&config.disableDeepLinking=true" +
+    "&config.disableAP=true" +
     "&config.resolution=360" +
     "&config.enableWelcomePage=false" +
     "&config.toolbarButtons=" +
@@ -274,14 +283,31 @@ if (!permissionsGranted) {
 
       <View style={styles.videoContainer}>
         <WebView
-          source={{ uri: jitsiUrl }}
-          style={styles.webview}
-          javaScriptEnabled
-          domStorageEnabled
-          mediaPlaybackRequiresUserAction={false}
-          allowsInlineMediaPlayback
-          originWhitelist={["*"]}
-        />
+  source={{ uri: jitsiUrl }}
+
+  style={styles.webview}
+
+  javaScriptEnabled={true}
+
+  domStorageEnabled={true}
+
+  originWhitelist={["*"]}
+
+  allowsInlineMediaPlayback={true}
+
+  mediaPlaybackRequiresUserAction={false}
+
+  mixedContentMode="always"
+
+  allowsFullscreenVideo={true}
+
+  thirdPartyCookiesEnabled={true}
+
+  sharedCookiesEnabled={true}
+
+  mediaCapturePermissionGrantType="grant"
+
+/>
       </View>
     </View>
   );

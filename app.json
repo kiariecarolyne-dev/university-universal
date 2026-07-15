@@ -7,37 +7,42 @@
     "userInterfaceStyle": "automatic",
     "icon": "./assets/expo.icon/Assets/assetsicon.png",
     "android": {
-  "package": "com.universityuniversal.app",
-  "versionCode": 1,
-
-  "permissions": [
-    "CAMERA",
-    "RECORD_AUDIO",
-    "MODIFY_AUDIO_SETTINGS"
-  ],
-
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/expo.icon/Assets/assetsicon.png",
-    "backgroundColor": "#05070A"
-  }
-},
-"ios": {
-  "infoPlist": {
-    "NSCameraUsageDescription": "This app uses the camera for video study rooms.",
-    "NSMicrophoneUsageDescription": "This app uses the microphone for video study rooms."
-  }
-},
-    "plugins": [
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#05070A",
-          "image": "./assets/expo.icon/Assets/assetsicon.png",
-          "resizeMode": "contain"
-        }
+      "package": "com.universityuniversal.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
       ],
-      "expo-sharing"
-    ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/expo.icon/Assets/assetsicon.png",
+        "backgroundColor": "#05070A"
+      }
+    },
+    "ios": {
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera for video study rooms.",
+        "NSMicrophoneUsageDescription": "This app uses the microphone for video study rooms."
+      }
+    },
+    "plugins": [
+  [
+    "expo-splash-screen",
+    {
+      "backgroundColor": "#05070A",
+      "image": "./assets/expo.icon/Assets/assetsicon.png",
+      "resizeMode": "contain"
+    }
+  ],
+  [
+    "expo-camera",
+    {
+      "cameraPermission": "Allow University Universal to access your camera for video study rooms."
+    }
+  ],
+  "expo-sharing",
+  "expo-audio"
+],
     "extra": {
       "eas": {
         "projectId": "a11c9d50-406e-4d4d-8d52-30445c68178e"
