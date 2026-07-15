@@ -97,6 +97,10 @@ export default function GroupsScreen({ navigation }) {
               </Text>
             </View>
 
+            <Text style={styles.members}>
+    👥 {item.memberCount || 0} members
+  </Text>
+
             {/* CTA hint */}
             <Text style={styles.hint}>
               💬 Tap to join the conversation
@@ -184,6 +188,13 @@ infoText: {
     color: "#9CA3AF",
     fontSize: 12,
   },
+
+  members: {
+  color: "#10B981",
+  marginTop: 10,
+  fontWeight: "600",
+  fontSize: 13,
+},
 
   hint: {
     color: "#6B7280",

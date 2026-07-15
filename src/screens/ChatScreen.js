@@ -24,7 +24,10 @@ import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
 import { isPremiumUser } from "../utils/access"; // ✅ ADDED (STEP 3.1)
 
-export default function ChatScreen({ route }) {
+export default function ChatScreen({
+  route,
+  navigation,
+}) {
   const { group } = route.params;
 
   const user = useUser(); // ✅ STEP 3.2
@@ -113,6 +116,16 @@ export default function ChatScreen({ route }) {
   >
 
     <View style={styles.header}>
+
+  <View
+    style={{
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    }}
+  >
+
+    <View>
       <Text style={styles.title}>
         💬 {group.name}
       </Text>
@@ -121,6 +134,24 @@ export default function ChatScreen({ route }) {
         Collaborate with fellow students
       </Text>
     </View>
+
+    <TouchableOpacity
+      style={styles.membersButton}
+      onPress={() =>
+        navigation.navigate("Members", {
+          groupId: group.id,
+          groupName: group.name,
+        })
+      }
+    >
+      <Text style={styles.membersButtonText}>
+        👥 Members
+      </Text>
+    </TouchableOpacity>
+
+  </View>
+
+</View>
 
 
     <FlatList
@@ -225,6 +256,19 @@ const styles = {
     color: "#9CA3AF",
     marginTop: 4,
   },
+
+  membersButton: {
+  backgroundColor: "#1F2937",
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  borderRadius: 10,
+},
+
+membersButtonText: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+  fontSize: 13,
+},
 
   messageCard: {
     backgroundColor: "#111827",

@@ -1,6 +1,14 @@
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  deleteDoc,
+  doc,
+  getDoc,
+  increment,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 const API_URL = "https://university-universal-backend.onrender.com";
 
@@ -75,6 +83,88 @@ export default function ProfileScreen() {
   }
 };
 
+const createGroupId = (course) => {
+  return course
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+};
+
+    // CREATE STUDY GROUP + JOIN STUDENT
+const createStudyGroupIfNeeded = async (photoURL) => {
+  try {
+    const groupId = createGroupId(course);
+
+    // Course study group
+    const groupRef = doc(db, "groups", groupId);
+
+    const groupSnap = await getDoc(groupRef);
+
+    // Create the course group if it doesn't exist
+    if (!groupSnap.exists()) {
+      await setDoc(groupRef, {
+        name: `${course} Study Group`,
+        course,
+        memberCount: 0,
+        createdBy: userId,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    // Student membership document
+    const memberRef = doc(
+      db,
+      "groups",
+      groupId,
+      "members",
+      userId
+    );
+
+    const memberSnap = await getDoc(memberRef);
+
+    // New member
+if (!memberSnap.exists()) {
+
+  await setDoc(memberRef, {
+    userId,
+    fullName,
+    university,
+    country,
+    year,
+    photo: photoURL,
+    joinedAt: serverTimestamp(),
+  });
+
+  await updateDoc(groupRef, {
+    memberCount: increment(1),
+  });
+
+} else {
+
+  // Existing member → update profile information
+  await setDoc(
+    memberRef,
+    {
+      fullName,
+      university,
+      country,
+      year,
+      photo: photoURL,
+    },
+    { merge: true }
+  );
+
+}
+
+return groupId;
+
+  } catch (error) {
+    console.log("Group creation error:", error.message);
+    throw error;
+  }
+};
+
   // SAVE PROFILE (SAFE UPDATE)
  const saveProfile = async () => {
   if (
@@ -126,8 +216,15 @@ export default function ProfileScreen() {
       photoURL = response.data.photoUrl;
     }
 
+    const userRef = doc(db, "users", userId);
+const oldProfile = await getDoc(userRef);
+
+const previousCourse = oldProfile.exists()
+  ? oldProfile.data().course
+  : null;
+
     await setDoc(
-      doc(db, "users", userId),
+      userRef,
       {
         fullName,
         university,
@@ -139,6 +236,37 @@ export default function ProfileScreen() {
       },
       { merge: true }
     );
+
+       await createStudyGroupIfNeeded(photoURL);
+
+       if (
+  previousCourse &&
+  previousCourse !== course
+) {
+  const oldGroupId = createGroupId(previousCourse);
+
+  const oldGroupRef = doc(
+    db,
+    "groups",
+    oldGroupId
+  );
+
+  const oldMemberRef = doc(
+    db,
+    "groups",
+    oldGroupId,
+    "members",
+    userId
+  );
+
+  // Remove from old group
+  await deleteDoc(oldMemberRef);
+
+  // Decrease old group's member count
+  await updateDoc(oldGroupRef, {
+    memberCount: increment(-1),
+  });
+}
 
     Alert.alert(
       "Success",

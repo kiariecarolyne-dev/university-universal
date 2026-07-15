@@ -13,11 +13,13 @@ import GroupsScreen from "../screens/GroupsScreen";
 import HomeScreen from "../screens/HomeScreen";
 import InboxScreen from "../screens/InboxScreen";
 import LoginScreen from "../screens/LoginScreen";
+import MembersScreen from "../screens/MembersScreen";
 import NotesScreen from "../screens/NotesScreen";
 import PremiumScreen from "../screens/PremiumScreen";
 import PrivateChatScreen from "../screens/PrivateChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import RegisterScreen from "../screens/RegisterScreen";
+import StudentProfileScreen from "../screens/StudentProfileScreen";
 import UploadNotesScreen from "../screens/UploadNotesScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
 
@@ -150,6 +152,22 @@ export default function AppNavigator() {
               component={UploadNotesScreen}
               options={{ title: "Upload Notes" }}
             />
+
+            <Stack.Screen
+    name="Members"
+    component={MembersScreen}
+    options={{
+        title: "Group Members",
+    }}
+/>
+
+<Stack.Screen
+  name="StudentProfile"
+  component={StudentProfileScreen}
+  options={{
+    title: "Student Profile",
+  }}
+/>
           </>
         )}
 
