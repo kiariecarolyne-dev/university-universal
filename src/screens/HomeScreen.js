@@ -243,7 +243,6 @@ if (
         <Text style={styles.text}>🔒 Private Messaging</Text>
         <Text style={styles.text}>🔒 Video Study Rooms</Text>
         <Text style={styles.text}>🔒 Notes Marketplace</Text>
-        <Text style={styles.text}>🔒 Upload & Earn Money</Text>
       </View>
 
       {/* DASHBOARD */}
