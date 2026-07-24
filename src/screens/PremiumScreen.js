@@ -49,7 +49,7 @@ export default function PremiumScreen() {
       console.log("PLAN:", plan);
 
       const response = await axios.post(
-        `${API_URL}/create-checkout-session`,
+  `${API_URL}/create-lemon-checkout`,
         {
           userId,
           plan,
@@ -67,9 +67,9 @@ export default function PremiumScreen() {
       await Linking.openURL(checkoutUrl);
 
       Alert.alert(
-        "Complete Payment",
-        "Finish payment in browser, then return to app."
-      );
+  "Browser Opened",
+  "Complete your payment in the secure Lemon Squeezy page. When payment finishes, simply return to the app."
+);
     } catch (error) {
       console.log(
         "CARD PAYMENT ERROR:",
@@ -166,7 +166,7 @@ export default function PremiumScreen() {
 </Text>
 
 <Text style={styles.trustText}>
-  Pay securely with M-Pesa or international cards powered by Stripe.
+  Pay securely with M-Pesa or international cards powered by Lemon Squeezy.
 </Text>
       </View>
 
