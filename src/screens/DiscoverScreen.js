@@ -102,8 +102,8 @@ setCourses(uniqueCourses);
   🌍 Discover Students
 </Text>
         <Text style={styles.subtitle}>
-          Build academic connections worldwide 🌍
-        </Text>
+  {displayedStudents.length} students available to connect 🌍
+</Text>
       </View>
 
       {/* TRIAL BANNER */}
@@ -130,9 +130,14 @@ setCourses(uniqueCourses);
         ]}
         onPress={() => setSelectedCourse(item)}
       >
-        <Text style={styles.filterText}>
-          {item}
-        </Text>
+        <Text
+  style={[
+    styles.filterText,
+    selectedCourse === item && styles.activeFilterText,
+  ]}
+>
+  {item}
+</Text>
       </TouchableOpacity>
     )}
   />
@@ -158,25 +163,35 @@ setCourses(uniqueCourses);
   renderItem={({ item }) => (
     <TouchableOpacity
       style={styles.studentCard}
-      onPress={() => handlePrivateMessage(item)}
+      onPress={() =>
+  navigation.navigate("StudentProfile", {
+    member: item,
+  })
+}
       activeOpacity={0.9}
     >
-      {item.photo ? (
-        <Image
-          source={{ uri: item.photo }}
-          style={styles.studentImage}
-        />
-      ) : (
-        <View style={styles.studentPlaceholder}>
-          <Text style={styles.studentLetter}>
-            {item.fullName
-              ? item.fullName.charAt(0).toUpperCase()
-              : "S"}
-          </Text>
-        </View>
-      )}
+      <View style={styles.imageContainer}>
+  {item.photo ? (
+    <Image
+      source={{ uri: item.photo }}
+      style={styles.studentImage}
+    />
+  ) : (
+    <View style={styles.studentPlaceholder}>
+      <Text style={styles.studentLetter}>
+        {item.fullName
+          ? item.fullName.charAt(0).toUpperCase()
+          : "S"}
+      </Text>
+    </View>
+  )}
 
-      <Text numberOfLines={1} style={styles.studentName}>
+  {item.online && (
+    <View style={styles.onlineDot} />
+  )}
+</View>
+
+<Text numberOfLines={1} style={styles.studentName}>
         {item.fullName || "Student"}
       </Text>
 
@@ -191,6 +206,8 @@ setCourses(uniqueCourses);
   )}
 />
     </View>
+
+   
   );
 }
 
@@ -312,6 +329,22 @@ studentCard: {
   marginBottom: 18,
 },
 
+imageContainer: {
+  position: "relative",
+},
+
+onlineDot: {
+  position: "absolute",
+  right: 8,
+  bottom: 8,
+  width: 14,
+  height: 14,
+  borderRadius: 7,
+  backgroundColor: "#22C55E",
+  borderWidth: 2,
+  borderColor: "#05070A",
+},
+
 studentImage: {
   width: "100%",
   height: 150,
@@ -372,4 +405,9 @@ filterText: {
   color: "#FFFFFF",
   fontSize: 12,
 },
+
+activeFilterText: {
+  fontWeight: "bold",
+},
+
 };
