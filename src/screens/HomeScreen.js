@@ -168,12 +168,9 @@ if (
       {/* WELCOME */}
       <View style={styles.hero}>
         <Text style={styles.welcome}>
-          Welcome back 👋
-        </Text>
+  Welcome back, {user.fullName?.split(" ")[0] || "Student"} 👋
+</Text>
 
-        <Text style={styles.name}>
-          {user.fullName || "Student"}
-        </Text>
 
         <Text style={styles.subtitle}>
   {user.university || "University Student"} • The Global Student Network 🌍
@@ -181,94 +178,94 @@ if (
 </View>
 
       {/* PLAN STATUS */}
-      <View style={styles.planCard}>
-        <Text style={styles.planLabel}>Membership Status</Text>
+<View style={styles.planCard}>
+  <Text style={styles.planLabel}>
+  Your Membership
+</Text>
 
-        <Text style={styles.planText}>
-          {plan === "premium"
-            ? "⭐ Premium"
-            : plan === "trial"
-            ? "🚀 Trial"
-            : "🆓 Free"}
-        </Text>
+  <Text style={styles.planText}>
+    {plan === "premium"
+      ? "⭐ Premium"
+      : plan === "trial"
+      ? "🚀 Trial"
+      : "🆓 Free"}
+  </Text>
 
-        {plan === "trial" && (
-          <Text style={styles.trialText}>
-            Trial ends in {trialDaysLeft} day(s)
-          </Text>
-        )}
+  {plan === "trial" && (
+    <Text style={styles.trialText}>
+      Trial ends in {trialDaysLeft} day(s)
+    </Text>
+  )}
 
-        {plan !== "premium" && (
-          <Text style={styles.upgradeHint}>
-            Unlock private chats, Notes Marketplace, study rooms and more.
-          </Text>
-        )}
-      </View>
+  {plan !== "premium" && (
+    <Text style={styles.upgradeHint}>
+      Unlock private chats, Notes Marketplace, study rooms and more.
+    </Text>
+  )}
+</View>
 
+{/* DASHBOARD */}
 <View style={styles.statsCard}>
   <Text style={styles.cardTitle}>Your Dashboard</Text>
 
   <View style={styles.statsRow}>
     <View style={styles.statBox}>
-      <Text style={styles.statNumber}>{plan === "premium" ? "∞" : "3"}</Text>
-      <Text style={styles.statLabel}>Study Groups</Text>
+      <Text style={styles.statNumber}>
+        {plan === "premium" ? "∞" : "3"}
+      </Text>
+      <Text style={styles.statLabel}>Groups Access</Text>
     </View>
 
     <View style={styles.statBox}>
       <Text style={styles.statNumber}>
         {plan === "premium" ? "✓" : "🔒"}
       </Text>
-      <Text style={styles.statLabel}>Private Chat</Text>
+      <Text style={styles.statLabel}>Chat Access</Text>
     </View>
 
     <View style={styles.statBox}>
       <Text style={styles.statNumber}>
         {plan === "premium" ? "✓" : "🔒"}
       </Text>
-      <Text style={styles.statLabel}>Notes</Text>
+      <Text style={styles.statLabel}>Notes Access</Text>
     </View>
   </View>
 </View>
 
-      {/* FEATURES */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Free Access</Text>
-        <Text style={styles.text}>• Public student groups</Text>
-        <Text style={styles.text}>• Academic discovery</Text>
-        <Text style={styles.text}>• Basic profile system</Text>
-      </View>
+{/* QUICK ACTIONS */}
+<View style={styles.grid}>
+  <NavButton
+    title="👤 Profile"
+    onPress={() => navigation.navigate("Profile")}
+  />
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Premium Access ⭐</Text>
-        <Text style={styles.text}>🔒 Private Messaging</Text>
-        <Text style={styles.text}>🔒 Video Study Rooms</Text>
-        <Text style={styles.text}>🔒 Notes Marketplace</Text>
-      </View>
+  <NavButton
+    title="👥 Groups"
+    onPress={() => navigation.navigate("Groups")}
+  />
 
-      {/* DASHBOARD */}
-      <View style={styles.grid}>
-        <NavButton
-          title="👤 Profile"
-          onPress={() => navigation.navigate("Profile")}
-        />
+  <NavButton
+    title="🌎 Discover"
+    onPress={() => navigation.navigate("Discover")}
+  />
 
-        <NavButton
-          title="👥 Groups"
-          onPress={() => navigation.navigate("Groups")}
-        />
+  <NavButton
+    title="💬 Messages"
+    onPress={() => navigation.navigate("Inbox")}
+  />
 
-        <NavButton
-          title="🌎 Discover"
-          onPress={() => navigation.navigate("Discover")}
-        />
+  <NavButton
+    title="📚 Notes"
+    onPress={() => navigation.navigate("Notes")}
+  />
 
-        <NavButton
-  title="💬 Messages"
-  onPress={() => navigation.navigate("Inbox")}
-/>
+  <NavButton
+    title="⬆ Upload"
+    onPress={() => navigation.navigate("UploadNotes")}
+  />
+</View>
 
-        {/* VIDEO STUDY HALLS */}
-
+{/* VIDEO STUDY HALLS */}
 <View style={styles.videoSection}>
   <Text style={styles.videoTitle}>
     🎥 Live Study Halls
@@ -279,43 +276,46 @@ if (
   </Text>
 
   <View style={styles.videoGrid}>
-  {rooms.map((room) => (
-    <TouchableOpacity
-      key={room.id}
-      style={styles.videoCard}
-      onPress={() =>
-        navigation.navigate("VideoRoom", {
-          roomName: room.id,
-        })
-      }
-    >
-      <Text style={styles.videoEmoji}>
-        {room.emoji}
-      </Text>
+    {rooms.map((room) => (
+      <TouchableOpacity
+        key={room.id}
+        style={styles.videoCard}
+        onPress={() =>
+          navigation.navigate("VideoRoom", {
+            roomName: room.id,
+          })
+        }
+      >
+        <Text style={styles.videoEmoji}>
+          {room.emoji}
+        </Text>
 
-      <Text style={styles.videoCardTitle}>
-        {room.title}
-      </Text>
+        <Text style={styles.videoCardTitle}>
+          {room.title}
+        </Text>
 
-      <Text style={styles.videoCardHint}>
-        👥 {roomCounts[room.id] || 0} students studying
-      </Text>
-    </TouchableOpacity>
-  ))}
+        <Text style={styles.videoCardHint}>
+          👥 {roomCounts[room.id] || 0} students studying
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
 </View>
 
-        <NavButton
-          title="📚 Notes"
-          onPress={() => navigation.navigate("Notes")}
-        />
+{/* FEATURES */}
+<View style={styles.card}>
+  <Text style={styles.cardTitle}>Free Access</Text>
+  <Text style={styles.text}>• Public student groups</Text>
+  <Text style={styles.text}>• Academic discovery</Text>
+  <Text style={styles.text}>• Basic profile system</Text>
+</View>
 
-        <NavButton
-          title="⬆ Upload"
-          onPress={() => navigation.navigate("UploadNotes")}
-        />
-      </View>
-      
-      </View>
+<View style={styles.card}>
+  <Text style={styles.cardTitle}>Premium Access ⭐</Text>
+  <Text style={styles.text}>🔒 Private Messaging</Text>
+  <Text style={styles.text}>🔒 Video Study Rooms</Text>
+  <Text style={styles.text}>🔒 Notes Marketplace</Text>
+</View>
 
       {/* PREMIUM CTA */}
       {plan !== "premium" && (
@@ -370,9 +370,9 @@ const styles = {
   },
 
   planCard: {
-    backgroundColor: "#111827",
-    borderRadius: 16,
-    padding: 18,
+  backgroundColor: "#111827",
+  borderRadius: 16,
+  padding: 22,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "#1F2937",
@@ -416,11 +416,11 @@ statLabel: {
   },
 
   planText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 6,
-  },
+  color: "#FFFFFF",
+  fontSize: 24,
+  fontWeight: "bold",
+  marginTop: 8,
+},
 
   trialText: {
     color: "#22C55E",
