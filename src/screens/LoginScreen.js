@@ -1,8 +1,14 @@
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -33,16 +39,90 @@ export default function LoginScreen({ navigation }) {
 
       Alert.alert("Success", "Login successful");
 
-      navigation.navigate("Home");
+      navigation.replace("Home");
     } catch (error) {
-      Alert.alert("Login Failed", error.message);
-    } finally {
+  let message = "Login failed. Please try again.";
+
+  switch (error.code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+      message = "Incorrect email or password.";
+      break;
+
+    case "auth/user-not-found":
+      message = "No account found with this email.";
+      break;
+
+    case "auth/invalid-email":
+      message = "Please enter a valid email address.";
+      break;
+
+    case "auth/network-request-failed":
+      message = "No internet connection. Please check your network.";
+      break;
+
+    case "auth/too-many-requests":
+      message =
+        "Too many failed login attempts. Please try again later or reset your password.";
+      break;
+
+    default:
+      message = "Unable to log in. Please try again.";
+  }
+
+  Alert.alert("Login Failed", message);
+} finally {
       setLoading(false);
     }
   };
 
+  const forgotPassword = async () => {
+  if (!email.trim()) {
+    Alert.alert(
+      "Reset Password",
+      "Please enter your email address first."
+    );
+    return;
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+
+    Alert.alert(
+      "Password Reset",
+      "A password reset link has been sent to your email."
+    );
+  } catch (error) {
+    let message = "Unable to send password reset email.";
+
+    switch (error.code) {
+      case "auth/user-not-found":
+        message = "No account found with this email.";
+        break;
+
+      case "auth/invalid-email":
+        message = "Please enter a valid email address.";
+        break;
+
+      case "auth/network-request-failed":
+        message = "No internet connection.";
+        break;
+    }
+
+    Alert.alert("Reset Password", message);
+  }
+};
+
   return (
-    <View style={styles.container}>
+  <KeyboardAvoidingView
+  style={{ flex: 1 }}
+  behavior={Platform.OS === "ios" ? "padding" : "height"}
+>
+  <ScrollView
+    contentContainerStyle={styles.container}
+    keyboardShouldPersistTaps="handled"
+    showsVerticalScrollIndicator={false}
+  >
 
       {/* BRAND SECTION */}
       <View style={styles.brandSection}>
@@ -67,25 +147,42 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.label}>Email Address</Text>
 
         <TextInput
-          placeholder="Enter your email"
-          placeholderTextColor="#6B7280"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={styles.input}
-        />
+  placeholder="Enter your email"
+  placeholderTextColor="#6B7280"
+  value={email}
+  onChangeText={setEmail}
+  autoCapitalize="none"
+  keyboardType="email-address"
+  autoComplete="email"
+  textContentType="emailAddress"
+  autoCorrect={false}
+  returnKeyType="next"
+  style={styles.input}
+/>
 
         <Text style={styles.label}>Password</Text>
 
         <TextInput
-          placeholder="Enter your password"
-          placeholderTextColor="#6B7280"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
+  placeholder="Enter your password"
+  placeholderTextColor="#6B7280"
+  secureTextEntry
+  value={password}
+  onChangeText={setPassword}
+  autoComplete="password"
+  textContentType="password"
+  returnKeyType="done"
+  style={styles.input}
+  onSubmitEditing={loginUser}
+/>
+
+        <TouchableOpacity
+  onPress={forgotPassword}
+  style={styles.forgotPasswordBtn}
+>
+  <Text style={styles.forgotPasswordText}>
+    Forgot Password?
+  </Text>
+</TouchableOpacity>
 
         <TouchableOpacity
           style={styles.primaryBtn}
@@ -113,7 +210,8 @@ export default function LoginScreen({ navigation }) {
         </Text>
       </TouchableOpacity>
 
-    </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -123,11 +221,11 @@ export default function LoginScreen({ navigation }) {
 
 const styles = {
   container: {
-    flex: 1,
-    backgroundColor: "#05070A",
-    justifyContent: "center",
-    padding: 22,
-  },
+  flexGrow: 1,
+  backgroundColor: "#05070A",
+  justifyContent: "center",
+  padding: 22,
+},
 
   brandSection: {
     marginBottom: 35,
@@ -184,6 +282,18 @@ const styles = {
     color: "#FFFFFF",
     marginBottom: 10,
   },
+
+  forgotPasswordBtn: {
+  alignSelf: "flex-end",
+  marginTop: 4,
+  marginBottom: 10,
+},
+
+forgotPasswordText: {
+  color: "#4F46E5",
+  fontSize: 13,
+  fontWeight: "600",
+},
 
   primaryBtn: {
     backgroundColor: "#4F46E5",
