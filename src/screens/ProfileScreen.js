@@ -273,9 +273,9 @@ const previousCourse = oldProfile.exists()
 }
 
     Alert.alert(
-      "Success",
-      "Profile updated successfully."
-    );
+  "Profile Updated",
+  "Your profile has been saved successfully."
+);
 
   } catch (error) {
     console.log(error);
@@ -341,14 +341,14 @@ const previousCourse = oldProfile.exists()
   />
 
   <Text
-    style={{
-      color: "#4F46E5",
-      marginTop: 10,
-      fontWeight: "bold",
-    }}
-  >
-    Upload Profile Photo
-  </Text>
+  style={{
+    color: "#4F46E5",
+    marginTop: 10,
+    fontWeight: "bold",
+  }}
+>
+  {photo ? "Change Profile Photo" : "Upload Profile Photo"}
+</Text>
 </TouchableOpacity>
 
       {/* PROFILE CARD */}
@@ -384,14 +384,14 @@ const previousCourse = oldProfile.exists()
   style={styles.input}
 />
 
-        <Text style={styles.label}>Country</Text>
         <TextInput
-          placeholder="Enter country"
-          placeholderTextColor="#6B7280"
-          value={country}
-          onChangeText={setCountry}
-          style={styles.input}
-        />
+  placeholder="Enter country"
+  placeholderTextColor="#6B7280"
+  autoCapitalize="words"
+  value={country}
+  onChangeText={setCountry}
+  style={styles.input}
+/>
 
         <Text style={styles.label}>Year of Study</Text>
 <TextInput
@@ -408,9 +408,13 @@ const previousCourse = oldProfile.exists()
           onPress={saveProfile}
           disabled={loading}
         >
-          <Text style={styles.primaryText}>
-            {loading ? "Saving..." : "💾 Save Profile"}
-          </Text>
+          {loading ? (
+  <ActivityIndicator color="#FFFFFF" />
+) : (
+  <Text style={styles.primaryText}>
+    💾 Save Profile
+  </Text>
+)}
         </TouchableOpacity>
 
       </View>
