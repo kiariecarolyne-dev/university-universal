@@ -3,6 +3,9 @@ import { doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -15,6 +18,7 @@ export default function RegisterScreen({ navigation }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const registerUser = async () => {
@@ -75,24 +79,55 @@ videoMinutesDate: new Date().toDateString(),
       );
 
       Alert.alert(
-        "Success",
-        "Account created successfully"
-      );
+  "Welcome!",
+  "Your account has been created successfully. Please log in."
+);
 
-      navigation.navigate("Login");
+navigation.replace("Login");
 
     } catch (error) {
-      Alert.alert(
-        "Error",
-        error.message
-      );
-    } finally {
-      setLoading(false);
-    }
+  let message = "Unable to create your account.";
+
+  switch (error.code) {
+    case "auth/email-already-in-use":
+      message = "An account with this email already exists.";
+      break;
+
+    case "auth/invalid-email":
+      message = "Please enter a valid email address.";
+      break;
+
+    case "auth/weak-password":
+      message =
+        "Password must be at least 6 characters long.";
+      break;
+
+    case "auth/network-request-failed":
+      message =
+        "No internet connection. Please check your network.";
+      break;
+
+    default:
+      message = "Registration failed. Please try again.";
+  }
+
+  Alert.alert("Registration Failed", message);
+} finally {
+  setLoading(false);
+}
+  
   };
 
   return (
-    <View style={styles.container}>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+  >
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
 
       {/* HEADER */}
       <View style={styles.header}>
@@ -113,38 +148,64 @@ videoMinutesDate: new Date().toDateString(),
         </Text>
 
         <TextInput
-          placeholder="Enter full name"
-          placeholderTextColor="#6B7280"
-          value={fullName}
-          onChangeText={setFullName}
-          style={styles.input}
-        />
+  placeholder="Enter full name"
+  placeholderTextColor="#6B7280"
+  value={fullName}
+  onChangeText={setFullName}
+  style={styles.input}
+  textContentType="name"
+  autoComplete="name"
+  returnKeyType="next"
+/>
 
         <Text style={styles.label}>
           Email
         </Text>
 
         <TextInput
-          placeholder="Enter email"
-          placeholderTextColor="#6B7280"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          autoCapitalize="none"
-        />
+  placeholder="Enter email"
+  placeholderTextColor="#6B7280"
+  value={email}
+  onChangeText={setEmail}
+  style={styles.input}
+  autoCapitalize="none"
+  keyboardType="email-address"
+  autoComplete="email"
+  textContentType="emailAddress"
+  autoCorrect={false}
+  returnKeyType="next"
+/>
 
         <Text style={styles.label}>
-          Password
-        </Text>
+  Password
+</Text>
 
-        <TextInput
-          placeholder="Enter password"
-          placeholderTextColor="#6B7280"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
+<View style={styles.passwordContainer}>
+  <TextInput
+    placeholder="Enter password"
+    placeholderTextColor="#6B7280"
+    secureTextEntry={!showPassword}
+    value={password}
+    onChangeText={setPassword}
+    style={styles.passwordInput}
+    autoComplete="new-password"
+    textContentType="newPassword"
+    returnKeyType="done"
+    onSubmitEditing={registerUser}
+  />
+
+  <TouchableOpacity
+    onPress={() => setShowPassword(!showPassword)}
+  >
+    <Text style={styles.showHideText}>
+      {showPassword ? "Hide" : "Show"}
+    </Text>
+  </TouchableOpacity>
+</View>
+
+<Text style={styles.passwordHint}>
+  Password must be at least 6 characters.
+</Text>
 
         <TouchableOpacity
           style={styles.primaryBtn}
@@ -172,7 +233,8 @@ videoMinutesDate: new Date().toDateString(),
         </Text>
       </TouchableOpacity>
 
-    </View>
+    </ScrollView>
+</KeyboardAvoidingView>
   );
 }
 
@@ -182,7 +244,7 @@ videoMinutesDate: new Date().toDateString(),
 
 const styles = {
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: "#05070A",
     padding: 20,
     justifyContent: "center",
@@ -229,6 +291,36 @@ const styles = {
     color: "#FFFFFF",
     marginBottom: 10,
   },
+
+  passwordContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#0B1220",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  borderRadius: 12,
+  paddingHorizontal: 14,
+  marginBottom: 10,
+},
+
+passwordInput: {
+  flex: 1,
+  color: "#FFFFFF",
+  paddingVertical: 14,
+},
+
+showHideText: {
+  color: "#4F46E5",
+  fontWeight: "600",
+  fontSize: 13,
+},
+
+passwordHint: {
+  color: "#6B7280",
+  fontSize: 12,
+  marginTop: -4,
+  marginBottom: 10,
+},
 
   primaryBtn: {
     backgroundColor: "#4F46E5",
