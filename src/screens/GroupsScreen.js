@@ -1,8 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
+
+import { db } from "../services/firebase";
+
 import {
   Alert,
   FlatList,
+  RefreshControl,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -13,6 +25,9 @@ import { getRecommendedGroups } from "../utils/matchGroups";
 
 export default function GroupsScreen({ navigation }) {
   const [groups, setGroups] = useState([]);
+  const [search, setSearch] = useState("");
+  const [onlineStudents, setOnlineStudents] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const user = useUser();
 
   const loadGroups = async () => {
@@ -26,11 +41,43 @@ export default function GroupsScreen({ navigation }) {
     }
   };
 
+  const onRefresh = async () => {
+  setRefreshing(true);
+
+  await loadGroups();
+
+  setRefreshing(false);
+};
+
   useEffect(() => {
     loadGroups();
   }, [user]);
 
+  useEffect(() => {
+  const q = query(
+    collection(db, "users"),
+    where("online", "==", true)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    setOnlineStudents(snapshot.size);
+  });
+
+  return unsubscribe;
+}, []);
+
   if (!user) return null;
+
+  const filteredGroups = useMemo(() => {
+  return groups.filter((group) => {
+    const text = search.toLowerCase();
+
+    return (
+      group.name?.toLowerCase().includes(text) ||
+      group.course?.toLowerCase().includes(text)
+    );
+  });
+}, [groups, search]);
 
   const handleOpenGroup = (group) => {
     if (isPremiumUser(user) || isInTrialPeriod(user)) {
@@ -69,11 +116,37 @@ export default function GroupsScreen({ navigation }) {
   </Text>
 </View>
 
+<TextInput
+  placeholder="Search groups..."
+  placeholderTextColor="#6B7280"
+  value={search}
+  onChangeText={setSearch}
+  style={styles.searchInput}
+/>
+
+<View style={styles.liveCard}>
+  <Text style={styles.liveTitle}>
+    🟢 Students studying right now
+  </Text>
+
+  <Text style={styles.liveNumber}>
+    {onlineStudents}
+  </Text>
+</View>
+
       {/* LIST */}
       <FlatList
-        data={groups}
+        data={filteredGroups}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 30 }}
+
+        refreshControl={
+  <RefreshControl
+    refreshing={refreshing}
+    onRefresh={onRefresh}
+    tintColor="#4F46E5"
+  />
+}
         ListEmptyComponent={
           <Text style={styles.empty}>
             No groups available yet
@@ -86,9 +159,19 @@ export default function GroupsScreen({ navigation }) {
           >
 
             {/* GROUP NAME */}
-            <Text style={styles.groupName}>
-              {item.name}
-            </Text>
+            <View style={styles.groupHeader}>
+  <Text style={styles.groupName}>
+  📚 {item.name}
+</Text>
+
+  {item.course === user.course && (
+    <View style={styles.recommendedBadge}>
+      <Text style={styles.recommendedText}>
+        Recommended
+      </Text>
+    </View>
+  )}
+</View>
 
             {/* COURSE TAG */}
             <View style={styles.tag}>
@@ -98,8 +181,8 @@ export default function GroupsScreen({ navigation }) {
             </View>
 
             <Text style={styles.members}>
-    👥 {item.memberCount || 0} members
-  </Text>
+  👥 {item.memberCount || 0} members
+</Text>
 
             {/* CTA hint */}
             <Text style={styles.hint}>
@@ -160,6 +243,38 @@ infoText: {
   lineHeight: 20,
 },
 
+liveCard: {
+  backgroundColor: "#111827",
+  borderRadius: 16,
+  padding: 18,
+  alignItems: "center",
+  marginBottom: 18,
+  borderWidth: 1,
+  borderColor: "#1F2937",
+},
+
+liveTitle: {
+  color: "#9CA3AF",
+  fontSize: 13,
+},
+
+liveNumber: {
+  color: "#22C55E",
+  fontSize: 34,
+  fontWeight: "bold",
+  marginTop: 6,
+},
+
+searchInput: {
+  backgroundColor: "#111827",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  borderRadius: 12,
+  color: "#FFFFFF",
+  padding: 14,
+  marginBottom: 18,
+},
+
   card: {
     backgroundColor: "#0F172A",
     borderWidth: 1,
@@ -168,6 +283,26 @@ infoText: {
     padding: 16,
     marginBottom: 12,
   },
+
+  groupHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 8,
+},
+
+recommendedBadge: {
+  backgroundColor: "#10B981",
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 20,
+},
+
+recommendedText: {
+  color: "#FFFFFF",
+  fontSize: 11,
+  fontWeight: "bold",
+},
 
   groupName: {
     fontSize: 16,
