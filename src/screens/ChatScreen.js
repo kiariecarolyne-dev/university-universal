@@ -158,6 +158,33 @@ export default function ChatScreen({
       ref={flatListRef}
       data={messages}
       keyExtractor={(item) => item.id}
+
+ListEmptyComponent={
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyEmoji}>💬</Text>
+
+      <Text style={styles.emptyTitle}>
+        Start the conversation
+      </Text>
+
+      <Text style={styles.emptyText}>
+        Ask a question, share notes, or help another student.
+      </Text>
+    </View>
+  }ListEmptyComponent={
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyEmoji}>💬</Text>
+
+      <Text style={styles.emptyTitle}>
+        Start the conversation
+      </Text>
+
+      <Text style={styles.emptyText}>
+        Ask a question, share notes, or help another student.
+      </Text>
+    </View>
+  }
+
       renderItem={({ item }) => {
         const isMe = item.sender === auth.currentUser.email;
 
@@ -211,24 +238,23 @@ export default function ChatScreen({
     />
 
 
-    <TextInput
-      placeholder="Type your message..."
-      placeholderTextColor="#6B7280"
-      value={message}
-      onChangeText={setMessage}
-      style={styles.input}
-    />
+    <View style={styles.inputRow}>
+  <TextInput
+  autoFocus
+    placeholder="Type your message..."
+    placeholderTextColor="#6B7280"
+    value={message}
+    onChangeText={setMessage}
+    style={styles.input}
+  />
 
-
-    <TouchableOpacity
-      style={styles.sendButton}
-      onPress={sendMessage}
-    >
-      <Text style={styles.sendText}>
-        Send Message
-      </Text>
-    </TouchableOpacity>
-
+  <TouchableOpacity
+    style={styles.sendButton}
+    onPress={sendMessage}
+  >
+    <Text style={styles.sendText}>➤</Text>
+  </TouchableOpacity>
+</View>
 
   </KeyboardAvoidingView>
 );
@@ -314,27 +340,60 @@ chatAvatar: {
   textAlign: "right",
 },
 
-  input: {
-    backgroundColor: "#111827",
-    borderWidth: 1,
-    borderColor: "#1F2937",
-    borderRadius: 12,
-    padding: 14,
-    color: "#FFFFFF",
-    marginTop: 10,
-    marginBottom: 10,
-  },
+inputRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginTop: 10,
+},
 
-  sendButton: {
-    backgroundColor: "#4F46E5",
-    padding: 15,
-    borderRadius: 12,
-    alignItems: "center",
-  },
+input: {
+  flex: 1,
+  backgroundColor: "#111827",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  borderRadius: 12,
+  padding: 14,
+  color: "#FFFFFF",
+  marginRight: 10,
+},
 
-  sendText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
+sendButton: {
+  width: 52,
+  height: 52,
+  borderRadius: 26,
+  backgroundColor: "#4F46E5",
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+sendText: {
+  color: "#FFFFFF",
+  fontSize: 22,
+  fontWeight: "bold",
+},
+
+emptyContainer: {
+  alignItems: "center",
+  marginTop: 80,
+},
+
+emptyEmoji: {
+  fontSize: 60,
+},
+
+emptyTitle: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+  fontSize: 18,
+  marginTop: 16,
+},
+
+emptyText: {
+  color: "#9CA3AF",
+  textAlign: "center",
+  marginTop: 8,
+  paddingHorizontal: 30,
+},
 };
+
+ 
