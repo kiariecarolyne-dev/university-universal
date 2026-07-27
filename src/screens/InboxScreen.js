@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   FlatList,
+  Image,
   Text,
   TouchableOpacity,
   View,
@@ -133,7 +134,34 @@ return {
         backgroundColor: "#05070A",
         padding: 16,
       }}
-    >
+        >
+
+      <View
+  style={{
+    marginTop: 50,
+    marginBottom: 20,
+  }}
+>
+  <Text
+    style={{
+      color: "#FFFFFF",
+      fontSize: 28,
+      fontWeight: "bold",
+    }}
+  >
+    💬 Inbox
+  </Text>
+
+  <Text
+    style={{
+      color: "#9CA3AF",
+      marginTop: 4,
+    }}
+  >
+    Continue your private conversations
+  </Text>
+</View>
+    
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.id}
@@ -173,29 +201,41 @@ return {
       }}
     >
       {/* Avatar */}
-      <View
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: 23,
-          backgroundColor: "#2563EB",
-          justifyContent: "center",
-          alignItems: "center",
-          marginRight: 12,
-        }}
-      >
-        <Text
-          style={{
-            color: "#FFFFFF",
-            fontWeight: "bold",
-            fontSize: 18,
-          }}
-        >
-          {(item.student.fullName || "?")
-            .charAt(0)
-            .toUpperCase()}
-        </Text>
-      </View>
+      {item.student.photo ? (
+  <Image
+    source={{ uri: item.student.photo }}
+    style={{
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      marginRight: 12,
+    }}
+  />
+) : (
+  <View
+    style={{
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: "#2563EB",
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: 12,
+    }}
+  >
+    <Text
+      style={{
+        color: "#FFFFFF",
+        fontWeight: "bold",
+        fontSize: 18,
+      }}
+    >
+      {(item.student.fullName || "?")
+        .charAt(0)
+        .toUpperCase()}
+    </Text>
+  </View>
+)}
 
       {/* Right Side */}
       <View style={{ flex: 1 }}>
