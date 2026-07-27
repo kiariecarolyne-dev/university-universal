@@ -229,7 +229,11 @@ useEffect(() => {
   }
 
   const renderItem = ({ item }) => {
-    const isMe = item.senderId === currentUser;
+  const isMe = item.senderId === currentUser;
+
+  const senderName = isMe
+    ? "You"
+    : (student.fullName || student.name);
 
     return (
       <View
@@ -238,6 +242,21 @@ useEffect(() => {
           isMe ? { alignItems: "flex-end" } : { alignItems: "flex-start" },
         ]}
       >
+
+{!isMe && (
+  <Text
+    style={{
+      color: "#9CA3AF",
+      marginBottom: 4,
+      marginLeft: 6,
+      fontSize: 12,
+      fontWeight: "600",
+    }}
+  >
+    {senderName}
+  </Text>
+)}
+
         <View
   style={[
     styles.messageBubble,
@@ -313,6 +332,41 @@ useEffect(() => {
   data={messages}
   keyExtractor={(item) => item.id}
   renderItem={renderItem}
+
+  ListEmptyComponent={
+    <View
+      style={{
+        alignItems: "center",
+        marginTop: 80,
+      }}
+    >
+      <Text style={{ fontSize: 50 }}>
+        💬
+      </Text>
+
+      <Text
+        style={{
+          color: "#FFFFFF",
+          fontWeight: "bold",
+          marginTop: 10,
+          fontSize: 18,
+        }}
+      >
+        No messages yet
+      </Text>
+
+      <Text
+        style={{
+          color: "#9CA3AF",
+          marginTop: 6,
+          textAlign: "center",
+        }}
+      >
+        Say hello and start your conversation.
+      </Text>
+    </View>
+  }
+
   contentContainerStyle={styles.chatContainer}
   onContentSizeChange={() =>
     flatListRef.current?.scrollToEnd({ animated: true })
@@ -322,7 +376,8 @@ useEffect(() => {
       {/* INPUT */}
       <View style={styles.inputContainer}>
         <TextInput
-          placeholder="Type a message..."
+        autoFocus
+          placeholder={`Message ${student.fullName}...`}
           placeholderTextColor="#6B7280"
           value={message}
           onChangeText={setMessage}
@@ -330,7 +385,9 @@ useEffect(() => {
         />
 
         <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-          <Text style={styles.sendText}>Send</Text>
+          <Text style={styles.sendText}>
+  ➤
+</Text>
         </TouchableOpacity>
       </View>
         </KeyboardAvoidingView>
@@ -349,13 +406,16 @@ const styles = {
   },
 
   header: {
-    paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1F2937",
-    backgroundColor: "#0F172A",
-  },
+  paddingTop: 50,
+  paddingBottom: 15,
+  paddingHorizontal: 16,
+  borderBottomWidth: 1,
+  borderBottomColor: "#1F2937",
+  backgroundColor: "#0F172A",
+
+  flexDirection: "row",
+  alignItems: "center",
+},
 
   headerAvatar: {
   width: 44,
@@ -442,9 +502,10 @@ const styles = {
   },
 
   sendText: {
-    color: "#000",
-    fontWeight: "bold",
-  },
+  color: "#FFFFFF",
+  fontSize: 22,
+  fontWeight: "bold",
+},
 
   timeText: {
   fontSize: 10,
