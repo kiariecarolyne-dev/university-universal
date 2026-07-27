@@ -66,18 +66,18 @@ export default function GroupsScreen({ navigation }) {
   return unsubscribe;
 }, []);
 
-  if (!user) return null;
-
   const filteredGroups = useMemo(() => {
-  return groups.filter((group) => {
-    const text = search.toLowerCase();
+  const text = search.toLowerCase();
 
+  return groups.filter((group) => {
     return (
       group.name?.toLowerCase().includes(text) ||
       group.course?.toLowerCase().includes(text)
     );
   });
 }, [groups, search]);
+
+if (!user) return null;
 
   const handleOpenGroup = (group) => {
     if (isPremiumUser(user) || isInTrialPeriod(user)) {

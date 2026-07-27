@@ -34,6 +34,7 @@ export default function NotesScreen({ navigation }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [refreshing, setRefreshing] = useState(false);
 
 const filters = [
   { key: "all", label: "🎓 All Universities" },
@@ -68,7 +69,10 @@ data.sort((a, b) => {
   }
 
   // If downloads are equal, newest first
-  return new Date(b.createdAt) - new Date(a.createdAt);
+  return (
+  (b.createdAt?.seconds || 0) -
+  (a.createdAt?.seconds || 0)
+);
 });
 
       // Count uploads per creator
@@ -93,6 +97,14 @@ setNotes(updatedNotes);
     }
   };
 
+  const onRefresh = async () => {
+  setRefreshing(true);
+
+  await loadNotes();
+
+  setRefreshing(false);
+};
+
   useEffect(() => {
     if (!user) return;
 
@@ -105,9 +117,6 @@ setNotes(updatedNotes);
     loadNotes();
   }, [user, canViewNotes]);
 
-  useEffect(() => {
-  console.log("FILESYSTEM:", FileSystem);
-}, []);
 
   const reportUser = async (item) => {
     if (reportCooldown) {
@@ -167,6 +176,7 @@ setNotes(updatedNotes);
               id: item.userId,
               email: item.email,
               fullName: item.ownerName,
+              photo: item.ownerPhoto,
             },
           });
         },
@@ -325,7 +335,9 @@ if (!user) return null;
         </View>
       ) : (
         <FlatList
-          data={filteredNotes}
+  data={filteredNotes}
+  refreshing={refreshing}
+  onRefresh={onRefresh}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
           ListEmptyComponent={
@@ -335,11 +347,20 @@ if (!user) return null;
   Try another search or be the first to upload study materials.
 </Text>
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+  const isSameCourse = item.course === user?.course;
+
+  return (
             <TouchableOpacity
-              onPress={() => handleNotePress(item)}
-              style={styles.card}
-            >
+  onPress={() => handleNotePress(item)}
+  style={[
+    styles.card,
+    isSameCourse && {
+      borderColor: "#22C55E",
+      borderWidth: 2,
+    },
+  ]}
+>
 
               {Date.now() - new Date(item.createdAt).getTime() <
   3 * 24 * 60 * 60 * 1000 && (
@@ -361,6 +382,29 @@ if (!user) return null;
       }}
     >
       NEW
+    </Text>
+  </View>
+)}
+
+{isSameCourse && (
+  <View
+    style={{
+      backgroundColor: "#4F46E5",
+      alignSelf: "flex-start",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 20,
+      marginBottom: 8,
+    }}
+  >
+    <Text
+      style={{
+        color: "#FFFFFF",
+        fontWeight: "bold",
+        fontSize: 11,
+      }}
+    >
+      ⭐ Recommended
     </Text>
   </View>
 )}
@@ -471,18 +515,20 @@ if (!user) return null;
   <Text style={styles.downloadText}>
     {downloadingId === item.id
       ? "⏳ Downloading..."
-      : "📥 Download PDF"}
+      : "📥 Download Study Notes"}
   </Text>
 </TouchableOpacity>
 
-<TouchableOpacity
-  style={styles.messageBtn}
-  onPress={() => handleNotePress(item)}
->
-  <Text style={styles.messageText}>
-    💬 Message Student
-  </Text>
-</TouchableOpacity>
+{item.userId !== auth.currentUser.uid && (
+  <TouchableOpacity
+    style={styles.messageBtn}
+    onPress={() => handleNotePress(item)}
+  >
+    <Text style={styles.messageText}>
+      💬 Contact Uploader
+    </Text>
+  </TouchableOpacity>
+)}
 
 <TouchableOpacity
   onPress={() => reportUser(item)}
@@ -494,7 +540,8 @@ if (!user) return null;
 </TouchableOpacity>
 
             </TouchableOpacity>
-          )}
+  );
+}}
         />
       )}
     </View>

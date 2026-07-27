@@ -9,6 +9,7 @@ import { Camera } from "expo-camera";
 import {
   deleteDoc,
   doc,
+  increment,
   serverTimestamp,
   setDoc,
   updateDoc
@@ -25,9 +26,15 @@ export default function VideoRoomScreen({ route, navigation }) {
 
   const sessionStartRef = useRef(null);
 
+  const timerRef = useRef(null);
+
+  const sessionEndedRef = useRef(false);
+
   const [permissionsGranted, setPermissionsGranted] = useState(false);
 
-  const today = new Date().toDateString();
+  const today = new Date().toISOString().split("T")[0];
+
+  const FREE_MINUTES_PER_DAY = 30;
 
  const roomName =
   route.params?.roomName || "GlobalStudyHall";
@@ -74,18 +81,6 @@ useEffect(() => {
 
   const joinRoom = async () => {
     try {
-      if (
-        !isPremiumUser(user) &&
-        (user.videoMinutesDate || today) !== today
-      ) {
-        await updateDoc(
-          doc(db, "users", auth.currentUser.uid),
-          {
-            videoMinutesUsed: 0,
-            videoMinutesDate: today,
-          }
-        );
-      }
 
       await setDoc(participantRef, {
   userId: auth.currentUser.uid,
@@ -95,8 +90,38 @@ useEffect(() => {
 });
 
       if (!isPremiumUser(user)) {
-        sessionStartRef.current = Date.now();
+  sessionStartRef.current = Date.now();
+
+  const remainingMinutes = Math.max(
+    0,
+    FREE_MINUTES_PER_DAY -
+      (user.videoMinutesUsed || 0)
+  );
+
+  // Already used all free minutes today
+if (remainingMinutes <= 0) {
+  return;
+}
+
+  timerRef.current = setTimeout(async () => {
+    sessionEndedRef.current = true;
+
+    await updateDoc(
+      doc(db, "users", auth.currentUser.uid),
+      {
+        videoMinutesUsed: increment(remainingMinutes),
       }
+    );
+
+    await deleteDoc(participantRef);
+
+    alert(
+      "Your free 30 study minutes have ended for today."
+    );
+
+    navigation.replace("Premium");
+  }, remainingMinutes * 60 * 1000);
+}
     } catch (error) {
       console.log(
         "Failed to join room:",
@@ -110,10 +135,16 @@ useEffect(() => {
   return () => {
     const leaveRoom = async () => {
       try {
+
+if (timerRef.current) {
+  clearTimeout(timerRef.current);
+}
+
         if (
-          !isPremiumUser(user) &&
-          sessionStartRef.current
-        ) {
+  !sessionEndedRef.current &&
+  !isPremiumUser(user) &&
+  sessionStartRef.current
+) {
           const sessionMinutes = Math.ceil(
             (Date.now() -
               sessionStartRef.current) /
@@ -127,9 +158,7 @@ useEffect(() => {
               auth.currentUser.uid
             ),
             {
-              videoMinutesUsed:
-                (user.videoMinutesUsed || 0) +
-                sessionMinutes,
+              videoMinutesUsed: increment(sessionMinutes),
             }
           );
         }
@@ -149,15 +178,19 @@ useEffect(() => {
 
 if (!user) return null;
 
+if (!user) return null;
+
 const isAllowed = isPremiumUser(user);
 
-const FREE_MINUTES_PER_DAY = 30;
 
-const videoMinutesUsed =
-  user.videoMinutesUsed || 0;
+let videoMinutesUsed = user.videoMinutesUsed || 0;
+let videoMinutesDate = user.videoMinutesDate || today;
 
-const videoMinutesDate =
-  user.videoMinutesDate || today;
+// New day? Reset locally.
+if (videoMinutesDate !== today) {
+  videoMinutesUsed = 0;
+  videoMinutesDate = today;
+}
 
 const roomTitle =
   roomName === "GlobalStudyHall"
