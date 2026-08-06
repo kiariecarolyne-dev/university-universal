@@ -260,6 +260,11 @@ if (
   />
 
   <NavButton
+  title="📄 Past Papers"
+  onPress={() => navigation.navigate("PastPapers")}
+/>
+
+  <NavButton
     title="⬆ Upload"
     onPress={() => navigation.navigate("UploadNotes")}
   />

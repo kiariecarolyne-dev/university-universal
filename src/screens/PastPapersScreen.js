@@ -1,27 +1,27 @@
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 import {
-    collection,
-    doc,
-    getDocs,
-    updateDoc,
+  collection,
+  doc,
+  getDocs,
+  updateDoc,
 } from "firebase/firestore";
 
-import { db } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 
 
-export default function PastPapersScreen() {
+export default function PastPapersScreen({ navigation }) {
   const [papers, setPapers] = useState([]);
   const [filteredPapers, setFilteredPapers] = useState([]);
   const [search, setSearch] = useState("");
@@ -111,13 +111,45 @@ const downloadPDF = async (paper) => {
       paddingTop:60
     }}>
 
-      <Text style={{
-        color:"#fff",
-        fontSize:26,
-        fontWeight:"bold"
-      }}>
-        📝 Past Papers
+      <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  }}
+>
+  <Text
+    style={{
+      color: "#fff",
+      fontSize: 26,
+      fontWeight: "bold",
+    }}
+  >
+    📝 Past Papers
+  </Text>
+
+  {auth.currentUser?.email === "kiariecarolyne@gmail.com" && (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("UploadPastPaper")}
+      style={{
+        backgroundColor: "#22C55E",
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 8,
+      }}
+    >
+      <Text
+        style={{
+          color: "#fff",
+          fontWeight: "bold",
+        }}
+      >
+        + Upload
       </Text>
+    </TouchableOpacity>
+  )}
+</View>
 
       <TextInput
         placeholder="Search past papers..."
