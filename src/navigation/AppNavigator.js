@@ -15,12 +15,14 @@ import InboxScreen from "../screens/InboxScreen";
 import LoginScreen from "../screens/LoginScreen";
 import MembersScreen from "../screens/MembersScreen";
 import NotesScreen from "../screens/NotesScreen";
+import PastPapersScreen from "../screens/PastPapersScreen";
 import PremiumScreen from "../screens/PremiumScreen";
 import PrivateChatScreen from "../screens/PrivateChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import StudentProfileScreen from "../screens/StudentProfileScreen";
 import UploadNotesScreen from "../screens/UploadNotesScreen";
+import UploadPastPaperScreen from "../screens/UploadPastPaperScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
 
 const Stack = createNativeStackNavigator();
@@ -152,6 +154,18 @@ export default function AppNavigator() {
               component={UploadNotesScreen}
               options={{ title: "Upload Notes" }}
             />
+
+            <Stack.Screen
+  name="PastPapers"
+  component={PastPapersScreen}
+  options={{ title: "Past Papers" }}
+/>
+
+<Stack.Screen
+  name="UploadPastPaper"
+  component={UploadPastPaperScreen}
+  options={{ title: "Upload Past Paper" }}
+/>
 
             <Stack.Screen
     name="Members"
