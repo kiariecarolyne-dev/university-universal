@@ -18,10 +18,13 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-import { auth, db } from "../services/firebase";
+import useUser from "../hooks/useUser";
+import { db } from "../services/firebase";
 
 
 export default function PastPapersScreen({ navigation }) {
+  const user = useUser();
+
   const [papers, setPapers] = useState([]);
   const [filteredPapers, setFilteredPapers] = useState([]);
   const [search, setSearch] = useState("");
@@ -129,7 +132,7 @@ const downloadPDF = async (paper) => {
     📝 Past Papers
   </Text>
 
-  {auth.currentUser?.email === "kiariecarolyne@gmail.com" && (
+  {user?.isAdmin && (
     <TouchableOpacity
       onPress={() => navigation.navigate("UploadPastPaper")}
       style={{
