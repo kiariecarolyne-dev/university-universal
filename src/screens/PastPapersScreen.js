@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Text,
   TextInput,
@@ -15,11 +16,12 @@ import {
   collection,
   doc,
   getDocs,
+  increment,
   updateDoc,
 } from "firebase/firestore";
 
 import useUser from "../hooks/useUser";
-import { db } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 
 
 export default function PastPapersScreen({ navigation }) {
@@ -68,6 +70,53 @@ export default function PastPapersScreen({ navigation }) {
 
 const downloadPDF = async (paper) => {
   try {
+    // --------------------------------
+    // CHECK USER
+    // --------------------------------
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      Alert.alert(
+        "Login Required",
+        "Please log in to download past papers."
+      );
+      return;
+    }
+
+    // --------------------------------
+    // CHECK PREMIUM STATUS
+    // --------------------------------
+    const isPremium = user?.isPremium === true;
+
+    const freeDownloadsUsed =
+      user?.pastPaperDownloads || 0;
+
+    // --------------------------------
+    // FREE USER LIMIT
+    // --------------------------------
+    if (!isPremium && freeDownloadsUsed >= 1) {
+      Alert.alert(
+        "Premium Required",
+        "You have used your free past-paper download. Upgrade to Premium to download unlimited past papers.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Upgrade to Premium",
+            onPress: () =>
+              navigation.navigate("Premium"),
+          },
+        ]
+      );
+
+      return;
+    }
+
+    // --------------------------------
+    // DOWNLOAD PDF
+    // --------------------------------
     const fileUri =
       FileSystem.documentDirectory + paper.name;
 
@@ -76,19 +125,45 @@ const downloadPDF = async (paper) => {
       fileUri
     );
 
-    // Increase download count
-    await updateDoc(doc(db, "pastPapers", paper.id), {
-      downloads: (paper.downloads || 0) + 1,
-    });
+    // --------------------------------
+    // INCREMENT USER'S FREE DOWNLOAD
+    // --------------------------------
+    if (!isPremium) {
+      await updateDoc(
+        doc(db, "users", currentUser.uid),
+        {
+          pastPaperDownloads: increment(1),
+        }
+      );
+    }
 
-    const canShare = await Sharing.isAvailableAsync();
+    // --------------------------------
+    // INCREASE PAPER DOWNLOAD COUNT
+    // --------------------------------
+    await updateDoc(
+      doc(db, "pastPapers", paper.id),
+      {
+        downloads: increment(1),
+      }
+    );
+
+    // --------------------------------
+    // SHARE / OPEN PDF
+    // --------------------------------
+    const canShare =
+      await Sharing.isAvailableAsync();
 
     if (canShare) {
       await Sharing.shareAsync(uri);
     }
 
   } catch (error) {
-    console.log(error);
+    console.log("Past paper download error:", error);
+
+    Alert.alert(
+      "Download Failed",
+      "Could not download the past paper. Please try again."
+    );
   }
 };
 
