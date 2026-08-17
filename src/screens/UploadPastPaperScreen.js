@@ -1,8 +1,9 @@
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  FlatList,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -11,180 +12,276 @@ import axios from "axios";
 
 import * as DocumentPicker from "expo-document-picker";
 
-const API_URL = "https://university-universal-backend.onrender.com";
+const API_URL =
+  "https://university-universal-backend.onrender.com";
 
 export default function UploadPastPaperScreen() {
-
-  const [name, setName] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  const pickDocument = async () => {
+  const pickDocuments = async () => {
     try {
-
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "application/pdf",
-        copyToCacheDirectory: true,
-      });
+      const result =
+        await DocumentPicker.getDocumentAsync({
+          type: "application/pdf",
+          multiple: true,
+          copyToCacheDirectory: true,
+        });
 
       if (!result.canceled) {
-        setSelectedFile(result.assets[0]);
+        const files = result.assets || [];
+
+        setSelectedFiles(files);
+        setUploadProgress(0);
 
         Alert.alert(
-          "Selected",
-          result.assets[0].name
+          "Files Selected",
+          `${files.length} PDF${
+            files.length === 1 ? "" : "s"
+          } selected.`
         );
       }
+    } catch (error) {
+      console.log(error);
 
-    } catch {
-      Alert.alert("Error", "Could not pick file.");
+      Alert.alert(
+        "Error",
+        "Could not select files."
+      );
     }
   };
 
-  const uploadPastPaper = async () => {
-  if (loading) return;
+  const uploadPastPapers = async () => {
+    if (loading) return;
 
-  if (!name) {
-    Alert.alert("Error", "Enter the paper name.");
-    return;
-  }
-
-  if (!selectedFile) {
-    Alert.alert("Error", "Please choose a PDF.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const formData = new FormData();
-
-    formData.append("name", name);
-
-    formData.append("file", {
-      uri: selectedFile.uri,
-      name: selectedFile.name,
-      type: "application/pdf",
-    });
-
-    const response = await axios.post(
-      `${API_URL}/upload-pastpaper`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
-
-    if (response.data.success) {
+    if (selectedFiles.length === 0) {
       Alert.alert(
-        "Success",
-        "Past paper uploaded successfully."
+        "Error",
+        "Please choose one or more PDFs."
       );
-
-      setName("");
-      setSelectedFile(null);
+      return;
     }
 
-  } catch (error) {
-    console.log(error.response?.data || error);
+    try {
+      setLoading(true);
+      setUploadProgress(0);
 
-    Alert.alert(
-      "Upload Failed",
-      error.response?.data?.error || "Something went wrong."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      const formData = new FormData();
+
+      selectedFiles.forEach((file) => {
+        formData.append("files", {
+          uri: file.uri,
+          name: file.name,
+          type: "application/pdf",
+        });
+      });
+
+      const response = await axios.post(
+        `${API_URL}/upload-pastpapers`,
+        formData,
+        {
+          headers: {
+            "Content-Type":
+              "multipart/form-data",
+          },
+
+          onUploadProgress: (progressEvent) => {
+            if (!progressEvent.total) return;
+
+            const percent = Math.round(
+              (progressEvent.loaded /
+                progressEvent.total) *
+                100
+            );
+
+            setUploadProgress(percent);
+          },
+        }
+      );
+
+      if (response.data.success) {
+        const {
+          uploaded,
+          failed,
+          total,
+        } = response.data;
+
+        Alert.alert(
+          "Upload Complete",
+          `${uploaded} of ${total} past papers uploaded successfully.${
+            failed > 0
+              ? ` ${failed} failed.`
+              : ""
+          }`
+        );
+
+        setSelectedFiles([]);
+        setUploadProgress(100);
+      }
+
+    } catch (error) {
+      console.log(
+        error.response?.data || error
+      );
+
+      Alert.alert(
+        "Upload Failed",
+        error.response?.data?.error ||
+          "Something went wrong."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View
       style={{
-        flex:1,
-        backgroundColor:"#0B0F14",
-        padding:20,
-        paddingTop:60,
+        flex: 1,
+        backgroundColor: "#0B0F14",
+        padding: 20,
+        paddingTop: 60,
       }}
     >
-
       <Text
         style={{
-          color:"#fff",
-          fontSize:24,
-          fontWeight:"bold",
-          marginBottom:20,
+          color: "#fff",
+          fontSize: 24,
+          fontWeight: "bold",
+          marginBottom: 20,
         }}
       >
-        📤 Upload Past Paper
+        📤 Upload Past Papers
       </Text>
 
-      <TextInput
-        placeholder="Paper name"
-        placeholderTextColor="#888"
-        value={name}
-        onChangeText={setName}
-        style={{
-          backgroundColor:"#111827",
-          color:"#fff",
-          padding:14,
-          borderRadius:10,
-          marginBottom:20,
-        }}
-      />
-
       <TouchableOpacity
-        onPress={pickDocument}
+        onPress={pickDocuments}
+        disabled={loading}
         style={{
-          backgroundColor:"#2563EB",
-          padding:15,
-          borderRadius:10,
-          alignItems:"center",
+          backgroundColor: "#2563EB",
+          padding: 15,
+          borderRadius: 10,
+          alignItems: "center",
         }}
       >
         <Text
           style={{
-            color:"#fff",
-            fontWeight:"bold",
+            color: "#fff",
+            fontWeight: "bold",
           }}
         >
-          📄 Choose PDF
+          📄 Select PDF Files
         </Text>
       </TouchableOpacity>
 
-      {selectedFile && (
+      {selectedFiles.length > 0 && (
         <Text
           style={{
-            color:"#22C55E",
-            marginTop:20,
+            color: "#22C55E",
+            marginTop: 20,
+            marginBottom: 10,
+            fontWeight: "bold",
           }}
         >
-          {selectedFile.name}
+          {selectedFiles.length} PDF
+          {selectedFiles.length === 1
+            ? ""
+            : "s"}{" "}
+          selected
         </Text>
       )}
 
-      <TouchableOpacity
-  onPress={uploadPastPaper}
-  disabled={loading}
-  style={{
-    backgroundColor: "#22C55E",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 20,
-  }}
->
-  <Text
-    style={{
-      color: "#000",
-      fontWeight: "bold",
-    }}
-  >
-    {loading ? "Uploading..." : "🚀 Upload Past Paper"}
-  </Text>
-</TouchableOpacity>
+      <FlatList
+        data={selectedFiles}
+        keyExtractor={(item, index) =>
+          `${item.name}-${index}`
+        }
+        style={{
+          marginTop: 10,
+        }}
+        renderItem={({ item }) => (
+          <View
+            style={{
+              backgroundColor: "#111827",
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 8,
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+              }}
+            >
+              📄{" "}
+              {item.name.replace(
+                /\.pdf$/i,
+                ""
+              )}
+            </Text>
+          </View>
+        )}
+      />
 
+      {loading && (
+        <View
+          style={{
+            marginTop: 15,
+          }}
+        >
+          <ActivityIndicator
+            size="large"
+            color="#22C55E"
+          />
+
+          <Text
+            style={{
+              color: "#fff",
+              textAlign: "center",
+              marginTop: 10,
+            }}
+          >
+            Uploading... {uploadProgress}%
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        onPress={uploadPastPapers}
+        disabled={
+          loading ||
+          selectedFiles.length === 0
+        }
+        style={{
+          backgroundColor:
+            loading ||
+            selectedFiles.length === 0
+              ? "#555"
+              : "#22C55E",
+          padding: 15,
+          borderRadius: 10,
+          alignItems: "center",
+          marginTop: 20,
+        }}
+      >
+        <Text
+          style={{
+            color: "#000",
+            fontWeight: "bold",
+          }}
+        >
+          {loading
+            ? "Uploading..."
+            : `🚀 Upload ${
+                selectedFiles.length
+              } Past Paper${
+                selectedFiles.length === 1
+                  ? ""
+                  : "s"
+              }`}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
