@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Platform,
   Text,
   TouchableOpacity,
   View,
@@ -69,36 +70,48 @@ export default function UploadPastPaperScreen() {
 
       const formData = new FormData();
 
-      selectedFiles.forEach((file) => {
-        formData.append("files", {
-          uri: file.uri,
-          name: file.name,
-          type: "application/pdf",
-        });
-      });
+if (Platform.OS === "web") {
+  selectedFiles.forEach((file) => {
+    formData.append(
+      "files",
+      file.file
+    );
+  });
+} else {
+  selectedFiles.forEach((file) => {
+    formData.append("files", {
+      uri: file.uri,
+      name: file.name,
+      type: "application/pdf",
+    });
+  });
+}
 
-      const response = await axios.post(
-        `${API_URL}/upload-pastpapers`,
-        formData,
-        {
-          headers: {
+const response = await axios.post(
+  `${API_URL}/upload-pastpapers`,
+  formData,
+  {
+    headers:
+      Platform.OS === "web"
+        ? {}
+        : {
             "Content-Type":
               "multipart/form-data",
           },
 
-          onUploadProgress: (progressEvent) => {
-            if (!progressEvent.total) return;
+    onUploadProgress: (progressEvent) => {
+      if (!progressEvent.total) return;
 
-            const percent = Math.round(
-              (progressEvent.loaded /
-                progressEvent.total) *
-                100
-            );
-
-            setUploadProgress(percent);
-          },
-        }
+      const percent = Math.round(
+        (progressEvent.loaded /
+          progressEvent.total) *
+          100
       );
+
+      setUploadProgress(percent);
+    },
+  }
+);
 
       if (response.data.success) {
         const {

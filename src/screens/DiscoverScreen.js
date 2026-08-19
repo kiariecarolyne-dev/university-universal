@@ -13,7 +13,6 @@ import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
 
 import {
-  canAccessDiscover,
   isInTrialPeriod,
   isPremiumUser,
 } from "../utils/access";
@@ -56,20 +55,10 @@ setCourses(uniqueCourses);
   };
 
   useEffect(() => {
-    if (!user) return;
+  if (!user) return;
 
-    if (!canAccessDiscover(user)) {
-      Alert.alert(
-        "Trial Expired",
-        "Your free trial has ended. Upgrade to continue."
-      );
-
-      navigation.navigate("Premium");
-      return;
-    }
-
-    loadStudents();
-  }, [user, selectedCourse]);
+  loadStudents();
+}, [user]);
 
   const handlePrivateMessage = (student) => {
     if (!isPremiumUser(user)) {

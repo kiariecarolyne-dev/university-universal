@@ -75,7 +75,7 @@ export default function UploadNotesScreen({ navigation }) {
         <Text style={styles.lockText}>
           Uploading notes is part of the Premium Creator Program.
           {"\n"}
-          Earn by sharing academic materials.
+          (Earn by sharing academic materials). Coming soon!
         </Text>
 
         <TouchableOpacity
