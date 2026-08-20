@@ -360,14 +360,14 @@ const currentWeek = getWeekKey();
             : {};
 
 
-          // -------------------------------------------------
-          // CURRENT USER XP
-          // -------------------------------------------------
+  // -------------------------------------------------
+// CURRENT USER XP
+// -------------------------------------------------
 
-          const currentXP =
-            Number(userData.xp || 0);
+const currentXP =
+  Number(userData.xp || 0);
 
-            const storedWeeklyXP =
+const storedWeeklyXP =
   Number(userData.weeklyXP || 0);
 
 const storedWeeklyXPWeek =
@@ -432,21 +432,14 @@ const currentWeeklyXP =
 
 
           // -------------------------------------------------
-          // NEW XP
-          // -------------------------------------------------
+// TOTAL XP + WEEKLY XP
+// -------------------------------------------------
 
-          const newXP =
+const newXP =
   currentXP + earnedXP;
 
 const newWeeklyXP =
   currentWeeklyXP + earnedXP;
-
-            const currentWeeklyXP =
-  Number(userData.weeklyXP || 0);
-
-const weeklyXP =
-  currentWeeklyXP + earnedXP;
-
 
           // -------------------------------------------------
           // SAVE USER XP + STREAK

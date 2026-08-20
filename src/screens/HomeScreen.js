@@ -31,6 +31,10 @@ export default function HomeScreen({ navigation }) {
 
   const [onlineStudents, setOnlineStudents] = useState(0);
 
+  const [weeklyRanking, setWeeklyRanking] = useState([]);
+const [myWeeklyPosition, setMyWeeklyPosition] = useState(null);
+const [myWeeklyXP, setMyWeeklyXP] = useState(0);
+
   /* -------------------------------------------------
      SET USER ONLINE
   ------------------------------------------------- */
@@ -110,6 +114,61 @@ export default function HomeScreen({ navigation }) {
 
     return () => unsubscribe();
   }, []);
+
+/* -------------------------------------------------
+   WEEKLY RANKING
+------------------------------------------------- */
+
+useEffect(() => {
+  const unsubscribe = onSnapshot(
+    collection(db, "users"),
+    (snapshot) => {
+      const students = [];
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+
+        students.push({
+          id: docSnap.id,
+          fullName: data.fullName || "Student",
+          weeklyXP: Number(data.weeklyXP || 0),
+        });
+      });
+
+      // Highest weekly XP first
+      students.sort((a, b) => b.weeklyXP - a.weeklyXP);
+
+      setWeeklyRanking(students.slice(0, 5));
+
+      // Find current user's position
+      if (auth.currentUser) {
+        const myIndex = students.findIndex(
+          (student) =>
+            student.id === auth.currentUser.uid
+        );
+
+        if (myIndex !== -1) {
+          setMyWeeklyPosition(myIndex + 1);
+          setMyWeeklyXP(
+            students[myIndex].weeklyXP
+          );
+        } else {
+          setMyWeeklyPosition(null);
+          setMyWeeklyXP(0);
+        }
+      }
+    },
+    (error) => {
+      console.log(
+        "Weekly ranking error:",
+        error
+      );
+    }
+  );
+
+  return () => unsubscribe();
+}, []);
+
 
   /* -------------------------------------------------
      PREMIUM EXPIRY CHECK
@@ -449,43 +508,104 @@ export default function HomeScreen({ navigation }) {
     WEEKLY RANKING
 ========================================= */}
 
-<TouchableOpacity
-  style={styles.rankingCard}
-  activeOpacity={0.8}
-  onPress={() => navigation.navigate("WeeklyRanking")}
->
+<View style={styles.rankingCard}>
+
   <View style={styles.rankingHeader}>
+
     <View>
       <Text style={styles.rankingTitle}>
         🏆 Weekly Ranking
       </Text>
 
       <Text style={styles.rankingSubtitle}>
-        Compete with students around the world
+        Top students this week
       </Text>
     </View>
 
     <Text style={styles.trophy}>
       🏆
     </Text>
+
   </View>
 
-  <View style={styles.rankingPosition}>
-    <Text style={styles.rankingNumber}>
-      —
-    </Text>
+  {/* TOP STUDENTS */}
 
-    <View>
-      <Text style={styles.rankingPositionTitle}>
-        Your global position
+  {weeklyRanking.length === 0 ? (
+
+    <View style={styles.emptyRanking}>
+      <Text style={styles.emptyRankingText}>
+        No weekly XP yet.
       </Text>
 
-      <Text style={styles.rankingPositionText}>
-        Rankings will appear once XP and challenges launch.
+      <Text style={styles.emptyRankingSubtext}>
+        Answer today's challenge to start climbing!
       </Text>
     </View>
+
+  ) : (
+
+    weeklyRanking.map((student, index) => (
+
+      <View
+        key={student.id}
+        style={styles.rankingStudent}
+      >
+
+        <Text style={styles.rankNumber}>
+          {index === 0
+            ? "🥇"
+            : index === 1
+            ? "🥈"
+            : index === 2
+            ? "🥉"
+            : `#${index + 1}`}
+        </Text>
+
+        <View style={styles.rankingStudentInfo}>
+
+          <Text style={styles.rankingStudentName}>
+            {student.id === auth.currentUser?.uid
+              ? "You"
+              : student.fullName}
+          </Text>
+
+          <Text style={styles.rankingStudentXP}>
+            ⭐ {student.weeklyXP} XP
+          </Text>
+
+        </View>
+
+      </View>
+
+    ))
+
+  )}
+
+  {/* YOUR POSITION */}
+
+  <View style={styles.myRankingBox}>
+
+    <Text style={styles.myRankingPosition}>
+      {myWeeklyPosition
+        ? `#${myWeeklyPosition}`
+        : "—"}
+    </Text>
+
+    <View style={{ flex: 1 }}>
+
+      <Text style={styles.myRankingTitle}>
+        Your weekly position
+      </Text>
+
+      <Text style={styles.myRankingText}>
+        ⭐ {myWeeklyXP} XP this week
+      </Text>
+
+    </View>
+
   </View>
-</TouchableOpacity>
+
+</View>
 
       {/* =========================================
           MEMBERSHIP
@@ -933,8 +1053,80 @@ const styles = {
     fontSize: 13,
   },
 
-  rankingPositionText: {
+    rankingPositionText: {
     color: "#6B7280",
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  emptyRanking: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  emptyRankingSubtext: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 5,
+    textAlign: "center",
+  },
+
+  rankingStudent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1F2937",
+  },
+
+  rankNumber: {
+    width: 45,
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+  rankingStudentInfo: {
+    flex: 1,
+  },
+
+  rankingStudentName: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  rankingStudentXP: {
+    color: "#FBBF24",
+    fontSize: 11,
+    marginTop: 3,
+  },
+
+  myRankingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#1F2937",
+  },
+
+  myRankingPosition: {
+    color: "#FFFFFF",
+    fontSize: 27,
+    fontWeight: "800",
+    width: 55,
+  },
+
+  myRankingTitle: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  myRankingText: {
+    color: "#FBBF24",
     fontSize: 11,
     marginTop: 4,
   },
