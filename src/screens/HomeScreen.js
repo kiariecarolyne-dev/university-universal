@@ -199,7 +199,7 @@ if (
 
   {plan !== "premium" && (
     <Text style={styles.upgradeHint}>
-      Unlock private chats, Notes Marketplace, study rooms and more.
+      Unlock private chats, study rooms and more.
     </Text>
   )}
 </View>
@@ -216,19 +216,16 @@ if (
       <Text style={styles.statLabel}>Groups Access</Text>
     </View>
 
-    <View style={styles.statBox}>
-      <Text style={styles.statNumber}>
-        {plan === "premium" ? "✓" : "🔒"}
-      </Text>
-      <Text style={styles.statLabel}>Chat Access</Text>
-    </View>
+<View style={styles.statBox}>
+  <Text style={styles.statNumber}>
+    {plan === "premium" ? "✓" : "🔒"}
+  </Text>
 
-    <View style={styles.statBox}>
-      <Text style={styles.statNumber}>
-        {plan === "premium" ? "✓" : "🔒"}
-      </Text>
-      <Text style={styles.statLabel}>Notes Access</Text>
-    </View>
+  <Text style={styles.statLabel}>
+    Chat Access
+  </Text>
+</View>
+
   </View>
 </View>
 
@@ -255,19 +252,10 @@ if (
   />
 
   <NavButton
-    title="📚 Notes"
-    onPress={() => navigation.navigate("Notes")}
-  />
-
-  <NavButton
   title="📄 Past Papers"
   onPress={() => navigation.navigate("PastPapers")}
 />
 
-  <NavButton
-    title="⬆ Upload"
-    onPress={() => navigation.navigate("UploadNotes")}
-  />
 </View>
 
 {/* VIDEO STUDY HALLS */}
@@ -319,7 +307,6 @@ if (
   <Text style={styles.cardTitle}>Premium Access ⭐</Text>
   <Text style={styles.text}>🔒 Private Messaging</Text>
   <Text style={styles.text}>🔒 Video Study Rooms</Text>
-  <Text style={styles.text}>🔒 Notes Marketplace</Text>
 </View>
 
       {/* PREMIUM CTA */}

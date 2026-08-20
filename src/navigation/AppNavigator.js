@@ -14,14 +14,12 @@ import HomeScreen from "../screens/HomeScreen";
 import InboxScreen from "../screens/InboxScreen";
 import LoginScreen from "../screens/LoginScreen";
 import MembersScreen from "../screens/MembersScreen";
-import NotesScreen from "../screens/NotesScreen";
 import PastPapersScreen from "../screens/PastPapersScreen";
 import PremiumScreen from "../screens/PremiumScreen";
 import PrivateChatScreen from "../screens/PrivateChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import StudentProfileScreen from "../screens/StudentProfileScreen";
-import UploadNotesScreen from "../screens/UploadNotesScreen";
 import UploadPastPaperScreen from "../screens/UploadPastPaperScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
 
@@ -137,11 +135,6 @@ export default function AppNavigator() {
               options={{ title: "Video Study Room" }}
             />
 
-            <Stack.Screen
-              name="Notes"
-              component={NotesScreen}
-              options={{ title: "Notes Marketplace" }}
-            />
 
             <Stack.Screen
               name="Premium"
@@ -149,11 +142,6 @@ export default function AppNavigator() {
               options={{ title: "Upgrade Premium" }}
             />
 
-            <Stack.Screen
-              name="UploadNotes"
-              component={UploadNotesScreen}
-              options={{ title: "Upload Notes" }}
-            />
 
             <Stack.Screen
   name="PastPapers"

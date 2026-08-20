@@ -67,9 +67,7 @@ export const getUserPlan = (user) => {
 // ==============================
 
 // Discover: trial OR premium
-export const canAccessDiscover = (user) => {
-  return isPremiumUser(user) || isInTrialPeriod(user);
-};
+export const canAccessDiscover = () => true;
 
 // Groups: everyone
 export const canAccessGroups = () => true;
