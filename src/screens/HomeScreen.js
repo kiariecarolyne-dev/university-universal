@@ -286,14 +286,9 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <TouchableOpacity
-        style={styles.challengeCard}
-        onPress={() =>
-          Alert.alert(
-            "Daily Challenge",
-            "The daily quiz is coming next. Soon you'll be able to compete with students worldwide and earn XP."
-          )
-        }
-      >
+  style={styles.challengeCard}
+  onPress={() => navigation.navigate("DailyChallenge")}
+>
         <View style={styles.challengeTop}>
           <Text style={styles.challengeEmoji}>🧠</Text>
 
@@ -310,8 +305,8 @@ export default function HomeScreen({ navigation }) {
 
         <View style={styles.challengeBottom}>
           <Text style={styles.challengeReward}>
-            ⭐ XP coming soon
-          </Text>
+  ⭐ Earn 10 XP
+</Text>
 
           <Text style={styles.challengeButton}>
             Play →

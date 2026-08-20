@@ -11,6 +11,7 @@ import MainTabs from "./MainTabs";
 
 import ChatScreen from "../screens/ChatScreen";
 import CommentsScreen from "../screens/CommentsScreen";
+import DailyChallengeScreen from "../screens/DailyChallengeScreen";
 import InboxScreen from "../screens/InboxScreen";
 import LoginScreen from "../screens/LoginScreen";
 import MembersScreen from "../screens/MembersScreen";
@@ -117,6 +118,16 @@ export default function AppNavigator() {
   component={QuestionOfTheDayScreen}
   options={{
     title: "Question of the Day",
+  }}
+/>
+
+{/* DAILY CHALLENGE */}
+
+<Stack.Screen
+  name="DailyChallenge"
+  component={DailyChallengeScreen}
+  options={{
+    title: "Daily Challenge",
   }}
 />
 
