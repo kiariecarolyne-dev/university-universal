@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   Alert,
   AppState,
@@ -25,46 +26,94 @@ export default function HomeScreen({ navigation }) {
   const user = useUser();
 
   const [roomCounts, setRoomCounts] = useState({
-  GlobalStudyHall: 0,
-});
+    GlobalStudyHall: 0,
+  });
+
+  const [onlineStudents, setOnlineStudents] = useState(0);
+
+  /* -------------------------------------------------
+     SET USER ONLINE
+  ------------------------------------------------- */
 
   useEffect(() => {
-  if (!auth.currentUser) return;
+    if (!auth.currentUser) return;
 
-  updateDoc(doc(db, "users", auth.currentUser.uid), {
-    online: true,
-    lastSeen: serverTimestamp(),
-  });
-}, []);
+    updateDoc(doc(db, "users", auth.currentUser.uid), {
+      online: true,
+      lastSeen: serverTimestamp(),
+    }).catch(() => {});
+  }, []);
 
-useEffect(() => {
-  if (!auth.currentUser) return;
+  /* -------------------------------------------------
+     TRACK APP ACTIVE / BACKGROUND
+  ------------------------------------------------- */
 
-  const subscription = AppState.addEventListener(
-    "change",
-    async (nextState) => {
-      if (nextState === "active") {
-        await updateDoc(
-          doc(db, "users", auth.currentUser.uid),
-          {
-            online: true,
-            lastSeen: serverTimestamp(),
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const subscription = AppState.addEventListener(
+      "change",
+      async (nextState) => {
+        if (!auth.currentUser) return;
+
+        try {
+          if (nextState === "active") {
+            await updateDoc(
+              doc(db, "users", auth.currentUser.uid),
+              {
+                online: true,
+                lastSeen: serverTimestamp(),
+              }
+            );
+          } else {
+            await updateDoc(
+              doc(db, "users", auth.currentUser.uid),
+              {
+                online: false,
+                lastSeen: serverTimestamp(),
+              }
+            );
           }
-        );
-      } else {
-        await updateDoc(
-          doc(db, "users", auth.currentUser.uid),
-          {
-            online: false,
-            lastSeen: serverTimestamp(),
-          }
-        );
+        } catch (error) {
+          console.log("Online status error:", error);
+        }
       }
-    }
-  );
+    );
 
-  return () => subscription.remove();
-}, []);
+    return () => subscription.remove();
+  }, []);
+
+  /* -------------------------------------------------
+     COUNT ONLINE STUDENTS
+  ------------------------------------------------- */
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        let count = 0;
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+
+          if (data.online === true) {
+            count++;
+          }
+        });
+
+        setOnlineStudents(count);
+      },
+      (error) => {
+        console.log("Online students error:", error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  /* -------------------------------------------------
+     PREMIUM EXPIRY CHECK
+  ------------------------------------------------- */
 
   useEffect(() => {
     if (!user) return;
@@ -82,68 +131,59 @@ useEffect(() => {
               text: "Renew Now",
               onPress: () => navigation.navigate("Premium"),
             },
-            { text: "Later", style: "cancel" },
+            {
+              text: "Later",
+              style: "cancel",
+            },
           ]
         );
       }
     }
   }, [user]);
 
+  /* -------------------------------------------------
+     STUDY ROOM COUNTS
+  ------------------------------------------------- */
+
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  const rooms = ["GlobalStudyHall"];
+    const rooms = ["GlobalStudyHall"];
 
-  if (
-    user.course &&
-    user.course !== "Not set yet"
-  ) {
-    rooms.push(user.course);
-  }
+    if (user.course && user.course !== "Not set yet") {
+      rooms.push(user.course);
+    }
 
+    const unsubscribes = rooms.map((room) => {
+      return onSnapshot(
+        collection(
+          db,
+          "videoRooms",
+          room,
+          "participants"
+        ),
+        (snapshot) => {
+          setRoomCounts((prev) => ({
+            ...prev,
+            [room]: snapshot.size,
+          }));
+        },
+        (error) => {
+          console.log("Room count error:", error);
+        }
+      );
+    });
 
-  const unsubscribes = rooms.map((room) => {
-    return onSnapshot(
-      collection(
-        db,
-        "videoRooms",
-        room,
-        "participants"
-      ),
-      (snapshot) => {
-        setRoomCounts((prev) => ({
-          ...prev,
-          [room]: snapshot.size,
-        }));
-      }
-    );
-  });
-
-  return () => {
-    unsubscribes.forEach((unsub) => unsub());
-  };
-}, []);
+    return () => {
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [user]);
 
   if (!user) return null;
 
-  const rooms = [
-  {
-    id: "GlobalStudyHall",
-    emoji: "🌍",
-    title: "Global Study Hall",
-  },
-];
-
-if (
-  user.course &&
-  user.course !== "Not set yet"
-) {
-  rooms.push({
-    id: user.course,
-    emoji: "📚",
-    title: user.course,
-  });
-}
+  /* -------------------------------------------------
+     USER PLAN
+  ------------------------------------------------- */
 
   const plan = getUserPlan(user);
 
@@ -156,251 +196,763 @@ if (
     const diff = now - createdDate;
     const daysPassed = diff / (1000 * 60 * 60 * 24);
 
-    trialDaysLeft = Math.ceil(3 - daysPassed);
+    trialDaysLeft = Math.max(
+      0,
+      Math.ceil(3 - daysPassed)
+    );
+  }
+
+  /* -------------------------------------------------
+     STUDY ROOMS
+  ------------------------------------------------- */
+
+  const rooms = [
+    {
+      id: "GlobalStudyHall",
+      emoji: "🌍",
+      title: "Global Study Hall",
+    },
+  ];
+
+  if (user.course && user.course !== "Not set yet") {
+    rooms.push({
+      id: user.course,
+      emoji: "📚",
+      title: user.course,
+    });
   }
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
     >
+      {/* =========================================
+          WELCOME
+      ========================================= */}
 
-      {/* WELCOME */}
       <View style={styles.hero}>
-        <Text style={styles.welcome}>
-  Welcome back, {user.fullName?.split(" ")[0] || "Student"} 👋
-</Text>
+        <Text style={styles.smallGreeting}>
+          Welcome back 👋
+        </Text>
 
+        <Text style={styles.welcome}>
+          {user.fullName?.split(" ")[0] || "Student"}
+        </Text>
 
         <Text style={styles.subtitle}>
-  {user.university || "University Student"} • The Global Student Network 🌍
-</Text>
-</View>
+          Your global student community is waiting for you 🌍
+        </Text>
+      </View>
 
-      {/* PLAN STATUS */}
-<View style={styles.planCard}>
-  <Text style={styles.planLabel}>
-  Your Membership
-</Text>
+      {/* =========================================
+          LIVE STUDENT ACTIVITY
+      ========================================= */}
 
-  <Text style={styles.planText}>
-    {plan === "premium"
-      ? "⭐ Premium"
-      : plan === "trial"
-      ? "🚀 Trial"
-      : "🆓 Free"}
-  </Text>
-
-  {plan === "trial" && (
-    <Text style={styles.trialText}>
-      Trial ends in {trialDaysLeft} day(s)
-    </Text>
-  )}
-
-  {plan !== "premium" && (
-    <Text style={styles.upgradeHint}>
-      Unlock private chats, study rooms and more.
-    </Text>
-  )}
-</View>
-
-{/* DASHBOARD */}
-<View style={styles.statsCard}>
-  <Text style={styles.cardTitle}>Your Dashboard</Text>
-
-  <View style={styles.statsRow}>
-    <View style={styles.statBox}>
-      <Text style={styles.statNumber}>
-        {plan === "premium" ? "∞" : "3"}
-      </Text>
-      <Text style={styles.statLabel}>Groups Access</Text>
-    </View>
-
-<View style={styles.statBox}>
-  <Text style={styles.statNumber}>
-    {plan === "premium" ? "✓" : "🔒"}
-  </Text>
-
-  <Text style={styles.statLabel}>
-    Chat Access
-  </Text>
-</View>
-
-  </View>
-</View>
-
-{/* QUICK ACTIONS */}
-<View style={styles.grid}>
-  <NavButton
-    title="👤 Profile"
-    onPress={() => navigation.navigate("Profile")}
-  />
-
-  <NavButton
-    title="👥 Groups"
-    onPress={() => navigation.navigate("Groups")}
-  />
-
-  <NavButton
-    title="🌎 Discover"
-    onPress={() => navigation.navigate("Discover")}
-  />
-
-  <NavButton
-    title="💬 Messages"
-    onPress={() => navigation.navigate("Inbox")}
-  />
-
-  <NavButton
-  title="📄 Past Papers"
-  onPress={() => navigation.navigate("PastPapers")}
-/>
-
-</View>
-
-{/* VIDEO STUDY HALLS */}
-<View style={styles.videoSection}>
-  <Text style={styles.videoTitle}>
-    🎥 Live Study Halls
-  </Text>
-
-  <Text style={styles.videoSubtitle}>
-    Join voice and video study rooms with students worldwide.
-  </Text>
-
-  <View style={styles.videoGrid}>
-    {rooms.map((room) => (
       <TouchableOpacity
-        key={room.id}
-        style={styles.videoCard}
+        style={styles.onlineCard}
+        onPress={() => navigation.navigate("Discover")}
+      >
+        <View style={styles.onlineIcon}>
+          <Text style={styles.onlineEmoji}>🌍</Text>
+        </View>
+
+        <View style={styles.onlineInfo}>
+          <Text style={styles.onlineNumber}>
+            {onlineStudents}
+          </Text>
+
+          <Text style={styles.onlineText}>
+            students online now
+          </Text>
+        </View>
+
+        <Text style={styles.onlineArrow}>›</Text>
+      </TouchableOpacity>
+
+      {/* =========================================
+          DAILY CHALLENGE
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          🎯 Today's Challenge
+        </Text>
+
+        <Text style={styles.sectionHint}>
+          Compete with students worldwide
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.challengeCard}
         onPress={() =>
-          navigation.navigate("VideoRoom", {
-            roomName: room.id,
-          })
+          Alert.alert(
+            "Daily Challenge",
+            "The daily quiz is coming next. Soon you'll be able to compete with students worldwide and earn XP."
+          )
         }
       >
-        <Text style={styles.videoEmoji}>
-          {room.emoji}
+        <View style={styles.challengeTop}>
+          <Text style={styles.challengeEmoji}>🧠</Text>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.challengeTitle}>
+              Daily Student Quiz
+            </Text>
+
+            <Text style={styles.challengeText}>
+              Test your knowledge and see how you rank globally.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.challengeBottom}>
+          <Text style={styles.challengeReward}>
+            ⭐ XP coming soon
+          </Text>
+
+          <Text style={styles.challengeButton}>
+            Play →
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* =========================================
+          QUESTION OF THE DAY
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          💬 Question of the Day
+        </Text>
+      </View>
+
+      <View style={styles.questionCard}>
+        <Text style={styles.questionEmoji}>
+          💭
         </Text>
 
-        <Text style={styles.videoCardTitle}>
-          {room.title}
+        <Text style={styles.question}>
+          If you could study at any university in the world,
+          where would you go?
         </Text>
 
-        <Text style={styles.videoCardHint}>
-          👥 {roomCounts[room.id] || 0} students studying
+        <TouchableOpacity
+  style={styles.questionButton}
+  onPress={() => navigation.navigate("QuestionOfTheDay")}
+>
+  <Text style={styles.questionButtonText}>
+    Answer Question
+  </Text>
+</TouchableOpacity>
+
+        <Text style={styles.responses}>
+          🌍 Student responses coming soon
+        </Text>
+      </View>
+
+      {/* =========================================
+          GLOBAL STUDY HALL
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          🌎 Global Study Hall
+        </Text>
+
+        <Text style={styles.sectionHint}>
+          Study together with students worldwide
+        </Text>
+      </View>
+
+      <View style={styles.videoGrid}>
+        {rooms.map((room) => (
+          <TouchableOpacity
+            key={room.id}
+            style={styles.videoCard}
+            onPress={() =>
+              navigation.navigate("VideoRoom", {
+                roomName: room.id,
+              })
+            }
+          >
+            <Text style={styles.videoEmoji}>
+              {room.emoji}
+            </Text>
+
+            <Text style={styles.videoCardTitle}>
+              {room.title}
+            </Text>
+
+            <Text style={styles.videoCardHint}>
+              👥 {roomCounts[room.id] || 0} students studying
+            </Text>
+
+            <View style={styles.joinButton}>
+              <Text style={styles.joinButtonText}>
+                Join Study Hall
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* =========================================
+          YOUR STREAK
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          🔥 Your Progress
+        </Text>
+      </View>
+
+      <View style={styles.progressRow}>
+        <View style={styles.progressCard}>
+          <Text style={styles.progressEmoji}>
+            🔥
+          </Text>
+
+          <Text style={styles.progressNumber}>
+            0
+          </Text>
+
+          <Text style={styles.progressLabel}>
+            Day Streak
+          </Text>
+
+          <Text style={styles.comingSoon}>
+            Coming soon
+          </Text>
+        </View>
+
+        <View style={styles.progressCard}>
+          <Text style={styles.progressEmoji}>
+            ⭐
+          </Text>
+
+          <Text style={styles.progressNumber}>
+            0
+          </Text>
+
+          <Text style={styles.progressLabel}>
+            XP
+          </Text>
+
+          <Text style={styles.comingSoon}>
+            Coming soon
+          </Text>
+        </View>
+      </View>
+
+      {/* =========================================
+          WEEKLY RANKING
+      ========================================= */}
+
+      <View style={styles.rankingCard}>
+        <View style={styles.rankingHeader}>
+          <View>
+            <Text style={styles.rankingTitle}>
+              🏆 Weekly Ranking
+            </Text>
+
+            <Text style={styles.rankingSubtitle}>
+              Compete with students around the world
+            </Text>
+          </View>
+
+          <Text style={styles.trophy}>
+            🏆
+          </Text>
+        </View>
+
+        <View style={styles.rankingPosition}>
+          <Text style={styles.rankingNumber}>
+            —
+          </Text>
+
+          <View>
+            <Text style={styles.rankingPositionTitle}>
+              Your global position
+            </Text>
+
+            <Text style={styles.rankingPositionText}>
+              Rankings will appear once XP and challenges launch.
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* =========================================
+          MEMBERSHIP
+      ========================================= */}
+
+      <View style={styles.planCard}>
+        <Text style={styles.planLabel}>
+          Your Membership
+        </Text>
+
+        <Text style={styles.planText}>
+          {plan === "premium"
+            ? "⭐ Premium"
+            : plan === "trial"
+            ? "🚀 Trial"
+            : "🆓 Free"}
+        </Text>
+
+        {plan === "trial" && (
+          <Text style={styles.trialText}>
+            Trial ends in {trialDaysLeft} day(s)
+          </Text>
+        )}
+
+        {plan !== "premium" && (
+          <Text style={styles.upgradeHint}>
+            Unlock private chats, study rooms and more.
+          </Text>
+        )}
+      </View>
+
+      {/* =========================================
+          PAST PAPERS
+      ========================================= */}
+
+      <TouchableOpacity
+        style={styles.utilityCard}
+        onPress={() =>
+          navigation.navigate("PastPapers")
+        }
+      >
+        <Text style={styles.utilityEmoji}>
+          📄
+        </Text>
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.utilityTitle}>
+            Past Papers
+          </Text>
+
+          <Text style={styles.utilityText}>
+            Find academic papers to help you prepare.
+          </Text>
+        </View>
+
+        <Text style={styles.utilityArrow}>
+          →
         </Text>
       </TouchableOpacity>
-    ))}
-  </View>
-</View>
 
-{/* FEATURES */}
-<View style={styles.card}>
-  <Text style={styles.cardTitle}>Free Access</Text>
-  <Text style={styles.text}>• Public student groups</Text>
-  <Text style={styles.text}>• Academic discovery</Text>
-  <Text style={styles.text}>• Basic profile system</Text>
-</View>
+      {/* =========================================
+          PREMIUM CTA
+      ========================================= */}
 
-<View style={styles.card}>
-  <Text style={styles.cardTitle}>Premium Access ⭐</Text>
-  <Text style={styles.text}>🔒 Private Messaging</Text>
-  <Text style={styles.text}>🔒 Video Study Rooms</Text>
-</View>
-
-      {/* PREMIUM CTA */}
       {plan !== "premium" && (
         <TouchableOpacity
           style={styles.cta}
-          onPress={() => navigation.navigate("Premium")}
+          onPress={() =>
+            navigation.navigate("Premium")
+          }
         >
           <Text style={styles.ctaText}>
             Upgrade to Premium 🚀
           </Text>
+
+          <Text style={styles.ctaSubtext}>
+            Unlock more ways to connect and study
+          </Text>
         </TouchableOpacity>
       )}
+
+      {/* =========================================
+          BOTTOM MESSAGE
+      ========================================= */}
+
+      <View style={styles.bottomMessage}>
+        <Text style={styles.bottomEmoji}>
+          🌍
+        </Text>
+
+        <Text style={styles.bottomTitle}>
+          University Universal
+        </Text>
+
+        <Text style={styles.bottomText}>
+          Connect. Study. Compete. Have fun.
+        </Text>
+      </View>
     </ScrollView>
   );
 }
 
-/* NAV BUTTON */
-const NavButton = ({ title, onPress }) => (
-  <TouchableOpacity style={styles.navBtn} onPress={onPress}>
-    <Text style={styles.navText}>{title}</Text>
-  </TouchableOpacity>
-);
+/* =================================================
+   STYLES
+================================================= */
 
-/* STYLES */
 const styles = {
   container: {
     flex: 1,
     backgroundColor: "#05070A",
-    padding: 16,
   },
 
+  content: {
+    padding: 16,
+    paddingTop: 18,
+    paddingBottom: 50,
+  },
+
+  /* HERO */
+
   hero: {
-    marginTop: 55,
+    marginTop: 28,
     marginBottom: 20,
   },
 
-  welcome: {
+  smallGreeting: {
     color: "#9CA3AF",
     fontSize: 14,
+    marginBottom: 3,
   },
 
-  name: {
+  welcome: {
     color: "#FFFFFF",
     fontSize: 30,
-    fontWeight: "bold",
-    marginTop: 4,
+    fontWeight: "800",
   },
 
   subtitle: {
     color: "#9CA3AF",
-    marginTop: 5,
+    marginTop: 7,
+    fontSize: 14,
+    lineHeight: 20,
   },
 
-  planCard: {
-  backgroundColor: "#111827",
-  borderRadius: 16,
-  padding: 22,
-    marginBottom: 16,
+  /* ONLINE */
+
+  onlineCard: {
+    backgroundColor: "#0F172A",
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    marginBottom: 24,
+  },
+
+  onlineIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#111827",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 13,
+  },
+
+  onlineEmoji: {
+    fontSize: 25,
+  },
+
+  onlineInfo: {
+    flex: 1,
+  },
+
+  onlineNumber: {
+    color: "#FFFFFF",
+    fontSize: 21,
+    fontWeight: "800",
+  },
+
+  onlineText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    marginTop: 2,
+  },
+
+  onlineArrow: {
+    color: "#6B7280",
+    fontSize: 30,
+  },
+
+  /* SECTIONS */
+
+  sectionHeader: {
+    marginBottom: 10,
+    marginTop: 4,
+  },
+
+  sectionTitle: {
+    color: "#FFFFFF",
+    fontSize: 19,
+    fontWeight: "800",
+  },
+
+  sectionHint: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  /* CHALLENGE */
+
+  challengeCard: {
+    backgroundColor: "#111827",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 24,
     borderWidth: 1,
     borderColor: "#1F2937",
   },
 
-  statsCard: {
-  backgroundColor: "#111827",
-  borderRadius: 16,
-  padding: 18,
-  marginBottom: 16,
-  borderWidth: 1,
-  borderColor: "#1F2937",
-},
+  challengeTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
 
-statsRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  marginTop: 15,
-},
+  challengeEmoji: {
+    fontSize: 32,
+    marginRight: 14,
+  },
 
-statBox: {
-  alignItems: "center",
-  flex: 1,
-},
+  challengeTitle: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 5,
+  },
 
-statNumber: {
-  color: "#FFFFFF",
-  fontSize: 22,
-  fontWeight: "bold",
-},
+  challengeText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    lineHeight: 19,
+  },
 
-statLabel: {
-  color: "#9CA3AF",
-  fontSize: 12,
-  marginTop: 5,
-},
+  challengeBottom: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 17,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#1F2937",
+  },
+
+  challengeReward: {
+    color: "#FBBF24",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  challengeButton: {
+    color: "#818CF8",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+
+  /* QUESTION */
+
+  questionCard: {
+    backgroundColor: "#0F172A",
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+
+  questionEmoji: {
+    fontSize: 27,
+    marginBottom: 10,
+  },
+
+  question: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "700",
+    lineHeight: 26,
+  },
+
+  questionButton: {
+    backgroundColor: "#1F2937",
+    borderRadius: 12,
+    padding: 13,
+    marginTop: 16,
+    alignItems: "center",
+  },
+
+  questionButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+
+  responses: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 10,
+    textAlign: "center",
+  },
+
+  /* VIDEO */
+
+  videoGrid: {
+    marginBottom: 24,
+  },
+
+  videoCard: {
+    backgroundColor: "#111827",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+
+  videoEmoji: {
+    fontSize: 30,
+    marginBottom: 9,
+  },
+
+  videoCardTitle: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+
+  videoCardHint: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 6,
+  },
+
+  joinButton: {
+    backgroundColor: "#1F2937",
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 13,
+    alignItems: "center",
+  },
+
+  joinButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  /* PROGRESS */
+
+  progressRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+
+  progressCard: {
+    width: "48%",
+    backgroundColor: "#111827",
+    borderRadius: 18,
+    padding: 17,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+
+  progressEmoji: {
+    fontSize: 26,
+  },
+
+  progressNumber: {
+    color: "#FFFFFF",
+    fontSize: 25,
+    fontWeight: "800",
+    marginTop: 5,
+  },
+
+  progressLabel: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  comingSoon: {
+    color: "#6B7280",
+    fontSize: 10,
+    marginTop: 6,
+  },
+
+  /* RANKING */
+
+  rankingCard: {
+    backgroundColor: "#111827",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+
+  rankingHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  rankingTitle: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "800",
+  },
+
+  rankingSubtitle: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  trophy: {
+    fontSize: 30,
+  },
+
+  rankingPosition: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 17,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#1F2937",
+  },
+
+  rankingNumber: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    fontWeight: "800",
+    marginRight: 14,
+  },
+
+  rankingPositionTitle: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+
+  rankingPositionText: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  /* MEMBERSHIP */
+
+  planCard: {
+    backgroundColor: "#111827",
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
 
   planLabel: {
     color: "#9CA3AF",
@@ -408,126 +960,104 @@ statLabel: {
   },
 
   planText: {
-  color: "#FFFFFF",
-  fontSize: 24,
-  fontWeight: "bold",
-  marginTop: 8,
-},
+    color: "#FFFFFF",
+    fontSize: 23,
+    fontWeight: "800",
+    marginTop: 7,
+  },
 
   trialText: {
     color: "#22C55E",
-    marginTop: 8,
+    marginTop: 7,
+    fontSize: 13,
   },
 
   upgradeHint: {
     color: "#FBBF24",
-    marginTop: 8,
+    marginTop: 7,
+    fontSize: 12,
   },
 
-  card: {
+  /* UTILITY */
+
+  utilityCard: {
     backgroundColor: "#0F172A",
-    borderRadius: 14,
-    padding: 15,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 14,
     borderWidth: 1,
     borderColor: "#1F2937",
   },
 
-  cardTitle: {
+  utilityEmoji: {
+    fontSize: 28,
+    marginRight: 14,
+  },
+
+  utilityTitle: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: "800",
   },
 
-  text: {
-    color: "#9CA3AF",
-    marginTop: 3,
+  utilityText: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 4,
   },
 
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginTop: 10,
+  utilityArrow: {
+    color: "#818CF8",
+    fontSize: 20,
+    fontWeight: "800",
   },
 
-  navBtn: {
-    width: "48%",
-    backgroundColor: "#111827",
-    padding: 18,
-    borderRadius: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#1F2937",
-  },
-
-  navText: {
-    color: "#FFFFFF",
-    textAlign: "center",
-    fontWeight: "600",
-  },
+  /* PREMIUM */
 
   cta: {
     backgroundColor: "#4F46E5",
-    padding: 16,
-    borderRadius: 14,
-    marginTop: 18,
+    padding: 17,
+    borderRadius: 16,
+    marginTop: 4,
     alignItems: "center",
   },
 
   ctaText: {
     color: "#FFFFFF",
-    fontWeight: "bold",
+    fontWeight: "800",
     fontSize: 15,
   },
 
-  videoSection: {
-  marginTop: 20,
-},
+  ctaSubtext: {
+    color: "#C7D2FE",
+    fontSize: 11,
+    marginTop: 4,
+  },
 
-videoTitle: {
-  color: "#FFFFFF",
-  fontSize: 20,
-  fontWeight: "bold",
-  marginBottom: 6,
-},
+  /* BOTTOM */
 
-videoSubtitle: {
-  color: "#9CA3AF",
-  marginBottom: 14,
-},
+  bottomMessage: {
+    alignItems: "center",
+    marginTop: 35,
+    paddingBottom: 15,
+  },
 
-videoGrid: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-},
+  bottomEmoji: {
+    fontSize: 30,
+  },
 
-videoCard: {
-  width: "48%",
-  backgroundColor: "#111827",
-  borderRadius: 16,
-  padding: 16,
-  marginBottom: 12,
-  borderWidth: 1,
-  borderColor: "#1F2937",
-},
+  bottomTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 7,
+  },
 
-videoEmoji: {
-  fontSize: 28,
-  marginBottom: 8,
-},
-
-videoCardTitle: {
-  color: "#FFFFFF",
-  fontWeight: "bold",
-  fontSize: 14,
-},
-
-videoCardHint: {
-  color: "#9CA3AF",
-  fontSize: 12,
-  marginTop: 6,
-},
+  bottomText: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 4,
+  },
 };

@@ -7,17 +7,17 @@ import { ActivityIndicator, View } from "react-native";
 
 import { auth } from "../services/firebase";
 
+import MainTabs from "./MainTabs";
+
 import ChatScreen from "../screens/ChatScreen";
-import DiscoverScreen from "../screens/DiscoverScreen";
-import GroupsScreen from "../screens/GroupsScreen";
-import HomeScreen from "../screens/HomeScreen";
+import CommentsScreen from "../screens/CommentsScreen";
 import InboxScreen from "../screens/InboxScreen";
 import LoginScreen from "../screens/LoginScreen";
 import MembersScreen from "../screens/MembersScreen";
 import PastPapersScreen from "../screens/PastPapersScreen";
 import PremiumScreen from "../screens/PremiumScreen";
 import PrivateChatScreen from "../screens/PrivateChatScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+import QuestionOfTheDayScreen from "../screens/QuestionOfTheDayScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import StudentProfileScreen from "../screens/StudentProfileScreen";
 import UploadPastPaperScreen from "../screens/UploadPastPaperScreen";
@@ -36,7 +36,7 @@ export default function AppNavigator() {
     return unsubscribe;
   }, []);
 
-  /* Loading screen while checking auth */
+  // Loading screen while checking authentication
   if (user === undefined) {
     return (
       <View
@@ -66,11 +66,10 @@ export default function AppNavigator() {
           },
         }}
       >
-
-        {/* AUTH SCREENS */}
-
         {!user ? (
           <>
+            {/* AUTH SCREENS */}
+
             <Stack.Screen
               name="Login"
               component={LoginScreen}
@@ -88,22 +87,12 @@ export default function AppNavigator() {
             {/* MAIN APP */}
 
             <Stack.Screen
-              name="Home"
-              component={HomeScreen}
+              name="MainTabs"
+              component={MainTabs}
               options={{ headerShown: false }}
             />
 
-            <Stack.Screen
-              name="Profile"
-              component={ProfileScreen}
-              options={{ title: "My Profile" }}
-            />
-
-            <Stack.Screen
-              name="Groups"
-              component={GroupsScreen}
-              options={{ title: "Student Groups" }}
-            />
+            {/* GROUP CHAT */}
 
             <Stack.Screen
               name="Chat"
@@ -111,11 +100,27 @@ export default function AppNavigator() {
               options={{ title: "Group Chat" }}
             />
 
+            {/* COMMENTS */}
+
             <Stack.Screen
-              name="Discover"
-              component={DiscoverScreen}
-              options={{ title: "Discover Students" }}
-            />
+  name="Comments"
+  component={CommentsScreen}
+  options={{
+    title: "Comments",
+  }}
+/>
+
+{/* QUESTION OF THE DAY */}
+
+<Stack.Screen
+  name="QuestionOfTheDay"
+  component={QuestionOfTheDayScreen}
+  options={{
+    title: "Question of the Day",
+  }}
+/>
+
+            {/* PRIVATE CHAT */}
 
             <Stack.Screen
               name="PrivateChat"
@@ -123,11 +128,15 @@ export default function AppNavigator() {
               options={{ title: "Private Chat" }}
             />
 
+            {/* INBOX */}
+
             <Stack.Screen
-  name="Inbox"
-  component={InboxScreen}
-  options={{ title: "Private Messages" }}
-/>
+              name="Inbox"
+              component={InboxScreen}
+              options={{ title: "Private Messages" }}
+            />
+
+            {/* VIDEO STUDY ROOM */}
 
             <Stack.Screen
               name="VideoRoom"
@@ -135,6 +144,7 @@ export default function AppNavigator() {
               options={{ title: "Video Study Room" }}
             />
 
+            {/* PREMIUM */}
 
             <Stack.Screen
               name="Premium"
@@ -142,37 +152,39 @@ export default function AppNavigator() {
               options={{ title: "Upgrade Premium" }}
             />
 
+            {/* PAST PAPERS */}
 
             <Stack.Screen
-  name="PastPapers"
-  component={PastPapersScreen}
-  options={{ title: "Past Papers" }}
-/>
+              name="PastPapers"
+              component={PastPapersScreen}
+              options={{ title: "Past Papers" }}
+            />
 
-<Stack.Screen
-  name="UploadPastPaper"
-  component={UploadPastPaperScreen}
-  options={{ title: "Upload Past Paper" }}
-/>
+            {/* UPLOAD PAST PAPER */}
 
             <Stack.Screen
-    name="Members"
-    component={MembersScreen}
-    options={{
-        title: "Group Members",
-    }}
-/>
+              name="UploadPastPaper"
+              component={UploadPastPaperScreen}
+              options={{ title: "Upload Past Paper" }}
+            />
 
-<Stack.Screen
-  name="StudentProfile"
-  component={StudentProfileScreen}
-  options={{
-    title: "Student Profile",
-  }}
-/>
+            {/* GROUP MEMBERS */}
+
+            <Stack.Screen
+              name="Members"
+              component={MembersScreen}
+              options={{ title: "Group Members" }}
+            />
+
+            {/* STUDENT PROFILE */}
+
+            <Stack.Screen
+              name="StudentProfile"
+              component={StudentProfileScreen}
+              options={{ title: "Student Profile" }}
+            />
           </>
         )}
-
       </Stack.Navigator>
     </NavigationContainer>
   );
