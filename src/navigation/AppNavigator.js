@@ -23,6 +23,7 @@ import RegisterScreen from "../screens/RegisterScreen";
 import StudentProfileScreen from "../screens/StudentProfileScreen";
 import UploadPastPaperScreen from "../screens/UploadPastPaperScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
+import WeeklyRankingScreen from "../screens/WeeklyRankingScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -129,6 +130,13 @@ export default function AppNavigator() {
   options={{
     title: "Daily Challenge",
   }}
+/>
+
+{/* WEEKLY RANKING */}
+
+<Stack.Screen
+  name="WeeklyRanking"
+  component={WeeklyRankingScreen}
 />
 
             {/* PRIVATE CHAT */}

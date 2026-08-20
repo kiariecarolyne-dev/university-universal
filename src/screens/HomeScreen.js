@@ -394,91 +394,98 @@ export default function HomeScreen({ navigation }) {
         ))}
       </View>
 
-      {/* =========================================
-          YOUR STREAK
-      ========================================= */}
+     {/* =========================================
+    YOUR STREAK
+========================================= */}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          🔥 Your Progress
-        </Text>
-      </View>
+<View style={styles.sectionHeader}>
+  <Text style={styles.sectionTitle}>
+    🔥 Your Progress
+  </Text>
+</View>
 
-      <View style={styles.progressRow}>
-        <View style={styles.progressCard}>
-          <Text style={styles.progressEmoji}>
-            🔥
-          </Text>
+<View style={styles.progressRow}>
 
-          <Text style={styles.progressNumber}>
-            0
-          </Text>
+  {/* STREAK */}
 
-          <Text style={styles.progressLabel}>
-            Day Streak
-          </Text>
+  <View style={styles.progressCard}>
 
-          <Text style={styles.comingSoon}>
-            Coming soon
-          </Text>
-        </View>
+    <Text style={styles.progressEmoji}>
+      🔥
+    </Text>
 
-        <View style={styles.progressCard}>
-          <Text style={styles.progressEmoji}>
-            ⭐
-          </Text>
+    <Text style={styles.progressNumber}>
+      {user.streak || 0}
+    </Text>
 
-          <Text style={styles.progressNumber}>
-            0
-          </Text>
+    <Text style={styles.progressLabel}>
+      Day Streak
+    </Text>
 
-          <Text style={styles.progressLabel}>
-            XP
-          </Text>
+  </View>
 
-          <Text style={styles.comingSoon}>
-            Coming soon
-          </Text>
-        </View>
-      </View>
 
-      {/* =========================================
-          WEEKLY RANKING
-      ========================================= */}
+  {/* XP */}
 
-      <View style={styles.rankingCard}>
-        <View style={styles.rankingHeader}>
-          <View>
-            <Text style={styles.rankingTitle}>
-              🏆 Weekly Ranking
-            </Text>
+  <View style={styles.progressCard}>
 
-            <Text style={styles.rankingSubtitle}>
-              Compete with students around the world
-            </Text>
-          </View>
+    <Text style={styles.progressEmoji}>
+      ⭐
+    </Text>
 
-          <Text style={styles.trophy}>
-            🏆
-          </Text>
-        </View>
+    <Text style={styles.progressNumber}>
+      {user.xp || 0}
+    </Text>
 
-        <View style={styles.rankingPosition}>
-          <Text style={styles.rankingNumber}>
-            —
-          </Text>
+    <Text style={styles.progressLabel}>
+      XP
+    </Text>
 
-          <View>
-            <Text style={styles.rankingPositionTitle}>
-              Your global position
-            </Text>
+  </View>
 
-            <Text style={styles.rankingPositionText}>
-              Rankings will appear once XP and challenges launch.
-            </Text>
-          </View>
-        </View>
-      </View>
+</View>
+
+{/* =========================================
+    WEEKLY RANKING
+========================================= */}
+
+<TouchableOpacity
+  style={styles.rankingCard}
+  activeOpacity={0.8}
+  onPress={() => navigation.navigate("WeeklyRanking")}
+>
+  <View style={styles.rankingHeader}>
+    <View>
+      <Text style={styles.rankingTitle}>
+        🏆 Weekly Ranking
+      </Text>
+
+      <Text style={styles.rankingSubtitle}>
+        Compete with students around the world
+      </Text>
+    </View>
+
+    <Text style={styles.trophy}>
+      🏆
+    </Text>
+  </View>
+
+  <View style={styles.rankingPosition}>
+    <Text style={styles.rankingNumber}>
+      —
+    </Text>
+
+    <View>
+      <Text style={styles.rankingPositionTitle}>
+        Your global position
+      </Text>
+
+      <Text style={styles.rankingPositionText}>
+        Rankings will appear once XP and challenges launch.
+      </Text>
+    </View>
+  </View>
+</TouchableOpacity>
 
       {/* =========================================
           MEMBERSHIP
@@ -869,12 +876,6 @@ const styles = {
     color: "#9CA3AF",
     fontSize: 12,
     marginTop: 2,
-  },
-
-  comingSoon: {
-    color: "#6B7280",
-    fontSize: 10,
-    marginTop: 6,
   },
 
   /* RANKING */

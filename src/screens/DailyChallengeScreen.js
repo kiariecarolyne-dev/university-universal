@@ -1,21 +1,19 @@
 import { useEffect, useState } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import {
-    doc,
-    getDoc,
-    increment,
-    serverTimestamp,
-    setDoc,
-    updateDoc,
+  doc,
+  getDoc,
+  runTransaction,
+  serverTimestamp,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
@@ -110,6 +108,44 @@ function getTodayKey() {
 
 
 // -------------------------------------------------
+// GET YESTERDAY'S DATE
+// -------------------------------------------------
+
+function getYesterdayKey() {
+  const yesterday = new Date();
+
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return yesterday.toISOString().split("T")[0];
+}
+
+// -------------------------------------------------
+// GET CURRENT WEEK KEY
+// -------------------------------------------------
+
+function getWeekKey() {
+  const now = new Date();
+
+  const year = now.getUTCFullYear();
+
+  const startOfYear = new Date(
+    Date.UTC(year, 0, 1)
+  );
+
+  const daysSinceStart =
+    Math.floor(
+      (now - startOfYear) /
+        (1000 * 60 * 60 * 24)
+    );
+
+  const weekNumber =
+    Math.floor(daysSinceStart / 7) + 1;
+
+  return `${year}-W${weekNumber}`;
+}
+
+
+// -------------------------------------------------
 // GET TODAY'S QUESTION
 // -------------------------------------------------
 
@@ -151,6 +187,8 @@ export default function DailyChallengeScreen({
 
   const [xpEarned, setXpEarned] = useState(0);
 
+  const [currentStreak, setCurrentStreak] = useState(0);
+
 
   // -------------------------------------------------
   // LOAD QUESTION + CHECK IF ALREADY ANSWERED
@@ -184,14 +222,41 @@ export default function DailyChallengeScreen({
 
       const answerSnap = await getDoc(answerRef);
 
+      // -------------------------------------------------
+      // LOAD USER STREAK
+      // -------------------------------------------------
+
+      const userRef = doc(
+        db,
+        "users",
+        currentUser.uid
+      );
+
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+
+        setCurrentStreak(userData.streak || 0);
+      }
+
+
+      // -------------------------------------------------
+      // CHECK IF TODAY'S CHALLENGE WAS ALREADY ANSWERED
+      // -------------------------------------------------
+
       if (answerSnap.exists()) {
         const data = answerSnap.data();
 
         setAnswered(true);
+
         setSelectedAnswer(data.answer);
+
         setCorrect(data.correct);
+
         setXpEarned(data.xpEarned || 0);
       }
+
     } catch (error) {
       console.log(
         "Daily challenge loading error:",
@@ -202,6 +267,7 @@ export default function DailyChallengeScreen({
         "Error",
         "Unable to load today's challenge."
       );
+
     } finally {
       setLoading(false);
     }
@@ -228,15 +294,28 @@ export default function DailyChallengeScreen({
       return;
     }
 
+    if (!question) {
+      return;
+    }
+
     try {
       setSubmitting(true);
 
       const today = getTodayKey();
 
+const yesterday = getYesterdayKey();
+
+const currentWeek = getWeekKey();
+
       const isCorrect =
         selectedAnswer === question.correctAnswer;
 
+      // -------------------------------------------------
+      // XP REWARD
+      // -------------------------------------------------
+
       const earnedXP = isCorrect ? 10 : 0;
+
 
       const answerRef = doc(
         db,
@@ -244,41 +323,223 @@ export default function DailyChallengeScreen({
         `${currentUser.uid}_${today}`
       );
 
-      // -------------------------------------------------
-      // SAVE ANSWER
-      // -------------------------------------------------
-
-      await setDoc(answerRef, {
-        userId: currentUser.uid,
-        date: today,
-        question: question.question,
-        answer: selectedAnswer,
-        correctAnswer: question.correctAnswer,
-        correct: isCorrect,
-        xpEarned: earnedXP,
-        answeredAt: serverTimestamp(),
-      });
+      const userRef = doc(
+        db,
+        "users",
+        currentUser.uid
+      );
 
 
       // -------------------------------------------------
-      // ADD XP TO USER
+      // FIRESTORE TRANSACTION
       // -------------------------------------------------
 
-      if (earnedXP > 0) {
-        await updateDoc(
-          doc(db, "users", currentUser.uid),
-          {
-            xp: increment(earnedXP),
+      const result = await runTransaction(
+        db,
+        async (transaction) => {
+
+          // Check again inside transaction
+          // to prevent duplicate rewards.
+
+          const existingAnswer =
+            await transaction.get(answerRef);
+
+          if (existingAnswer.exists()) {
+            return {
+              alreadyAnswered: true,
+              streak: 0,
+            };
           }
+
+
+          const userSnap =
+            await transaction.get(userRef);
+
+          const userData = userSnap.exists()
+            ? userSnap.data()
+            : {};
+
+
+          // -------------------------------------------------
+          // CURRENT USER XP
+          // -------------------------------------------------
+
+          const currentXP =
+            Number(userData.xp || 0);
+
+            const storedWeeklyXP =
+  Number(userData.weeklyXP || 0);
+
+const storedWeeklyXPWeek =
+  userData.weeklyXPWeek || null;
+
+const currentWeeklyXP =
+  storedWeeklyXPWeek === currentWeek
+    ? storedWeeklyXP
+    : 0;
+
+
+          // -------------------------------------------------
+          // CURRENT STREAK
+          // -------------------------------------------------
+
+          const previousStreak =
+            Number(userData.streak || 0);
+
+
+          const lastChallengeDate =
+            userData.lastChallengeDate || null;
+
+
+          // -------------------------------------------------
+          // CALCULATE NEW STREAK
+          // -------------------------------------------------
+
+          let newStreak = 1;
+
+
+          // First-ever challenge
+          if (!lastChallengeDate) {
+
+            newStreak = 1;
+
+          }
+
+          // Consecutive day
+          else if (
+            lastChallengeDate === yesterday
+          ) {
+
+            newStreak = previousStreak + 1;
+
+          }
+
+          // Same day
+          else if (
+            lastChallengeDate === today
+          ) {
+
+            newStreak = previousStreak;
+
+          }
+
+          // Missed one or more days
+          else {
+
+            newStreak = 1;
+
+          }
+
+
+          // -------------------------------------------------
+          // NEW XP
+          // -------------------------------------------------
+
+          const newXP =
+  currentXP + earnedXP;
+
+const newWeeklyXP =
+  currentWeeklyXP + earnedXP;
+
+            const currentWeeklyXP =
+  Number(userData.weeklyXP || 0);
+
+const weeklyXP =
+  currentWeeklyXP + earnedXP;
+
+
+          // -------------------------------------------------
+          // SAVE USER XP + STREAK
+          // -------------------------------------------------
+
+          transaction.set(
+  userRef,
+  {
+    xp: newXP,
+
+    weeklyXP: newWeeklyXP,
+
+    weeklyXPWeek: currentWeek,
+
+    streak: newStreak,
+
+    lastChallengeDate: today,
+  },
+  {
+    merge: true,
+  }
+);
+
+
+          // -------------------------------------------------
+          // SAVE ANSWER
+          // -------------------------------------------------
+
+          transaction.set(
+            answerRef,
+            {
+              userId: currentUser.uid,
+
+              date: today,
+
+              question: question.question,
+
+              answer: selectedAnswer,
+
+              correctAnswer:
+                question.correctAnswer,
+
+              correct: isCorrect,
+
+              xpEarned: earnedXP,
+
+              streak: newStreak,
+
+              answeredAt: serverTimestamp(),
+            }
+          );
+
+
+          return {
+            alreadyAnswered: false,
+            streak: newStreak,
+          };
+        }
+      );
+
+
+      // -------------------------------------------------
+      // ALREADY ANSWERED
+      // -------------------------------------------------
+
+      if (result.alreadyAnswered) {
+
+        Alert.alert(
+          "Already Completed",
+          "You have already completed today's challenge."
         );
+
+        setAnswered(true);
+
+        return;
       }
 
 
+      // -------------------------------------------------
+      // UPDATE SCREEN
+      // -------------------------------------------------
+
       setCorrect(isCorrect);
+
       setXpEarned(earnedXP);
+
+      setCurrentStreak(result.streak);
+
       setAnswered(true);
 
+
     } catch (error) {
+
       console.log(
         "Daily challenge submission error:",
         error
@@ -288,8 +549,11 @@ export default function DailyChallengeScreen({
         "Error",
         "Your answer could not be submitted. Please try again."
       );
+
     } finally {
+
       setSubmitting(false);
+
     }
   };
 
@@ -301,6 +565,7 @@ export default function DailyChallengeScreen({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
+
         <ActivityIndicator
           size="large"
           color="#818CF8"
@@ -309,17 +574,24 @@ export default function DailyChallengeScreen({
         <Text style={styles.loadingText}>
           Loading today's challenge...
         </Text>
+
       </View>
     );
   }
 
 
+  // -------------------------------------------------
+  // ERROR
+  // -------------------------------------------------
+
   if (!question) {
     return (
       <View style={styles.loadingContainer}>
+
         <Text style={styles.errorText}>
           Unable to load today's challenge.
         </Text>
+
       </View>
     );
   }
@@ -332,7 +604,10 @@ export default function DailyChallengeScreen({
   return (
     <View style={styles.container}>
 
+      {/* HEADER */}
+
       <View style={styles.header}>
+
         <Text style={styles.emoji}>
           🎯
         </Text>
@@ -344,8 +619,55 @@ export default function DailyChallengeScreen({
         <Text style={styles.subtitle}>
           One question. One chance. Every day.
         </Text>
+
       </View>
 
+
+      {/* STREAK / XP SUMMARY */}
+
+      <View style={styles.statsRow}>
+
+        <View style={styles.statCard}>
+
+          <Text style={styles.statEmoji}>
+            🔥
+          </Text>
+
+          <View>
+            <Text style={styles.statValue}>
+              {currentStreak}
+            </Text>
+
+            <Text style={styles.statLabel}>
+              Day Streak
+            </Text>
+          </View>
+
+        </View>
+
+
+        <View style={styles.statCard}>
+
+          <Text style={styles.statEmoji}>
+            ⭐
+          </Text>
+
+          <View>
+            <Text style={styles.statValue}>
+              +{xpEarned}
+            </Text>
+
+            <Text style={styles.statLabel}>
+              Today's XP
+            </Text>
+          </View>
+
+        </View>
+
+      </View>
+
+
+      {/* QUESTION CARD */}
 
       <View style={styles.card}>
 
@@ -361,24 +683,31 @@ export default function DailyChallengeScreen({
         {/* ANSWERS */}
 
         <View style={styles.optionsContainer}>
+
           {question.options.map((option) => {
 
             const isSelected =
               selectedAnswer === option;
 
+
             const isCorrectAnswer =
               answered &&
               option === question.correctAnswer;
+
 
             const isWrongSelected =
               answered &&
               isSelected &&
               !correct;
 
+
             return (
               <TouchableOpacity
                 key={option}
-                disabled={answered || submitting}
+                disabled={
+                  answered ||
+                  submitting
+                }
                 style={[
                   styles.option,
 
@@ -418,15 +747,18 @@ export default function DailyChallengeScreen({
               </TouchableOpacity>
             );
           })}
+
         </View>
 
 
         {/* RESULT */}
 
         {answered && (
+
           <View
             style={[
               styles.resultCard,
+
               correct
                 ? styles.resultCorrect
                 : styles.resultWrong,
@@ -434,55 +766,105 @@ export default function DailyChallengeScreen({
           >
 
             <Text style={styles.resultTitle}>
+
               {correct
                 ? "🎉 Correct!"
                 : "❌ Not quite!"}
+
             </Text>
 
+
             {correct ? (
+
               <Text style={styles.resultText}>
                 Great job! You earned +10 XP.
               </Text>
+
             ) : (
+
               <Text style={styles.resultText}>
                 The correct answer is{" "}
                 {question.correctAnswer}.
               </Text>
+
             )}
 
           </View>
+
+        )}
+
+
+        {/* STREAK REWARD */}
+
+        {answered && (
+
+          <View style={styles.rewardCard}>
+
+            <Text style={styles.rewardEmoji}>
+              🔥
+            </Text>
+
+            <View>
+
+              <Text style={styles.rewardTitle}>
+                {currentStreak} Day Streak
+              </Text>
+
+              <Text style={styles.rewardText}>
+                Keep answering every day to
+                build your streak.
+              </Text>
+
+            </View>
+
+          </View>
+
         )}
 
 
         {/* SUBMIT */}
 
         {!answered && (
+
           <TouchableOpacity
             style={[
               styles.submitButton,
+
               !selectedAnswer &&
                 styles.disabledButton,
             ]}
-            disabled={!selectedAnswer || submitting}
+            disabled={
+              !selectedAnswer ||
+              submitting
+            }
             onPress={submitAnswer}
           >
 
             {submitting ? (
-              <ActivityIndicator color="#FFFFFF" />
+
+              <ActivityIndicator
+                color="#FFFFFF"
+              />
+
             ) : (
+
               <Text style={styles.submitText}>
                 Submit Answer
               </Text>
+
             )}
 
           </TouchableOpacity>
+
         )}
 
 
         {/* ALREADY ANSWERED */}
 
         {answered && (
+
           <View style={styles.completedBox}>
+
             <Text style={styles.completedText}>
               ✅ Today's challenge completed
             </Text>
@@ -490,17 +872,23 @@ export default function DailyChallengeScreen({
             <Text style={styles.completedSubtext}>
               Come back tomorrow for a new challenge.
             </Text>
+
           </View>
+
         )}
 
       </View>
 
 
+      {/* FOOTER */}
+
       <View style={styles.footer}>
+
         <Text style={styles.footerText}>
           🌍 Students worldwide are answering today's
           challenge.
         </Text>
+
       </View>
 
     </View>
@@ -520,6 +908,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
+
   loadingContainer: {
     flex: 1,
     backgroundColor: "#05070A",
@@ -528,26 +917,31 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
+
   loadingText: {
     color: "#9CA3AF",
     marginTop: 12,
     fontSize: 14,
   },
 
+
   errorText: {
     color: "#FFFFFF",
     fontSize: 16,
   },
 
+
   header: {
     marginTop: 25,
-    marginBottom: 20,
+    marginBottom: 15,
   },
+
 
   emoji: {
     fontSize: 35,
     marginBottom: 7,
   },
+
 
   title: {
     color: "#FFFFFF",
@@ -555,11 +949,60 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
+
   subtitle: {
     color: "#9CA3AF",
     marginTop: 5,
     fontSize: 14,
   },
+
+
+  // -------------------------------------------------
+  // STATS
+  // -------------------------------------------------
+
+  statsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 15,
+  },
+
+
+  statCard: {
+    flex: 1,
+    backgroundColor: "#111827",
+    borderRadius: 15,
+    padding: 13,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+
+  statEmoji: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+
+
+  statValue: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+
+  statLabel: {
+    color: "#6B7280",
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+
+  // -------------------------------------------------
+  // QUESTION CARD
+  // -------------------------------------------------
 
   card: {
     backgroundColor: "#111827",
@@ -569,6 +1012,7 @@ const styles = StyleSheet.create({
     borderColor: "#1F2937",
   },
 
+
   questionNumber: {
     color: "#818CF8",
     fontSize: 11,
@@ -576,6 +1020,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 12,
   },
+
 
   question: {
     color: "#FFFFFF",
@@ -585,9 +1030,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
+
+  // -------------------------------------------------
+  // OPTIONS
+  // -------------------------------------------------
+
   optionsContainer: {
     gap: 10,
   },
+
 
   option: {
     backgroundColor: "#0F172A",
@@ -597,20 +1048,24 @@ const styles = StyleSheet.create({
     borderColor: "#1F2937",
   },
 
+
   selectedOption: {
     borderColor: "#818CF8",
     backgroundColor: "#1E1B4B",
   },
+
 
   correctOption: {
     backgroundColor: "#052E16",
     borderColor: "#22C55E",
   },
 
+
   wrongOption: {
     backgroundColor: "#450A0A",
     borderColor: "#EF4444",
   },
+
 
   optionText: {
     color: "#FFFFFF",
@@ -618,17 +1073,25 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+
   selectedOptionText: {
     color: "#C7D2FE",
   },
+
 
   correctOptionText: {
     color: "#86EFAC",
   },
 
+
   wrongOptionText: {
     color: "#FCA5A5",
   },
+
+
+  // -------------------------------------------------
+  // SUBMIT BUTTON
+  // -------------------------------------------------
 
   submitButton: {
     backgroundColor: "#4F46E5",
@@ -638,9 +1101,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
+
   disabledButton: {
     opacity: 0.4,
   },
+
 
   submitText: {
     color: "#FFFFFF",
@@ -648,11 +1113,17 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
+
+  // -------------------------------------------------
+  // RESULT
+  // -------------------------------------------------
+
   resultCard: {
     borderRadius: 13,
     padding: 15,
     marginTop: 16,
   },
+
 
   resultCorrect: {
     backgroundColor: "#052E16",
@@ -660,17 +1131,20 @@ const styles = StyleSheet.create({
     borderColor: "#166534",
   },
 
+
   resultWrong: {
     backgroundColor: "#450A0A",
     borderWidth: 1,
     borderColor: "#991B1B",
   },
 
+
   resultTitle: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
   },
+
 
   resultText: {
     color: "#D1D5DB",
@@ -679,16 +1153,60 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 
+
+  // -------------------------------------------------
+  // REWARD
+  // -------------------------------------------------
+
+  rewardCard: {
+    backgroundColor: "#0F172A",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+
+
+  rewardEmoji: {
+    fontSize: 28,
+    marginRight: 13,
+  },
+
+
+  rewardTitle: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+
+
+  rewardText: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 4,
+    maxWidth: 280,
+  },
+
+
+  // -------------------------------------------------
+  // COMPLETED
+  // -------------------------------------------------
+
   completedBox: {
     marginTop: 16,
     alignItems: "center",
   },
+
 
   completedText: {
     color: "#22C55E",
     fontSize: 13,
     fontWeight: "700",
   },
+
 
   completedSubtext: {
     color: "#6B7280",
@@ -697,10 +1215,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
+
+  // -------------------------------------------------
+  // FOOTER
+  // -------------------------------------------------
+
   footer: {
     marginTop: 20,
     alignItems: "center",
   },
+
 
   footerText: {
     color: "#6B7280",
