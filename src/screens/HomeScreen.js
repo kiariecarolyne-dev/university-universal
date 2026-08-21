@@ -22,6 +22,36 @@ import { auth, db } from "../services/firebase";
 import useUser from "../hooks/useUser";
 import { getUserPlan, isInTrialPeriod } from "../utils/access";
 
+// -------------------------------------------------
+// GET CURRENT WEEK KEY
+// -------------------------------------------------
+
+function getWeekKey() {
+  const now = new Date();
+
+  const startOfYear = new Date(
+    now.getFullYear(),
+    0,
+    1
+  );
+
+  const days =
+    Math.floor(
+      (now - startOfYear) /
+        (1000 * 60 * 60 * 24)
+    );
+
+  const week =
+    Math.ceil(
+      (days + startOfYear.getDay() + 1) / 7
+    );
+
+  return `${now.getFullYear()}-W${String(
+    week
+  ).padStart(2, "0")}`;
+}
+
+
 export default function HomeScreen({ navigation }) {
   const user = useUser();
 
@@ -128,11 +158,21 @@ useEffect(() => {
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
 
-        students.push({
-          id: docSnap.id,
-          fullName: data.fullName || "Student",
-          weeklyXP: Number(data.weeklyXP || 0),
-        });
+        const currentWeek = getWeekKey();
+
+const studentWeek =
+  data.weeklyXPWeek || null;
+
+const weeklyXP =
+  studentWeek === currentWeek
+    ? Number(data.weeklyXP || 0)
+    : 0;
+
+students.push({
+  id: docSnap.id,
+  fullName: data.fullName || "Student",
+  weeklyXP,
+});
       });
 
       // Highest weekly XP first

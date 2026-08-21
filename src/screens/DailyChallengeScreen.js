@@ -3,11 +3,17 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import {
   doc,
@@ -172,6 +178,8 @@ function getTodaysQuestion() {
 export default function DailyChallengeScreen({
   navigation,
 }) {
+  const insets = useSafeAreaInsets();
+
   const [question, setQuestion] = useState(null);
 
   const [loading, setLoading] = useState(true);
@@ -556,9 +564,9 @@ const newWeeklyXP =
   // -------------------------------------------------
 
   if (loading) {
-    return (
+  return (
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.loadingContainer}>
-
         <ActivityIndicator
           size="large"
           color="#818CF8"
@@ -567,10 +575,10 @@ const newWeeklyXP =
         <Text style={styles.loadingText}>
           Loading today's challenge...
         </Text>
-
       </View>
-    );
-  }
+    </SafeAreaView>
+  );
+}
 
 
   // -------------------------------------------------
@@ -578,16 +586,16 @@ const newWeeklyXP =
   // -------------------------------------------------
 
   if (!question) {
-    return (
+  return (
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.loadingContainer}>
-
         <Text style={styles.errorText}>
           Unable to load today's challenge.
         </Text>
-
       </View>
-    );
-  }
+    </SafeAreaView>
+  );
+}
 
 
   // -------------------------------------------------
@@ -595,7 +603,13 @@ const newWeeklyXP =
   // -------------------------------------------------
 
   return (
-    <View style={styles.container}>
+  <SafeAreaView style={styles.safeArea}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
 
       {/* HEADER */}
 
@@ -682,17 +696,14 @@ const newWeeklyXP =
             const isSelected =
               selectedAnswer === option;
 
-
             const isCorrectAnswer =
               answered &&
               option === question.correctAnswer;
-
 
             const isWrongSelected =
               answered &&
               isSelected &&
               !correct;
-
 
             return (
               <TouchableOpacity
@@ -739,6 +750,7 @@ const newWeeklyXP =
 
               </TouchableOpacity>
             );
+
           })}
 
         </View>
@@ -884,7 +896,8 @@ const newWeeklyXP =
 
       </View>
 
-    </View>
+        </ScrollView>
+  </SafeAreaView>
   );
 }
 
@@ -895,12 +908,22 @@ const newWeeklyXP =
 
 const styles = StyleSheet.create({
 
-  container: {
-    flex: 1,
-    backgroundColor: "#05070A",
-    padding: 16,
-  },
+  safeArea: {
+  flex: 1,
+  backgroundColor: "#05070A",
+},
 
+container: {
+  flex: 1,
+  backgroundColor: "#05070A",
+},
+
+contentContainer: {
+  paddingHorizontal: 16,
+  paddingTop: 8,
+  paddingBottom: 20,
+},
+    
 
   loadingContainer: {
     flex: 1,
@@ -925,8 +948,8 @@ const styles = StyleSheet.create({
 
 
   header: {
-    marginTop: 25,
-    marginBottom: 15,
+    marginTop: 8,
+    marginBottom: 10,
   },
 
 
@@ -998,13 +1021,14 @@ const styles = StyleSheet.create({
   // -------------------------------------------------
 
   card: {
-    backgroundColor: "#111827",
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#1F2937",
-  },
-
+  backgroundColor: "#111827",
+  borderRadius: 20,
+  padding: 18,
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  marginBottom: 10,
+},
+    
 
   questionNumber: {
     color: "#818CF8",
@@ -1016,13 +1040,12 @@ const styles = StyleSheet.create({
 
 
   question: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    lineHeight: 29,
-    fontWeight: "700",
-    marginBottom: 20,
-  },
-
+  color: "#FFFFFF",
+  fontSize: 19,
+  lineHeight: 26,
+  fontWeight: "700",
+  marginBottom: 14,
+},
 
   // -------------------------------------------------
   // OPTIONS
@@ -1087,12 +1110,13 @@ const styles = StyleSheet.create({
   // -------------------------------------------------
 
   submitButton: {
-    backgroundColor: "#4F46E5",
-    borderRadius: 13,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 20,
-  },
+  backgroundColor: "#4F46E5",
+  borderRadius: 13,
+  paddingVertical: 14,
+  alignItems: "center",
+  marginTop: 14,
+  marginBottom: 5,
+},
 
 
   disabledButton: {

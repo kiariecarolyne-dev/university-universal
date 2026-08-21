@@ -1,5 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
@@ -12,6 +13,9 @@ import MainTabs from "./MainTabs";
 import ChatScreen from "../screens/ChatScreen";
 import CommentsScreen from "../screens/CommentsScreen";
 import DailyChallengeScreen from "../screens/DailyChallengeScreen";
+import DebateBattleScreen from "../screens/DebateBattleScreen";
+import DebateChallengesScreen from "../screens/DebateChallengesScreen";
+import DebateLobbyScreen from "../screens/DebateLobbyScreen";
 import InboxScreen from "../screens/InboxScreen";
 import LoginScreen from "../screens/LoginScreen";
 import MembersScreen from "../screens/MembersScreen";
@@ -55,6 +59,7 @@ export default function AppNavigator() {
   }
 
   return (
+  <SafeAreaProvider>
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
@@ -202,9 +207,36 @@ export default function AppNavigator() {
               component={StudentProfileScreen}
               options={{ title: "Student Profile" }}
             />
+
+            {/* DEBATE LOBBY */}
+
+<Stack.Screen
+  name="DebateLobby"
+  component={DebateLobbyScreen}
+  options={{ title: "Debate Battle" }}
+/>
+
+            {/* DEBATE CHALLENGES */}
+
+<Stack.Screen
+  name="DebateChallenges"
+  component={DebateChallengesScreen}
+  options={{ title: "Debate Challenges" }}
+/>
+
+{/* DEBATE BATTLE */}
+
+<Stack.Screen
+  name="DebateBattle"
+  component={DebateBattleScreen}
+  options={{
+    title: "Debate Battle",
+  }}
+/>
           </>
         )}
       </Stack.Navigator>
-    </NavigationContainer>
-  );
+        </NavigationContainer>
+  </SafeAreaProvider>
+);
 }

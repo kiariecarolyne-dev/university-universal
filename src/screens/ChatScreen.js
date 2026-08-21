@@ -171,18 +171,7 @@ ListEmptyComponent={
         Ask a question, share notes, or help another student.
       </Text>
     </View>
-  }ListEmptyComponent={
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyEmoji}>💬</Text>
-
-      <Text style={styles.emptyTitle}>
-        Start the conversation
-      </Text>
-
-      <Text style={styles.emptyText}>
-        Ask a question, share notes, or help another student.
-      </Text>
-    </View>
+  
   }
 
       renderItem={({ item }) => {

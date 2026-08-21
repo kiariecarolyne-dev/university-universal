@@ -1,8 +1,16 @@
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+
+import { auth } from "../services/firebase";
 
 export default function StudentProfileScreen({ route, navigation }) {
   const { member } = route.params;
-  const currentUserId = auth.currentUser?.uid;
 
   return (
     <ScrollView style={styles.container}>
@@ -52,25 +60,49 @@ export default function StudentProfileScreen({ route, navigation }) {
 
       </View>
 
-      <TouchableOpacity
-        style={styles.chatButton}
-        onPress={() =>
-          navigation.navigate("PrivateChat", {
-            student: {
-              id: member.userId,
-              fullName: member.fullName,
-              email: member.email,
-              photo: member.photo,
-            },
-          })
-        }
-      >
-        <Text style={styles.buttonText}>
-          💬 Start Private Chat
-        </Text>
-      </TouchableOpacity>
+    
+        <View style={styles.icebreakerSection}>
+  <Text style={styles.icebreakerTitle}>
+    💬 Start a conversation
+  </Text>
 
-      <TouchableOpacity
+  <Text style={styles.icebreakerSubtitle}>
+    Not sure what to say? Pick a question 👇
+  </Text>
+
+  {[
+    "👋 What are you studying?",
+    "🎓 Which year are you in?",
+    "📚 How are exams going?",
+    "🌍 What country are you studying in?",
+    "🤝 Want to study together?",
+  ].map((question) => (
+    <TouchableOpacity
+      key={question}
+      style={styles.icebreakerButton}
+      onPress={() => {
+        navigation.navigate("PrivateChat", {
+          student: {
+            id: member.userId,
+            fullName: member.fullName,
+            email: member.email,
+            photo: member.photo,
+          },
+          initialMessage: question.replace(
+            /^(👋|🎓|📚|🌍|🤝)\s*/,
+            ""
+          ),
+        });
+      }}
+    >
+      <Text style={styles.icebreakerText}>
+        {question}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
+
+<TouchableOpacity
   style={styles.videoButton}
   onPress={() => {
     const currentUserId = auth.currentUser.uid;
@@ -87,6 +119,24 @@ export default function StudentProfileScreen({ route, navigation }) {
 >
   <Text style={styles.buttonText}>
     📹 Start Video Call
+  </Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  style={styles.debateButton}
+  onPress={() => {
+    navigation.navigate("DebateLobby", {
+      opponent: {
+        id: member.userId,
+        fullName: member.fullName,
+        email: member.email,
+        photo: member.photo,
+      },
+    });
+  }}
+>
+  <Text style={styles.buttonText}>
+    ⚔️ Challenge to Debate
   </Text>
 </TouchableOpacity>
 
@@ -145,14 +195,6 @@ const styles = {
     marginTop: 3,
   },
 
-  chatButton: {
-    backgroundColor: "#4F46E5",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 15,
-  },
-
   videoButton: {
     backgroundColor: "#059669",
     padding: 16,
@@ -160,9 +202,48 @@ const styles = {
     alignItems: "center",
   },
 
+  debateButton: {
+  backgroundColor: "#7C3AED",
+  padding: 16,
+  borderRadius: 12,
+  alignItems: "center",
+  marginTop: 15,
+},
+
   buttonText: {
     color: "#FFFFFF",
     fontWeight: "bold",
     fontSize: 15,
   },
+
+  icebreakerSection: {
+  marginBottom: 25,
+},
+
+icebreakerTitle: {
+  color: "#FFFFFF",
+  fontSize: 20,
+  fontWeight: "bold",
+  marginBottom: 5,
+},
+
+icebreakerSubtitle: {
+  color: "#9CA3AF",
+  fontSize: 13,
+  marginBottom: 12,
+},
+
+icebreakerButton: {
+  backgroundColor: "#111827",
+  borderWidth: 1,
+  borderColor: "#1F2937",
+  padding: 14,
+  borderRadius: 12,
+  marginBottom: 9,
+},
+
+icebreakerText: {
+  color: "#FFFFFF",
+  fontSize: 14,
+},
 };

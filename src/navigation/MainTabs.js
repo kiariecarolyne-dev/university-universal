@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import DiscoverScreen from "../screens/DiscoverScreen";
 import GroupsScreen from "../screens/GroupsScreen";
@@ -10,18 +11,19 @@ import SocialScreen from "../screens/SocialScreen";
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
 
-        tabBarStyle: {
-          backgroundColor: "#05070A",
-          borderTopColor: "#1F2937",
-          height: 65,
-          paddingBottom: 8,
-          paddingTop: 6,
-        },
+       tabBarStyle: {
+  backgroundColor: "#05070A",
+  borderTopColor: "#1F2937",
+  height: 60 + insets.bottom,
+  paddingTop: 6,
+  paddingBottom: insets.bottom + 4,
+},
 
         tabBarActiveTintColor: "#4F46E5",
         tabBarInactiveTintColor: "#6B7280",

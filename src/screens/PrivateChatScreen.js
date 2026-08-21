@@ -42,11 +42,11 @@ const formatMessageTime = (timestamp) => {
 };
 
 export default function PrivateChatScreen({ route, navigation }) {
-  const { student } = route.params;
+  const { student, initialMessage } = route.params;
 
   const user = useUser();
 
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage || "");
   const [messages, setMessages] = useState([]);
 
   const [studentStatus, setStudentStatus] = useState({
