@@ -1,25 +1,28 @@
 import { useEffect, useState } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import {
-    doc,
-    onSnapshot,
-    updateDoc
+  doc,
+  onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
 
-export default function DebateBattleScreen({ route, navigation }) {
+export default function DebateBattleScreen({
+  route,
+  navigation,
+}) {
   const { battleId } = route.params;
 
   const [battle, setBattle] = useState(null);
@@ -27,8 +30,12 @@ export default function DebateBattleScreen({ route, navigation }) {
 
   const [position, setPosition] = useState(null);
   const [argument, setArgument] = useState("");
+  const [response, setResponse] = useState("");
+  const [finalResponse, setFinalResponse] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+
+  const [voting, setVoting] = useState(false);
 
   const currentUser = auth.currentUser;
 
@@ -77,62 +84,222 @@ export default function DebateBattleScreen({ route, navigation }) {
   }, [battleId]);
 
   const submitArgument = async () => {
-    if (!position) {
-      Alert.alert(
-        "Choose a Position",
-        "Choose FOR or AGAINST before submitting."
-      );
-      return;
-    }
+  if (!position) {
+    Alert.alert(
+      "Choose a Position",
+      "Choose FOR or AGAINST before submitting."
+    );
+    return;
+  }
 
-    if (!argument.trim()) {
-      Alert.alert(
-        "Write Your Argument",
-        "Please write your argument first."
-      );
-      return;
-    }
+  if (!argument.trim()) {
+    Alert.alert(
+      "Write Your Argument",
+      "Please write your argument first."
+    );
+    return;
+  }
 
-    if (!currentUser) return;
+  if (!currentUser) return;
 
-    try {
-      setSubmitting(true);
+  try {
+    setSubmitting(true);
 
-      const battleRef = doc(
-        db,
-        "debateBattles",
-        battleId
-      );
+    const battleRef = doc(
+      db,
+      "debateBattles",
+      battleId
+    );
 
-      await updateDoc(battleRef, {
-        [`players.${currentUser.uid}.position`]: position,
+    await updateDoc(battleRef, {
+      [`players.${currentUser.uid}.position`]: position,
+      [`players.${currentUser.uid}.argument`]:
+        argument.trim(),
+    });
 
-        [`players.${currentUser.uid}.argument`]:
-          argument.trim(),
+    Alert.alert(
+      "Argument Submitted",
+      "Your opening argument has been submitted."
+    );
 
-        currentRound: 1,
+  } catch (error) {
+    console.log(
+      "Submit argument error:",
+      error
+    );
 
-        status: "argument_submitted",
-      });
+    Alert.alert(
+      "Error",
+      "Unable to submit your argument."
+    );
 
-      Alert.alert(
-        "Argument Submitted",
-        "Your argument has been submitted."
-      );
-    } catch (error) {
-      console.log(
-        "Submit argument error:",
-        error
-      );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-      Alert.alert(
-        "Error",
-        "Unable to submit your argument."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const submitResponse = async () => {
+  if (!response.trim()) {
+    Alert.alert(
+      "Write Your Response",
+      "Please respond to your opponent's argument."
+    );
+    return;
+  }
+
+  if (!currentUser) return;
+
+  try {
+    setSubmitting(true);
+
+    const battleRef = doc(
+      db,
+      "debateBattles",
+      battleId
+    );
+
+    await updateDoc(battleRef, {
+      [`players.${currentUser.uid}.response`]:
+        response.trim(),
+    });
+
+    Alert.alert(
+      "Response Submitted",
+      "Your response has been submitted."
+    );
+
+  } catch (error) {
+    console.log(
+      "Submit response error:",
+      error
+    );
+
+    Alert.alert(
+      "Error",
+      "Unable to submit your response."
+    );
+
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+const submitFinalResponse = async () => {
+  if (!finalResponse.trim()) {
+    Alert.alert(
+      "Write Your Final Defense",
+      "Please write your final response."
+    );
+    return;
+  }
+
+  if (!currentUser) return;
+
+  try {
+    setSubmitting(true);
+
+    const battleRef = doc(
+      db,
+      "debateBattles",
+      battleId
+    );
+
+    await updateDoc(battleRef, {
+      [`players.${currentUser.uid}.finalResponse`]:
+        finalResponse.trim(),
+    });
+
+    Alert.alert(
+      "Final Response Submitted",
+      "Your final defense has been submitted."
+    );
+
+  } catch (error) {
+    console.log(
+      "Submit final response error:",
+      error
+    );
+
+    Alert.alert(
+      "Error",
+      "Unable to submit your final response."
+    );
+
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+
+// -------------------------------------------------
+// AUDIENCE VOTING
+// -------------------------------------------------
+
+const voteForDebater = async (playerId) => {
+  if (!currentUser) {
+    Alert.alert(
+      "Login Required",
+      "Please log in to vote."
+    );
+    return;
+  }
+
+  // Debate participants cannot vote
+  if (battle?.players?.[currentUser.uid]) {
+    Alert.alert(
+      "Participants Cannot Vote",
+      "You cannot vote in your own debate."
+    );
+    return;
+  }
+
+  // Make sure the selected player actually exists
+  if (!playerId) {
+    Alert.alert(
+      "Voting Error",
+      "That debater could not be found."
+    );
+    return;
+  }
+
+  // Only allow voting after the debate is finished
+  if (!debateFinished) {
+    Alert.alert(
+      "Voting Not Open",
+      "Audience voting will open when the debate is complete."
+    );
+    return;
+  }
+
+  try {
+    setVoting(true);
+
+    const battleRef = doc(
+      db,
+      "debateBattles",
+      battleId
+    );
+
+    await updateDoc(battleRef, {
+      [`audienceVotes.${currentUser.uid}`]:
+        playerId,
+    });
+
+  } catch (error) {
+    console.log(
+      "Audience vote error:",
+      error
+    );
+
+    Alert.alert(
+      "Vote Failed",
+      "Unable to submit your vote. Please try again."
+    );
+
+  } finally {
+    setVoting(false);
+  }
+};
 
   if (loading || !battle) {
     return (
@@ -150,7 +317,18 @@ export default function DebateBattleScreen({ route, navigation }) {
   }
 
   const myPlayer =
-    battle.players?.[currentUser?.uid];
+  battle.players?.[currentUser?.uid];
+
+const isParticipant = Boolean(myPlayer);
+
+const isSpectator = !isParticipant;
+
+const debatePlayers = Object.values(
+  battle.players || {}
+);
+
+const playerOne = debatePlayers[0];
+const playerTwo = debatePlayers[1];
 
   const opponentId =
     Object.keys(battle.players || {}).find(
@@ -161,6 +339,125 @@ export default function DebateBattleScreen({ route, navigation }) {
     opponentId
       ? battle.players[opponentId]
       : null;
+
+      const opponentArgument =
+  opponent?.argument || "";
+
+const opponentResponse =
+  opponent?.response || "";
+
+const myArgument =
+  myPlayer?.argument || "";
+
+const myResponse =
+  myPlayer?.response || "";
+
+const myFinalResponse =
+  myPlayer?.finalResponse || "";
+
+const opponentFinalResponse =
+  opponent?.finalResponse || "";
+
+const bothArgumentsSubmitted =
+  Boolean(myArgument && opponentArgument);
+
+const bothResponsesSubmitted =
+  Boolean(myResponse && opponentResponse);
+
+const debateFinished =
+  Boolean(myFinalResponse && opponentFinalResponse);
+
+  // -------------------------------------------------
+// LIVE ROUND STATUS
+// -------------------------------------------------
+
+const playerOneArgument =
+  playerOne?.argument || "";
+
+const playerTwoArgument =
+  playerTwo?.argument || "";
+
+const playerOneResponse =
+  playerOne?.response || "";
+
+const playerTwoResponse =
+  playerTwo?.response || "";
+
+const playerOneFinal =
+  playerOne?.finalResponse || "";
+
+const playerTwoFinal =
+  playerTwo?.finalResponse || "";
+
+const bothOpeningArguments =
+  Boolean(
+    playerOneArgument &&
+    playerTwoArgument
+  );
+
+const bothRebuttals =
+  Boolean(
+    playerOneResponse &&
+    playerTwoResponse
+  );
+
+const bothFinalResponses =
+  Boolean(
+    playerOneFinal &&
+    playerTwoFinal
+  );
+
+// Current round for spectators
+const spectatorRound =
+  !bothOpeningArguments
+    ? 1
+    : !bothRebuttals
+    ? 2
+    : !bothFinalResponses
+    ? 3
+    : 4;
+
+    // -------------------------------------------------
+// AUDIENCE VOTE RESULTS
+// -------------------------------------------------
+
+const audienceVotes = battle.audienceVotes || {};
+
+const playerOneVotes = Object.values(
+  audienceVotes
+).filter(
+  (playerId) =>
+    playerId === playerOne?.userId
+).length;
+
+const playerTwoVotes = Object.values(
+  audienceVotes
+).filter(
+  (playerId) =>
+    playerId === playerTwo?.userId
+).length;
+
+const totalAudienceVotes =
+  playerOneVotes + playerTwoVotes;
+
+const playerOnePercentage =
+  totalAudienceVotes > 0
+    ? Math.round(
+        (playerOneVotes / totalAudienceVotes) * 100
+      )
+    : 0;
+
+const playerTwoPercentage =
+  totalAudienceVotes > 0
+    ? Math.round(
+        (playerTwoVotes / totalAudienceVotes) * 100
+      )
+    : 0;
+
+    const myVote =
+  currentUser
+    ? audienceVotes[currentUser.uid]
+    : null;
 
   return (
     <ScrollView
@@ -177,9 +474,21 @@ export default function DebateBattleScreen({ route, navigation }) {
         Debate Battle
       </Text>
 
-      <Text style={styles.subtitle}>
-        Think carefully. Defend your position.
-      </Text>
+      {battle.isPublic && (
+  <View style={styles.liveBadge}>
+    <View style={styles.liveDot} />
+
+    <Text style={styles.liveBadgeText}>
+      🔥 LIVE PUBLIC DEBATE
+    </Text>
+  </View>
+)}
+
+<Text style={styles.subtitle}>
+  {isSpectator
+    ? "👀 You're watching this debate live."
+    : "Think carefully. Defend your position."}
+</Text>
 
 
       {/* PLAYERS */}
@@ -192,11 +501,11 @@ export default function DebateBattleScreen({ route, navigation }) {
           </Text>
 
           <Text style={styles.playerName}>
-            {myPlayer?.name || "You"}
+            {playerOne?.name || "Student"}
           </Text>
 
           <Text style={styles.score}>
-            {myPlayer?.score || 0} XP
+            {playerOne?.score || 0} XP
           </Text>
         </View>
 
@@ -210,11 +519,11 @@ export default function DebateBattleScreen({ route, navigation }) {
           </Text>
 
           <Text style={styles.playerName}>
-            {opponent?.name || "Opponent"}
+            {playerTwo?.name || "Student"}
           </Text>
 
           <Text style={styles.score}>
-            {opponent?.score || 0} XP
+            {playerTwo?.score || 0} XP
           </Text>
         </View>
 
@@ -253,112 +562,765 @@ export default function DebateBattleScreen({ route, navigation }) {
       </View>
 
 
-      {/* POSITION */}
+     {/* DEBATE ROUNDS */}
 
-      <Text style={styles.sectionTitle}>
-        Choose your position
+{isSpectator ? (
+
+  /* 👀 SPECTATOR MODE */
+
+  <View>
+
+    {/* SPECTATOR HEADER */}
+
+    <View style={styles.spectatorCard}>
+
+      <Text style={styles.spectatorEmoji}>
+        👀
       </Text>
 
-      <View style={styles.positionRow}>
-
-        <TouchableOpacity
-          style={[
-            styles.positionButton,
-            position === "FOR" &&
-              styles.selectedFor,
-          ]}
-          onPress={() => setPosition("FOR")}
-        >
-          <Text style={styles.positionEmoji}>
-            👍
-          </Text>
-
-          <Text style={styles.positionText}>
-            FOR
-          </Text>
-        </TouchableOpacity>
-
-
-        <TouchableOpacity
-          style={[
-            styles.positionButton,
-            position === "AGAINST" &&
-              styles.selectedAgainst,
-          ]}
-          onPress={() => setPosition("AGAINST")}
-        >
-          <Text style={styles.positionEmoji}>
-            👎
-          </Text>
-
-          <Text style={styles.positionText}>
-            AGAINST
-          </Text>
-        </TouchableOpacity>
-
-      </View>
-
-
-      {/* ARGUMENT */}
-
-      <Text style={styles.sectionTitle}>
-        Your argument
+      <Text style={styles.spectatorTitle}>
+        You're Watching Live
       </Text>
 
-      <TextInput
-        value={argument}
-        onChangeText={setArgument}
-        placeholder="Explain your reasoning..."
-        placeholderTextColor="#6B7280"
-        multiline
-        textAlignVertical="top"
-        style={styles.argumentInput}
-      />
+      <Text style={styles.spectatorText}>
+        Watch both students defend their ideas
+        in real time.
+      </Text>
+
+    </View>
 
 
-      {/* SUBMIT */}
+    {/* CURRENT ROUND */}
 
-      <TouchableOpacity
-        style={styles.submitButton}
-        disabled={submitting}
-        onPress={submitArgument}
-      >
+    {!debateFinished && (
 
-        {submitting ? (
+      <View style={styles.liveRoundCard}>
 
-          <ActivityIndicator color="#FFFFFF" />
+        <View style={styles.liveRoundHeader}>
 
-        ) : (
+          <View style={styles.liveSmallBadge}>
 
-          <Text style={styles.submitText}>
-            ⚔️ Submit Argument
-          </Text>
+            <View style={styles.liveDot} />
 
-        )}
+            <Text style={styles.liveSmallText}>
+              LIVE NOW
+            </Text>
 
-      </TouchableOpacity>
+          </View>
 
-
-      {/* STATUS */}
-
-      {battle.status ===
-        "argument_submitted" && (
-
-        <View style={styles.statusCard}>
-
-          <Text style={styles.statusTitle}>
-            ⏳ Waiting for the other student
-          </Text>
-
-          <Text style={styles.statusText}>
-            Your argument has been submitted.
-            The next round will begin when your
-            opponent responds.
+          <Text style={styles.roundNumber}>
+            ROUND {spectatorRound}
           </Text>
 
         </View>
 
+
+        <Text style={styles.liveRoundTitle}>
+
+          {spectatorRound === 1
+            ? "Opening Arguments"
+            : spectatorRound === 2
+            ? "Rebuttals"
+            : "Final Defense"}
+
+        </Text>
+
+
+        <Text style={styles.liveRoundText}>
+
+          {spectatorRound === 1
+            ? "Both students are presenting their opening arguments."
+            : spectatorRound === 2
+            ? "Both students are challenging each other's arguments."
+            : "Both students are making their strongest final defense."}
+
+        </Text>
+
+      </View>
+
+    )}
+
+
+    {/* ----------------------------------------- */}
+    {/* ROUND 1 */}
+    {/* ----------------------------------------- */}
+
+    {spectatorRound >= 1 && (
+
+      <View>
+
+        <Text style={styles.roundBadge}>
+          ROUND 1 • OPENING ARGUMENTS
+        </Text>
+
+
+        {[playerOne, playerTwo].map((player) => (
+
+          <View
+            key={`opening-${player?.userId}`}
+            style={styles.publicArgumentCard}
+          >
+
+            <View style={styles.publicPlayerHeader}>
+
+              <Text style={styles.publicPlayerName}>
+                🧠 {player?.name || "Student"}
+              </Text>
+
+              {player?.position && (
+
+                <Text
+                  style={[
+                    styles.position,
+
+                    player.position === "FOR"
+                      ? styles.forText
+                      : styles.againstText,
+                  ]}
+                >
+                  {player.position}
+                </Text>
+
+              )}
+
+            </View>
+
+
+            <Text style={styles.publicArgument}>
+
+              {player?.argument
+                ? player.argument
+                : "⏳ Waiting for opening argument..."}
+
+            </Text>
+
+          </View>
+
+        ))}
+
+      </View>
+
+    )}
+
+
+    {/* ----------------------------------------- */}
+    {/* ROUND 2 */}
+    {/* ----------------------------------------- */}
+
+    {spectatorRound >= 2 && (
+
+      <View>
+
+        <Text style={styles.roundBadge}>
+          🔥 ROUND 2 • REBUTTALS
+        </Text>
+
+
+        {[playerOne, playerTwo].map((player) => (
+
+          <View
+            key={`response-${player?.userId}`}
+            style={styles.publicArgumentCard}
+          >
+
+            <Text style={styles.publicPlayerName}>
+              🧠 {player?.name || "Student"}'s rebuttal
+            </Text>
+
+
+            <Text style={styles.publicArgument}>
+
+              {player?.response
+                ? player.response
+                : "⏳ Waiting for rebuttal..."}
+
+            </Text>
+
+          </View>
+
+        ))}
+
+      </View>
+
+    )}
+
+
+    {/* ----------------------------------------- */}
+    {/* ROUND 3 */}
+    {/* ----------------------------------------- */}
+
+    {spectatorRound >= 3 && (
+
+      <View>
+
+        <Text style={styles.roundBadge}>
+          🏆 ROUND 3 • FINAL DEFENSE
+        </Text>
+
+
+        {[playerOne, playerTwo].map((player) => (
+
+          <View
+            key={`final-${player?.userId}`}
+            style={styles.publicArgumentCard}
+          >
+
+            <Text style={styles.publicPlayerName}>
+              🧠 {player?.name || "Student"}'s final defense
+            </Text>
+
+
+            <Text style={styles.publicArgument}>
+
+              {player?.finalResponse
+                ? player.finalResponse
+                : "⏳ Waiting for final defense..."}
+
+            </Text>
+
+          </View>
+
+        ))}
+
+      </View>
+
+    )}
+
+
+{/* ----------------------------------------- */}
+{/* AUDIENCE VOTING */}
+{/* ----------------------------------------- */}
+
+{debateFinished && (
+
+  <View style={styles.votingCard}>
+
+    <Text style={styles.votingEmoji}>
+      🗳️
+    </Text>
+
+    <Text style={styles.votingTitle}>
+      Who Won This Debate?
+    </Text>
+
+    <Text style={styles.votingSubtitle}>
+      Vote for the student you think argued
+      better.
+    </Text>
+
+
+    {/* PLAYER ONE */}
+
+    <View style={styles.voteResultCard}>
+
+      <View style={styles.voteResultHeader}>
+
+        <Text style={styles.votePlayerName}>
+          🧠 {playerOne?.name || "Student"}
+        </Text>
+
+        <Text style={styles.votePercentage}>
+          {playerOnePercentage}%
+        </Text>
+
+      </View>
+
+
+      <View style={styles.voteBarBackground}>
+
+        <View
+          style={[
+            styles.voteBarFill,
+            {
+              width: `${playerOnePercentage}%`,
+            },
+          ]}
+        />
+
+      </View>
+
+
+      <Text style={styles.voteCount}>
+        {playerOneVotes}{" "}
+        {playerOneVotes === 1
+          ? "vote"
+          : "votes"}
+      </Text>
+
+
+      <TouchableOpacity
+  style={[
+    styles.voteButton,
+    myVote === playerOne?.userId &&
+      styles.selectedVoteButton,
+  ]}
+  disabled={voting}
+  onPress={() =>
+    voteForDebater(playerOne?.userId)
+  }
+>
+  <Text style={styles.voteButtonText}>
+    {myVote === playerOne?.userId
+      ? "✅ You voted for this debater"
+      : `🗳️ Vote for ${playerOne?.name || "Student"}`}
+  </Text>
+</TouchableOpacity>
+
+    </View>
+
+
+    {/* PLAYER TWO */}
+
+    <View style={styles.voteResultCard}>
+
+      <View style={styles.voteResultHeader}>
+
+        <Text style={styles.votePlayerName}>
+          🧠 {playerTwo?.name || "Student"}
+        </Text>
+
+        <Text style={styles.votePercentage}>
+          {playerTwoPercentage}%
+        </Text>
+
+      </View>
+
+
+      <View style={styles.voteBarBackground}>
+
+        <View
+          style={[
+            styles.voteBarFill,
+            {
+              width: `${playerTwoPercentage}%`,
+            },
+          ]}
+        />
+
+      </View>
+
+
+      <Text style={styles.voteCount}>
+        {playerTwoVotes}{" "}
+        {playerTwoVotes === 1
+          ? "vote"
+          : "votes"}
+      </Text>
+
+
+      <TouchableOpacity
+  style={[
+    styles.voteButton,
+    myVote === playerTwo?.userId &&
+      styles.selectedVoteButton,
+  ]}
+  disabled={voting}
+  onPress={() =>
+    voteForDebater(playerTwo?.userId)
+  }
+>
+  <Text style={styles.voteButtonText}>
+    {myVote === playerTwo?.userId
+      ? "✅ You voted for this debater"
+      : `🗳️ Vote for ${playerTwo?.name || "Student"}`}
+  </Text>
+</TouchableOpacity>
+
+    </View>
+
+
+    {/* TOTAL */}
+
+    <Text style={styles.totalVotesText}>
+      👥 {totalAudienceVotes} audience{" "}
+      {totalAudienceVotes === 1
+        ? "vote"
+        : "votes"}
+    </Text>
+
+
+    {voting && (
+      <ActivityIndicator
+        size="small"
+        color="#818CF8"
+        style={{ marginTop: 10 }}
+      />
+    )}
+
+  </View>
+
+)}
+
+    {/* ----------------------------------------- */}
+    {/* WAITING STATUS */}
+    {/* ----------------------------------------- */}
+
+    {!debateFinished && (
+
+      <View style={styles.audienceStatusCard}>
+
+        <Text style={styles.audienceStatusTitle}>
+
+          {spectatorRound === 1
+            ? "🧠 Students are presenting"
+            : spectatorRound === 2
+            ? "🔥 Students are rebutting"
+            : "🏆 Students are giving their final defense"}
+
+        </Text>
+
+
+        <Text style={styles.audienceStatusText}>
+
+          {spectatorRound === 1
+            ? `${[playerOne, playerTwo].filter(
+                (player) => player?.argument
+              ).length}/2 opening arguments submitted`
+            : spectatorRound === 2
+            ? `${[playerOne, playerTwo].filter(
+                (player) => player?.response
+              ).length}/2 rebuttals submitted`
+            : `${[playerOne, playerTwo].filter(
+                (player) => player?.finalResponse
+              ).length}/2 final defenses submitted`}
+
+        </Text>
+
+      </View>
+
+    )}
+
+
+    {/* ----------------------------------------- */}
+    {/* DEBATE COMPLETE */}
+    {/* ----------------------------------------- */}
+
+    {debateFinished && (
+
+      <View style={styles.resultCard}>
+
+        <Text style={styles.resultEmoji}>
+          🏆
+        </Text>
+
+        <Text style={styles.resultTitle}>
+          Debate Complete!
+        </Text>
+
+        <Text style={styles.resultText}>
+          Both students have completed all three
+          rounds of the debate.
+        </Text>
+
+
+        <View style={styles.finishedBadge}>
+
+          <Text style={styles.finishedBadgeText}>
+            🔥 LIVE DEBATE FINISHED
+          </Text>
+
+        </View>
+
+
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={() => navigation.goBack()}
+        >
+
+          <Text style={styles.submitText}>
+            Done
+          </Text>
+
+        </TouchableOpacity>
+
+      </View>
+
+    )}
+
+  </View>
+
+) : debateFinished ? (
+
+  /* 🏆 PARTICIPANT — DEBATE FINISHED */
+
+  <View style={styles.resultCard}>
+
+    <Text style={styles.resultEmoji}>
+      🏆
+    </Text>
+
+    <Text style={styles.resultTitle}>
+      Debate Complete!
+    </Text>
+
+    <Text style={styles.resultText}>
+      Both students have completed all three
+      rounds of the debate.
+    </Text>
+
+    <TouchableOpacity
+      style={styles.submitButton}
+      onPress={() => navigation.goBack()}
+    >
+      <Text style={styles.submitText}>
+        Done
+      </Text>
+    </TouchableOpacity>
+
+  </View>
+
+) : !myArgument ? (
+
+  /* ROUND 1 */
+
+  <View>
+
+    <Text style={styles.roundBadge}>
+      ROUND 1 • OPENING ARGUMENT
+    </Text>
+
+    <Text style={styles.sectionTitle}>
+      Choose your position
+    </Text>
+
+    <View style={styles.positionRow}>
+
+      <TouchableOpacity
+        style={[
+          styles.positionButton,
+          position === "FOR" &&
+            styles.selectedFor,
+        ]}
+        onPress={() => setPosition("FOR")}
+      >
+        <Text style={styles.positionEmoji}>
+          👍
+        </Text>
+
+        <Text style={styles.positionText}>
+          FOR
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.positionButton,
+          position === "AGAINST" &&
+            styles.selectedAgainst,
+        ]}
+        onPress={() => setPosition("AGAINST")}
+      >
+        <Text style={styles.positionEmoji}>
+          👎
+        </Text>
+
+        <Text style={styles.positionText}>
+          AGAINST
+        </Text>
+      </TouchableOpacity>
+
+    </View>
+
+    <Text style={styles.sectionTitle}>
+      Your opening argument
+    </Text>
+
+    <TextInput
+      value={argument}
+      onChangeText={setArgument}
+      placeholder="Explain your reasoning..."
+      placeholderTextColor="#6B7280"
+      multiline
+      textAlignVertical="top"
+      style={styles.argumentInput}
+    />
+
+    <TouchableOpacity
+      style={styles.submitButton}
+      disabled={submitting}
+      onPress={submitArgument}
+    >
+
+      {submitting ? (
+
+        <ActivityIndicator color="#FFFFFF" />
+
+      ) : (
+
+        <Text style={styles.submitText}>
+          ⚔️ Submit Opening Argument
+        </Text>
+
       )}
+
+    </TouchableOpacity>
+
+  </View>
+
+) : !bothArgumentsSubmitted ? (
+
+  <View style={styles.statusCard}>
+
+    <Text style={styles.statusTitle}>
+      ⏳ Waiting for your opponent
+    </Text>
+
+    <Text style={styles.statusText}>
+      Your opening argument has been submitted.
+      The next round will unlock when your
+      opponent submits theirs.
+    </Text>
+
+  </View>
+
+) : !myResponse ? (
+
+  /* ROUND 2 */
+
+  <View>
+
+    <Text style={styles.roundBadge}>
+      ROUND 2 • REBUTTAL
+    </Text>
+
+    <View style={styles.opponentCard}>
+
+      <Text style={styles.opponentLabel}>
+        🧠 {opponent?.name || "Opponent"}'s argument
+      </Text>
+
+      <Text style={styles.opponentArgument}>
+        {opponentArgument}
+      </Text>
+
+    </View>
+
+    <Text style={styles.sectionTitle}>
+      Your response
+    </Text>
+
+    <TextInput
+      value={response}
+      onChangeText={setResponse}
+      placeholder="Challenge their reasoning..."
+      placeholderTextColor="#6B7280"
+      multiline
+      textAlignVertical="top"
+      style={styles.argumentInput}
+    />
+
+    <TouchableOpacity
+      style={styles.submitButton}
+      disabled={submitting}
+      onPress={submitResponse}
+    >
+
+      {submitting ? (
+
+        <ActivityIndicator color="#FFFFFF" />
+
+      ) : (
+
+        <Text style={styles.submitText}>
+          🔥 Submit Rebuttal
+        </Text>
+
+      )}
+
+    </TouchableOpacity>
+
+  </View>
+
+) : !bothResponsesSubmitted ? (
+
+  <View style={styles.statusCard}>
+
+    <Text style={styles.statusTitle}>
+      ⏳ Waiting for your opponent's rebuttal
+    </Text>
+
+    <Text style={styles.statusText}>
+      Your response has been submitted.
+      The final defense will unlock when your
+      opponent responds.
+    </Text>
+
+  </View>
+
+) : !myFinalResponse ? (
+
+  /* ROUND 3 */
+
+  <View>
+
+    <Text style={styles.roundBadge}>
+      ROUND 3 • FINAL DEFENSE
+    </Text>
+
+    <View style={styles.opponentCard}>
+
+      <Text style={styles.opponentLabel}>
+        🧠 Your opponent's rebuttal
+      </Text>
+
+      <Text style={styles.opponentArgument}>
+        {opponentResponse}
+      </Text>
+
+    </View>
+
+    <Text style={styles.sectionTitle}>
+      Your final defense
+    </Text>
+
+    <TextInput
+      value={finalResponse}
+      onChangeText={setFinalResponse}
+      placeholder="Give your strongest final argument..."
+      placeholderTextColor="#6B7280"
+      multiline
+      textAlignVertical="top"
+      style={styles.argumentInput}
+    />
+
+    <TouchableOpacity
+      style={styles.submitButton}
+      disabled={submitting}
+      onPress={submitFinalResponse}
+    >
+
+      {submitting ? (
+
+        <ActivityIndicator color="#FFFFFF" />
+
+      ) : (
+
+        <Text style={styles.submitText}>
+          🏆 Submit Final Defense
+        </Text>
+
+      )}
+
+    </TouchableOpacity>
+
+  </View>
+
+) : (
+
+  <View style={styles.statusCard}>
+
+    <Text style={styles.statusTitle}>
+      ⏳ Final defense submitted
+    </Text>
+
+    <Text style={styles.statusText}>
+      You have completed the debate. Waiting for
+      your opponent to submit their final defense.
+    </Text>
+
+  </View>
+
+)}
 
     </ScrollView>
   );
@@ -585,5 +1547,335 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 5,
   },
+
+  roundBadge: {
+  color: "#A78BFA",
+  fontSize: 12,
+  fontWeight: "900",
+  letterSpacing: 1,
+  marginBottom: 15,
+},
+
+opponentCard: {
+  backgroundColor: "#111827",
+  borderRadius: 16,
+  padding: 16,
+  borderWidth: 1,
+  borderColor: "#312E81",
+  marginBottom: 20,
+},
+
+opponentLabel: {
+  color: "#A5B4FC",
+  fontSize: 13,
+  fontWeight: "800",
+  marginBottom: 10,
+},
+
+opponentArgument: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  lineHeight: 22,
+},
+
+resultCard: {
+  backgroundColor: "#111827",
+  borderRadius: 20,
+  padding: 25,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: "#4F46E5",
+  marginTop: 10,
+},
+
+resultEmoji: {
+  fontSize: 55,
+  marginBottom: 10,
+},
+
+resultTitle: {
+  color: "#FFFFFF",
+  fontSize: 22,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+resultText: {
+  color: "#9CA3AF",
+  textAlign: "center",
+  lineHeight: 20,
+  marginTop: 8,
+  marginBottom: 20,
+},
+
+spectatorCard: {
+  backgroundColor: "#0F172A",
+  borderRadius: 18,
+  padding: 18,
+  marginBottom: 20,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: "#312E81",
+},
+
+spectatorEmoji: {
+  fontSize: 35,
+  marginBottom: 6,
+},
+
+spectatorTitle: {
+  color: "#FFFFFF",
+  fontSize: 18,
+  fontWeight: "900",
+},
+
+spectatorText: {
+  color: "#9CA3AF",
+  fontSize: 13,
+  lineHeight: 20,
+  textAlign: "center",
+  marginTop: 6,
+},
+
+publicArgumentCard: {
+  backgroundColor: "#111827",
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 12,
+  borderWidth: 1,
+  borderColor: "#1F2937",
+},
+
+publicPlayerHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
+},
+
+publicPlayerName: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  fontWeight: "900",
+  flex: 1,
+},
+
+publicArgument: {
+  color: "#E5E7EB",
+  fontSize: 14,
+  lineHeight: 22,
+},
+
+liveRoundCard: {
+  backgroundColor: "#111827",
+  borderRadius: 18,
+  padding: 18,
+  marginBottom: 20,
+  borderWidth: 1,
+  borderColor: "#4F46E5",
+},
+
+liveRoundHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
+},
+
+liveSmallBadge: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#450A0A",
+  borderRadius: 20,
+  paddingHorizontal: 9,
+  paddingVertical: 5,
+},
+
+liveSmallText: {
+  color: "#FCA5A5",
+  fontSize: 10,
+  fontWeight: "900",
+},
+
+roundNumber: {
+  color: "#A5B4FC",
+  fontSize: 11,
+  fontWeight: "900",
+},
+
+liveRoundTitle: {
+  color: "#FFFFFF",
+  fontSize: 19,
+  fontWeight: "900",
+},
+
+liveRoundText: {
+  color: "#9CA3AF",
+  fontSize: 13,
+  lineHeight: 20,
+  marginTop: 5,
+},
+
+audienceStatusCard: {
+  backgroundColor: "#0F172A",
+  borderRadius: 15,
+  padding: 16,
+  marginTop: 5,
+  marginBottom: 15,
+  borderWidth: 1,
+  borderColor: "#312E81",
+  alignItems: "center",
+},
+
+audienceStatusTitle: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  fontWeight: "800",
+  textAlign: "center",
+},
+
+audienceStatusText: {
+  color: "#818CF8",
+  fontSize: 12,
+  fontWeight: "700",
+  marginTop: 6,
+  textAlign: "center",
+},
+
+finishedBadge: {
+  backgroundColor: "#052E16",
+  borderRadius: 20,
+  paddingHorizontal: 12,
+  paddingVertical: 7,
+  marginBottom: 15,
+},
+
+finishedBadgeText: {
+  color: "#86EFAC",
+  fontSize: 10,
+  fontWeight: "900",
+},
+
+votingCard: {
+  backgroundColor: "#111827",
+  borderRadius: 20,
+  padding: 20,
+  marginTop: 20,
+  marginBottom: 15,
+  borderWidth: 1,
+  borderColor: "#4F46E5",
+  alignItems: "center",
+},
+
+votingEmoji: {
+  fontSize: 38,
+  marginBottom: 8,
+},
+
+votingTitle: {
+  color: "#FFFFFF",
+  fontSize: 20,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+votingSubtitle: {
+  color: "#9CA3AF",
+  fontSize: 13,
+  lineHeight: 20,
+  textAlign: "center",
+  marginTop: 6,
+  marginBottom: 18,
+},
+
+voteButtonsRow: {
+  width: "100%",
+  gap: 10,
+},
+
+voteButton: {
+  backgroundColor: "#312E81",
+  borderRadius: 14,
+  paddingVertical: 14,
+  paddingHorizontal: 12,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: "#6366F1",
+},
+
+voteButtonEmoji: {
+  fontSize: 24,
+  marginBottom: 5,
+},
+
+voteButtonText: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+voteResultCard: {
+  width: "100%",
+  backgroundColor: "#0F172A",
+  borderRadius: 16,
+  padding: 15,
+  marginBottom: 12,
+  borderWidth: 1,
+  borderColor: "#1F2937",
+},
+
+voteResultHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
+},
+
+votePlayerName: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  fontWeight: "900",
+  flex: 1,
+},
+
+votePercentage: {
+  color: "#A5B4FC",
+  fontSize: 18,
+  fontWeight: "900",
+},
+
+voteBarBackground: {
+  height: 10,
+  backgroundColor: "#1F2937",
+  borderRadius: 10,
+  overflow: "hidden",
+},
+
+voteBarFill: {
+  height: "100%",
+  backgroundColor: "#6366F1",
+  borderRadius: 10,
+},
+
+voteCount: {
+  color: "#9CA3AF",
+  fontSize: 11,
+  fontWeight: "700",
+  marginTop: 7,
+  marginBottom: 10,
+},
+
+totalVotesText: {
+  color: "#818CF8",
+  fontSize: 12,
+  fontWeight: "800",
+  marginTop: 5,
+},
+
+selectedVoteButton: {
+  backgroundColor: "#166534",
+  borderColor: "#22C55E",
+},
 
 });

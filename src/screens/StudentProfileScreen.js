@@ -6,14 +6,23 @@ import {
   View,
 } from "react-native";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 
 import { auth } from "../services/firebase";
 
 export default function StudentProfileScreen({ route, navigation }) {
   const { member } = route.params;
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+  style={styles.container}
+  contentContainerStyle={{
+    paddingBottom: insets.bottom + 30,
+  }}
+>
 
       <View style={styles.header}>
 
@@ -83,7 +92,7 @@ export default function StudentProfileScreen({ route, navigation }) {
       onPress={() => {
         navigation.navigate("PrivateChat", {
           student: {
-            id: member.userId,
+            id: member.id || member.userId,
             fullName: member.fullName,
             email: member.email,
             photo: member.photo,
@@ -105,12 +114,19 @@ export default function StudentProfileScreen({ route, navigation }) {
 <TouchableOpacity
   style={styles.videoButton}
   onPress={() => {
-    const currentUserId = auth.currentUser.uid;
+  
 
-    const roomName =
-      currentUserId < member.userId
-        ? `private-${currentUserId}-${member.userId}`
-        : `private-${member.userId}-${currentUserId}`;
+    const currentUserId = auth.currentUser.uid;
+const otherUserId = member.id || member.userId;
+
+const roomName =
+  currentUserId < otherUserId
+    ? `private-${currentUserId}-${otherUserId}`
+    : `private-${otherUserId}-${currentUserId}`;
+
+navigation.navigate("VideoRoom", {
+  roomName,
+});
 
     navigation.navigate("VideoRoom", {
       roomName,
@@ -122,18 +138,18 @@ export default function StudentProfileScreen({ route, navigation }) {
   </Text>
 </TouchableOpacity>
 
-<TouchableOpacity
-  style={styles.debateButton}
-  onPress={() => {
-    navigation.navigate("DebateLobby", {
-      opponent: {
-        id: member.userId,
-        fullName: member.fullName,
-        email: member.email,
-        photo: member.photo,
-      },
-    });
-  }}
+<TouchableOpacity 
+  style={styles.debateButton} 
+  onPress={() => { 
+    navigation.navigate("DebateLobby", { 
+      opponent: { 
+        id: member.id || member.userId,
+        fullName: member.fullName, 
+        email: member.email, 
+        photo: member.photo, 
+      }, 
+    }); 
+  }} 
 >
   <Text style={styles.buttonText}>
     ⚔️ Challenge to Debate

@@ -1,4 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+
+import Picker from "emoji-mart";
+
+import * as ImagePicker from "expo-image-picker";
+
 import {
   Alert,
   FlatList,
@@ -21,8 +26,13 @@ import {
 } from "firebase/firestore";
 
 import useUser from "../hooks/useUser";
+
 import { auth, db } from "../services/firebase";
-import { isPremiumUser } from "../utils/access"; // ✅ ADDED (STEP 3.1)
+
+import { isPremiumUser } from "../utils/access";
+
+// ✅ BACKEND URL
+const API_URL = "https://university-universal-backend.onrender.com";
 
 export default function ChatScreen({
   route,
@@ -33,7 +43,9 @@ export default function ChatScreen({
   const user = useUser(); // ✅ STEP 3.2
 
   const [message, setMessage] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const flatListRef = useRef(null);
 
   // 🚫 CONTACT DETECTOR
@@ -74,6 +86,119 @@ export default function ChatScreen({
 
     return unsubscribe;
   }, []);
+
+  // ====================================
+// PICK IMAGE
+// ====================================
+
+const pickImage = async () => {
+  try {
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Please allow photo library access to send images."
+      );
+      return;
+    }
+
+    const result =
+      await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+
+    setUploadingImage(true);
+
+    const formData = new FormData();
+
+    formData.append("media", {
+      uri: asset.uri,
+      name:
+        asset.fileName ||
+        `chat-${Date.now()}.jpg`,
+      type:
+        asset.mimeType ||
+        "image/jpeg",
+    });
+
+    formData.append(
+      "userId",
+      auth.currentUser.uid
+    );
+
+    formData.append(
+      "mediaType",
+      "image"
+    );
+
+    const response = await fetch(
+      `${API_URL}/upload-social-media`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.error || "Image upload failed"
+      );
+    }
+
+    await addDoc(
+      collection(
+        db,
+        "groups",
+        group.id,
+        "messages"
+      ),
+      {
+        type: "image",
+        mediaUrl: data.mediaUrl,
+
+        sender: auth.currentUser.email,
+
+        senderName:
+          user?.fullName || "Student",
+
+        senderPhoto:
+          user?.photo || "",
+
+        createdAt:
+          serverTimestamp(),
+      }
+    );
+
+  } catch (error) {
+    console.log(
+      "CHAT IMAGE ERROR:",
+      error
+    );
+
+    Alert.alert(
+      "Upload Failed",
+      error.message ||
+        "Unable to send image."
+    );
+
+  } finally {
+    setUploadingImage(false);
+  }
+};
+
+// ====================================
+// SEND TEXT MESSAGE
+// ====================================
 
   const sendMessage = async () => {
     if (!message.trim()) return;
@@ -227,24 +352,59 @@ ListEmptyComponent={
     />
 
 
-    <View style={styles.inputRow}>
+    <View>
+  {showEmojiPicker && (
+    <View style={styles.emojiContainer}>
+      <Picker
+        onEmojiSelect={(emoji) => {
+          setMessage((prev) => prev + emoji.native);
+        }}
+        theme="dark"
+        previewPosition="none"
+      />
+    </View>
+  )}
+
+  <View style={styles.inputRow}>
+
+  {/* 📷 IMAGE BUTTON */}
+  <TouchableOpacity
+    style={styles.mediaButton}
+    onPress={pickImage}
+    disabled={uploadingImage}
+  >
+    <Text style={styles.mediaButtonText}>📷</Text>
+  </TouchableOpacity>
+
+  {/* 😊 EMOJI BUTTON */}
+  <TouchableOpacity
+    style={styles.emojiButton}
+    onPress={() => setShowEmojiPicker((prev) => !prev)}
+  >
+    <Text style={styles.emojiButtonText}>😊</Text>
+  </TouchableOpacity>
+
+  {/* 📝 MESSAGE INPUT */}
   <TextInput
-  autoFocus
+    autoFocus
     placeholder="Type your message..."
     placeholderTextColor="#6B7280"
     value={message}
     onChangeText={setMessage}
     style={styles.input}
+    multiline
   />
 
+  {/* ➤ SEND */}
   <TouchableOpacity
     style={styles.sendButton}
     onPress={sendMessage}
   >
     <Text style={styles.sendText}>➤</Text>
   </TouchableOpacity>
-</View>
 
+</View>
+</View>
   </KeyboardAvoidingView>
 );
 }
@@ -382,6 +542,35 @@ emptyText: {
   textAlign: "center",
   marginTop: 8,
   paddingHorizontal: 30,
+},
+
+emojiButton: {
+  width: 44,
+  height: 52,
+  justifyContent: "center",
+  alignItems: "center",
+  marginRight: 4,
+},
+
+emojiButtonText: {
+  fontSize: 25,
+},
+
+emojiContainer: {
+  marginBottom: 8,
+  borderRadius: 12,
+  overflow: "hidden",
+},
+
+mediaButton: {
+  width: 40,
+  height: 52,
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+mediaButtonText: {
+  fontSize: 24,
 },
 };
 

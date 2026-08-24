@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import {
-    addDoc,
-    collection,
-    doc,
-    onSnapshot,
-    serverTimestamp,
-    updateDoc,
+  addDoc,
+  collection,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
@@ -190,8 +190,18 @@ const acceptDebate = async () => {
 
     await updateDoc(battleRef, {
       status: "accepted",
+
+      // 🔥 Make the debate public immediately
+      isPublic: true,
+
+      // Used by the public debate feed
+      isLive: true,
+
       acceptedBy: currentUser.uid,
       acceptedAt: serverTimestamp(),
+
+      // Debate has now started
+      currentRound: 1,
     });
 
     navigation.replace("DebateBattle", {
@@ -213,7 +223,6 @@ const acceptDebate = async () => {
     setCreating(false);
   }
 };
-
   // -------------------------------------------------
   // CREATE DEBATE
   // -------------------------------------------------
@@ -243,13 +252,19 @@ const acceptDebate = async () => {
     const topic = getRandomTopic();
 
     const battleData = {
-      topic: topic.topic,
+  topic: topic.topic,
 
-      category: topic.category,
+  category: topic.category,
 
-      status: "waiting",
+  status: "waiting",
 
-      currentRound: 0,
+  // 🔒 Private while waiting for acceptance
+  isPublic: false,
+
+  // 🔴 Not live until opponent accepts
+  isLive: false,
+
+  currentRound: 0,
 
       createdBy: currentUser.uid,
 

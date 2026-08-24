@@ -28,7 +28,6 @@ import StudentProfileScreen from "../screens/StudentProfileScreen";
 import UploadPastPaperScreen from "../screens/UploadPastPaperScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
 import WeeklyRankingScreen from "../screens/WeeklyRankingScreen";
-
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -213,7 +212,6 @@ export default function AppNavigator() {
 <Stack.Screen
   name="DebateLobby"
   component={DebateLobbyScreen}
-  options={{ title: "Debate Battle" }}
 />
 
             {/* DEBATE CHALLENGES */}
@@ -221,7 +219,6 @@ export default function AppNavigator() {
 <Stack.Screen
   name="DebateChallenges"
   component={DebateChallengesScreen}
-  options={{ title: "Debate Challenges" }}
 />
 
 {/* DEBATE BATTLE */}
@@ -229,9 +226,6 @@ export default function AppNavigator() {
 <Stack.Screen
   name="DebateBattle"
   component={DebateBattleScreen}
-  options={{
-    title: "Debate Battle",
-  }}
 />
           </>
         )}
