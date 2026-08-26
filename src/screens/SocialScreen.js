@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { fetch } from "expo/fetch";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -35,6 +35,7 @@ import {
 
 import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
+import { createNotification } from "../utils/notifications";
 
 const MAX_POST_LENGTH = 500;
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
@@ -72,12 +73,15 @@ function PostVideo({ uri }) {
    SOCIAL SCREEN
 ========================================================= */
 
-export default function SocialScreen({ navigation }) {
+export default function SocialScreen({ navigation, route }) {
   const user = useUser();
 
   const [posts, setPosts] = useState([]);
   const [postText, setPostText] = useState("");
   const [selectedMedia, setSelectedMedia] = useState(null);
+
+  const flatListRef = useRef(null);
+const handledNotificationRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
@@ -276,6 +280,89 @@ export default function SocialScreen({ navigation }) {
 
     return () => unsubscribe();
   }, []);
+
+  /* =========================================================
+   OPEN POST FROM NOTIFICATION
+========================================================= */
+
+useEffect(() => {
+  const targetPostId =
+    route?.params?.targetPostId;
+
+  if (!targetPostId || posts.length === 0) {
+    return;
+  }
+
+  /* Prevent handling the same notification repeatedly */
+  if (
+    handledNotificationRef.current ===
+    targetPostId
+  ) {
+    return;
+  }
+
+  const postIndex = posts.findIndex(
+    (post) => post.id === targetPostId
+  );
+
+  if (postIndex === -1) {
+    Alert.alert(
+      "Post unavailable",
+      "This post may have been deleted."
+    );
+
+    handledNotificationRef.current =
+      targetPostId;
+
+    navigation.setParams({
+      targetPostId: undefined,
+      openComments: undefined,
+    });
+
+    return;
+  }
+
+  handledNotificationRef.current =
+    targetPostId;
+
+  /* ==============================
+     SCROLL TO THE POST
+  ============================== */
+
+  setTimeout(() => {
+    flatListRef.current?.scrollToIndex({
+      index: postIndex,
+      animated: true,
+      viewPosition: 0.2,
+    });
+
+    /* ==============================
+       OPEN COMMENTS IF NEEDED
+    ============================== */
+
+    if (route?.params?.openComments) {
+      setTimeout(() => {
+        navigation.navigate("Comments", {
+          postId: targetPostId,
+        });
+      }, 500);
+    }
+
+    /* ==============================
+       CLEAR NAVIGATION PARAMETERS
+    ============================== */
+
+    navigation.setParams({
+      targetPostId: undefined,
+      openComments: undefined,
+    });
+  }, 300);
+}, [
+  posts,
+  route?.params?.targetPostId,
+  route?.params?.openComments,
+  navigation,
+]);
 
   /* =========================================================
      PICK PHOTO OR VIDEO
@@ -550,74 +637,95 @@ export default function SocialScreen({ navigation }) {
      LIKE / UNLIKE
   ========================================================= */
 
-  const toggleLike = async (
-    post
-  ) => {
-    if (!auth.currentUser) {
-      Alert.alert(
-        "Login required",
-        "Please log in to like posts."
-      );
+const toggleLike = async (post) => {
+  if (!auth.currentUser) {
+    Alert.alert(
+      "Login required",
+      "Please log in to like posts."
+    );
+
+    return;
+  }
+
+  const currentUserId = auth.currentUser.uid;
+
+  const likes = Array.isArray(post.likes)
+    ? post.likes
+    : [];
+
+  const alreadyLiked = likes.includes(
+    currentUserId
+  );
+
+  try {
+    const postRef = doc(
+      db,
+      "posts",
+      post.id
+    );
+
+    if (alreadyLiked) {
+      await updateDoc(postRef, {
+        likes: arrayRemove(currentUserId),
+      });
 
       return;
     }
 
-    const currentUserId =
-      auth.currentUser.uid;
+    /* =====================================
+       ADD LIKE
+    ===================================== */
 
-    const likes =
-      Array.isArray(
-        post.likes
-      )
-        ? post.likes
-        : [];
+    await updateDoc(postRef, {
+      likes: arrayUnion(currentUserId),
+    });
 
-    const alreadyLiked =
-      likes.includes(
-        currentUserId
-      );
+    /* =====================================
+       DON'T NOTIFY YOURSELF
+    ===================================== */
 
-    try {
-      const postRef =
-        doc(
-          db,
-          "posts",
-          post.id
-        );
-
-      if (alreadyLiked) {
-        await updateDoc(
-          postRef,
-          {
-            likes:
-              arrayRemove(
-                currentUserId
-              ),
-          }
-        );
-      } else {
-        await updateDoc(
-          postRef,
-          {
-            likes:
-              arrayUnion(
-                currentUserId
-              ),
-          }
-        );
-      }
-    } catch (error) {
-      console.log(
-        "Like error:",
-        error
-      );
-
-      Alert.alert(
-        "Something went wrong",
-        "We couldn't update your reaction."
-      );
+    if (post.userId === currentUserId) {
+      return;
     }
-  };
+
+    /* =====================================
+       CREATE NOTIFICATION
+    ===================================== */
+
+    const actorName =
+      user?.fullName ||
+      "University Student";
+
+    await createNotification({
+  recipientId: post.userId,
+
+  type: "like",
+
+  title: "❤️ New like",
+
+  message: `${actorName} liked your post.`,
+
+  fromUserId: currentUserId,
+
+  fromUserName: actorName,
+
+  fromUserPhoto:
+    user?.photo || "",
+
+  postId: post.id,
+});
+  } catch (error) {
+    console.log(
+      "Like error:",
+      error
+    );
+
+    Alert.alert(
+      "Something went wrong",
+      "We couldn't update your reaction."
+    );
+  }
+};
 
   /* =========================================================
      DELETE POST
@@ -1194,10 +1302,11 @@ export default function SocialScreen({ navigation }) {
       }
     >
       <FlatList
-        data={posts}
-        keyExtractor={(item) =>
-          item.id
-        }
+  ref={flatListRef}
+  data={posts}
+  keyExtractor={(item) =>
+    item.id
+  }
         renderItem={
           renderPost
         }

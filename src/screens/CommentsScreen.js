@@ -1,32 +1,34 @@
 import { useEffect, useState } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
 
 import useUser from "../hooks/useUser";
+import { createNotification } from "../utils/notifications";
 
 const MAX_COMMENT_LENGTH = 300;
 
@@ -92,82 +94,142 @@ export default function CommentsScreen({ route }) {
      ADD COMMENT
   ========================================= */
 
-  const addComment = async () => {
-    const text = commentText.trim();
+ const addComment = async () => {
+  const text = commentText.trim();
 
-    if (!text) {
+  if (!text) {
+    Alert.alert(
+      "Write something",
+      "Your comment cannot be empty."
+    );
+
+    return;
+  }
+
+  if (text.length > MAX_COMMENT_LENGTH) {
+    Alert.alert(
+      "Comment too long",
+      `Your comment can contain up to ${MAX_COMMENT_LENGTH} characters.`
+    );
+
+    return;
+  }
+
+  if (!auth.currentUser || !user) {
+    Alert.alert(
+      "Login required",
+      "Please log in before commenting."
+    );
+
+    return;
+  }
+
+  try {
+    setPosting(true);
+
+    /* =========================================
+       GET POST OWNER
+    ========================================= */
+
+    const postSnap = await getDoc(
+      doc(db, "posts", postId)
+    );
+
+    if (!postSnap.exists()) {
       Alert.alert(
-        "Write something",
-        "Your comment cannot be empty."
+        "Post unavailable",
+        "This post no longer exists."
       );
 
       return;
     }
 
-    if (text.length > MAX_COMMENT_LENGTH) {
-      Alert.alert(
-        "Comment too long",
-        `Your comment can contain up to ${MAX_COMMENT_LENGTH} characters.`
-      );
+    const postData = postSnap.data();
 
-      return;
+    /* =========================================
+       CREATE COMMENT
+    ========================================= */
+
+    const commentRef = await addDoc(
+      collection(
+        db,
+        "posts",
+        postId,
+        "comments"
+      ),
+      {
+        userId: auth.currentUser.uid,
+
+        fullName:
+          user.fullName ||
+          "University Student",
+
+        country:
+          user.country ||
+          "Unknown",
+
+        photo:
+          user.photo ||
+          "",
+
+        text,
+
+        createdAt: serverTimestamp(),
+      }
+    );
+
+    /* =========================================
+       NOTIFY POST OWNER
+    ========================================= */
+
+    if (
+      postData.userId &&
+      postData.userId !== auth.currentUser.uid
+    ) {
+      await createNotification({
+        recipientId: postData.userId,
+
+        type: "comment",
+
+        title: "💬 New comment",
+
+        message: `${
+          user.fullName ||
+          "A student"
+        } commented on your post.`,
+
+        fromUserId:
+          auth.currentUser.uid,
+
+        fromUserName:
+          user.fullName ||
+          "University Student",
+
+        fromUserPhoto:
+          user.photo || "",
+
+        postId,
+
+        commentId: commentRef.id,
+      });
     }
 
-    if (!auth.currentUser || !user) {
-      Alert.alert(
-        "Login required",
-        "Please log in before commenting."
-      );
+    setCommentText("");
 
-      return;
-    }
+  } catch (error) {
+    console.log(
+      "Add comment error:",
+      error
+    );
 
-    try {
-      setPosting(true);
-
-      await addDoc(
-        collection(
-          db,
-          "posts",
-          postId,
-          "comments"
-        ),
-        {
-          userId: auth.currentUser.uid,
-
-          fullName:
-            user.fullName ||
-            "University Student",
-
-          country:
-            user.country ||
-            "Unknown",
-
-          photo:
-            user.photo ||
-            "",
-
-          text,
-
-          createdAt: serverTimestamp(),
-        }
-      );
-
-      setCommentText("");
-    } catch (error) {
-      console.log(
-        "Add comment error:",
-        error
-      );
-
-      Alert.alert(
-        "Comment failed",
-        "We couldn't publish your comment. Please try again."
-      );
-    } finally {
-      setPosting(false);
-    }
-  };
+    Alert.alert(
+      "Comment failed",
+      "We couldn't publish your comment. Please try again."
+    );
+  } finally {
+    setPosting(false);
+  }
+};
 
   /* =========================================
      DELETE COMMENT

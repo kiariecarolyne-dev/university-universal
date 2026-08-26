@@ -25,7 +25,7 @@ import {
 
 import { auth, db } from "../services/firebase";
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const [fullName, setFullName] = useState("");
   const [university, setUniversity] = useState("");
   const [course, setCourse] = useState("");
@@ -34,6 +34,7 @@ export default function ProfileScreen() {
   const [photo, setPhoto] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
 
   const userId = auth.currentUser?.uid;
 
@@ -52,6 +53,7 @@ export default function ProfileScreen() {
         setCountry(data.country || "");
         setYear(data.year || "");
         setPhoto(data.photo || "");
+        setIsPremium(data.isPremium === true);
       }
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -404,18 +406,45 @@ const previousCourse = oldProfile.exists()
 />
 
         <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={saveProfile}
-          disabled={loading}
-        >
-          {loading ? (
-  <ActivityIndicator color="#FFFFFF" />
-) : (
-  <Text style={styles.primaryText}>
-    💾 Save Profile
+  style={styles.primaryBtn}
+  onPress={saveProfile}
+  disabled={loading}
+>
+  {loading ? (
+    <ActivityIndicator color="#FFFFFF" />
+  ) : (
+    <Text style={styles.primaryText}>
+      💾 Save Profile
+    </Text>
+  )}
+</TouchableOpacity>
+
+<TouchableOpacity
+  style={styles.premiumBtn}
+  onPress={() =>
+    navigation.navigate(
+      isPremium ? "Jobs" : "Premium"
+    )
+  }
+>
+  <Text style={styles.premiumBtnTitle}>
+    {isPremium
+      ? "💼 Jobs & Careers"
+      : "⭐ Upgrade to Premium"}
   </Text>
-)}
-        </TouchableOpacity>
+
+  <Text style={styles.premiumBtnText}>
+    {isPremium
+      ? "Explore graduate jobs, internships and remote opportunities."
+      : "Unlock Jobs & Careers together with all Premium features."}
+  </Text>
+
+  <Text style={styles.premiumBtnArrow}>
+    {isPremium
+      ? "Explore Jobs →"
+      : "View Premium →"}
+  </Text>
+</TouchableOpacity>
 
       </View>
     </ScrollView>
@@ -505,6 +534,35 @@ email: {
 
   loaderText: {
     color: "#9CA3AF",
+    marginTop: 10,
+  },
+
+    premiumBtn: {
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#4F46E5",
+    padding: 17,
+    borderRadius: 14,
+    marginTop: 14,
+  },
+
+  premiumBtnTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  premiumBtnText: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 5,
+    lineHeight: 18,
+  },
+
+  premiumBtnArrow: {
+    color: "#818CF8",
+    fontSize: 13,
+    fontWeight: "800",
     marginTop: 10,
   },
 };

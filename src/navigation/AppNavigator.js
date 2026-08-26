@@ -17,9 +17,12 @@ import DebateBattleScreen from "../screens/DebateBattleScreen";
 import DebateChallengesScreen from "../screens/DebateChallengesScreen";
 import DebateLobbyScreen from "../screens/DebateLobbyScreen";
 import InboxScreen from "../screens/InboxScreen";
+import JobsScreen from "../screens/JobsScreen";
 import LoginScreen from "../screens/LoginScreen";
 import MembersScreen from "../screens/MembersScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
 import PastPapersScreen from "../screens/PastPapersScreen";
+import PostJobScreen from "../screens/PostJobScreen";
 import PremiumScreen from "../screens/PremiumScreen";
 import PrivateChatScreen from "../screens/PrivateChatScreen";
 import QuestionOfTheDayScreen from "../screens/QuestionOfTheDayScreen";
@@ -98,6 +101,16 @@ export default function AppNavigator() {
               options={{ headerShown: false }}
             />
 
+            {/* NOTIFICATIONS */}
+
+<Stack.Screen
+  name="Notifications"
+  component={NotificationsScreen}
+  options={{
+    title: "Notifications",
+  }}
+/>
+
             {/* GROUP CHAT */}
 
             <Stack.Screen
@@ -115,6 +128,7 @@ export default function AppNavigator() {
     title: "Comments",
   }}
 />
+
 
 {/* QUESTION OF THE DAY */}
 
@@ -174,6 +188,20 @@ export default function AppNavigator() {
               component={PremiumScreen}
               options={{ title: "Upgrade Premium" }}
             />
+
+            {/* JOBS & CAREERS */}
+
+<Stack.Screen
+  name="Jobs"
+  component={JobsScreen}
+  options={{ title: "Jobs & Careers" }}
+/>
+
+<Stack.Screen
+  name="PostJob"
+  component={PostJobScreen}
+  options={{ title: "Post Job" }}
+/>
 
             {/* PAST PAPERS */}
 

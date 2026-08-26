@@ -14,7 +14,7 @@ import { auth } from "../services/firebase";
 
 const API_URL = "https://university-universal-backend.onrender.com";
 
-export default function PremiumScreen() {
+export default function PremiumScreen({ navigation }) {
   const [currency, setCurrency] = useState("kes");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
@@ -564,4 +564,31 @@ const styles = {
     textAlign: "center",
     marginBottom: 30,
   },
+
+  jobsButton: {
+  backgroundColor: "#111827",
+  padding: 18,
+  borderRadius: 16,
+  marginBottom: 20,
+  borderWidth: 1,
+  borderColor: "#4F46E5",
+},
+
+jobsButtonTitle: {
+  color: "#FFFFFF",
+  fontSize: 18,
+  fontWeight: "bold",
+},
+
+jobsButtonText: {
+  color: "#9CA3AF",
+  marginTop: 6,
+  lineHeight: 20,
+},
+
+jobsButtonAction: {
+  color: "#4F46E5",
+  fontWeight: "bold",
+  marginTop: 12,
+},
 };
