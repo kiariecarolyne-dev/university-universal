@@ -101,69 +101,77 @@ export default function PremiumScreen({ navigation }) {
   };
 
   // =========================
-  // MPESA PAYMENT
-  // =========================
-  const handleMpesaPayment = async (plan, amount) => {
-    if (!userId) {
-      Alert.alert("Error", "Please login first");
-      return;
-    }
+// MPESA PAYMENT
+// =========================
+const handleMpesaPayment = async (plan, amount) => {
+  if (!userId) {
+    Alert.alert("Error", "Please login first");
+    return;
+  }
 
-    if (loading) return;
+  if (loading) return;
 
-    const formattedPhone = formatPhone(phone);
+  const formattedPhone = formatPhone(phone);
 
-    if (!formattedPhone) {
-      Alert.alert(
-        "Invalid Number",
-        "Enter number like 0712345678"
-      );
-      return;
-    }
+  if (!formattedPhone) {
+    Alert.alert(
+      "Invalid Number",
+      "Enter number like 0712345678"
+    );
+    return;
+  }
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      console.log("STARTING MPESA PAYMENT");
-      console.log("PLAN:", plan);
-      console.log("AMOUNT:", amount);
-      console.log("PHONE:", formattedPhone);
+    console.log("STARTING MPESA PAYMENT");
+    console.log("PLAN:", plan);
+    console.log("AMOUNT:", amount);
+    console.log("PHONE:", formattedPhone);
 
-      const response = await axios.post(
-        `${API_URL}/mpesa-payment`,
-        {
-          phone: formattedPhone,
-          userId,
-          plan,
-        }
-      );
-
-      if (response.data?.success) {
-        Alert.alert(
-          "M-Pesa Prompt Sent",
-          "Check your phone for the M-Pesa payment prompt and enter your M-Pesa PIN."
-        );
-      } else {
-        Alert.alert(
-          "Payment Error",
-          "M-Pesa payment could not be started."
-        );
+    const response = await axios.post(
+      `${API_URL}/mpesa-payment`,
+      {
+        phone: formattedPhone,
+        userId,
+        plan,
       }
-    } catch (error) {
-      console.log(
-        "MPESA FRONTEND ERROR:",
-        error.response?.data || error.message
-      );
+    );
 
+    if (response.data?.success) {
       Alert.alert(
-        "M-Pesa Error",
-        error.response?.data?.error ||
-          "M-Pesa payment failed."
+        "📲 M-Pesa Prompt Sent",
+        `A payment request for KSh ${amount} has been sent to ${phone}.\n\n` +
+          "Check your phone for the M-Pesa prompt and enter your M-Pesa PIN.\n\n" +
+          "Your Premium will only be activated after M-Pesa confirms the payment.",
+        [
+          {
+            text: "OK",
+            style: "default",
+          },
+        ]
       );
-    } finally {
-      setLoading(false);
+    } else {
+      Alert.alert(
+        "❌ Payment Not Started",
+        "M-Pesa could not start the payment request. Please try again."
+      );
     }
-  };
+  } catch (error) {
+    console.log(
+      "MPESA FRONTEND ERROR:",
+      error.response?.data || error.message
+    );
+
+    Alert.alert(
+      "❌ M-Pesa Error",
+      error.response?.data?.error ||
+        "We could not start the M-Pesa payment. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <ScrollView
@@ -438,10 +446,10 @@ export default function PremiumScreen({ navigation }) {
           LOADING
       ========================= */}
       {loading && (
-        <Text style={styles.loading}>
-          🔄 Preparing secure payment...
-        </Text>
-      )}
+  <Text style={styles.loading}>
+    📲 Connecting to M-Pesa...
+  </Text>
+)}
     </ScrollView>
   );
 }
