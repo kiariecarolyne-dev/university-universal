@@ -12,7 +12,8 @@ import {
 
 import { auth } from "../services/firebase";
 
-const API_URL = "https://university-universal-backend.onrender.com";
+const API_URL =
+  "https://university-universal-backend.onrender.com";
 
 export default function PremiumScreen({ navigation }) {
   const [currency, setCurrency] = useState("kes");
@@ -21,18 +22,29 @@ export default function PremiumScreen({ navigation }) {
 
   const userId = auth.currentUser?.uid;
 
+  // =========================
+  // FORMAT MPESA PHONE
+  // =========================
   const formatPhone = (number) => {
     let cleaned = number.replace(/\s/g, "");
 
-    if (cleaned.startsWith("07")) return "254" + cleaned.substring(1);
-    if (cleaned.startsWith("01")) return "254" + cleaned.substring(1);
-    if (cleaned.startsWith("254")) return cleaned;
+    if (cleaned.startsWith("07")) {
+      return "254" + cleaned.substring(1);
+    }
+
+    if (cleaned.startsWith("01")) {
+      return "254" + cleaned.substring(1);
+    }
+
+    if (cleaned.startsWith("254")) {
+      return cleaned;
+    }
 
     return null;
   };
 
   // =========================
-  // CARD PAYMENT
+  // LEMON SQUEEZY CARD PAYMENT
   // =========================
   const handlePayment = async (plan) => {
     if (!userId) {
@@ -49,27 +61,29 @@ export default function PremiumScreen({ navigation }) {
       console.log("PLAN:", plan);
 
       const response = await axios.post(
-  `${API_URL}/create-lemon-checkout`,
+        `${API_URL}/create-lemon-checkout`,
         {
           userId,
           plan,
-          currency,
         }
       );
 
       const checkoutUrl = response.data?.url;
 
       if (!checkoutUrl) {
-        Alert.alert("Error", "Payment session not created");
+        Alert.alert(
+          "Error",
+          "Payment session not created."
+        );
         return;
       }
 
       await Linking.openURL(checkoutUrl);
 
       Alert.alert(
-  "Browser Opened",
-  "Complete your payment in the secure Lemon Squeezy page. When payment finishes, simply return to the app."
-);
+        "Browser Opened",
+        "Complete your payment on the secure Lemon Squeezy checkout page. When payment finishes, return to University Universal."
+      );
     } catch (error) {
       console.log(
         "CARD PAYMENT ERROR:",
@@ -77,8 +91,9 @@ export default function PremiumScreen({ navigation }) {
       );
 
       Alert.alert(
-        "Error",
-        error.response?.data?.error || "Card payment failed."
+        "Payment Error",
+        error.response?.data?.error ||
+          "Card payment failed."
       );
     } finally {
       setLoading(false);
@@ -112,102 +127,150 @@ export default function PremiumScreen({ navigation }) {
       console.log("STARTING MPESA PAYMENT");
       console.log("PLAN:", plan);
       console.log("AMOUNT:", amount);
+      console.log("PHONE:", formattedPhone);
 
       const response = await axios.post(
         `${API_URL}/mpesa-payment`,
         {
           phone: formattedPhone,
-          amount,     // MUST MATCH BACKEND
           userId,
           plan,
         }
       );
 
-      if (response.data.success) {
+      if (response.data?.success) {
         Alert.alert(
-          "Success",
-          "Check your phone for M-Pesa prompt."
+          "M-Pesa Prompt Sent",
+          "Check your phone for the M-Pesa payment prompt and enter your M-Pesa PIN."
+        );
+      } else {
+        Alert.alert(
+          "Payment Error",
+          "M-Pesa payment could not be started."
         );
       }
     } catch (error) {
-  console.log("MPESA FRONTEND ERROR:", error.message);
+      console.log(
+        "MPESA FRONTEND ERROR:",
+        error.response?.data || error.message
+      );
 
-  console.log(
-    "SERVER RESPONSE:",
-    error.response?.data
-  );
-
-  Alert.alert(
-    "Error",
-    JSON.stringify(
-      error.response?.data || error.message
-    )
-  );
+      Alert.alert(
+        "M-Pesa Error",
+        error.response?.data?.error ||
+          "M-Pesa payment failed."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* =========================
+          HEADER
+      ========================= */}
       <View style={styles.header}>
         <Text style={styles.title}>
-  🚀 Upgrade to Premium
-</Text>
+          🚀 Upgrade to Premium
+        </Text>
+
         <Text style={styles.subtitle}>
-  Unlock messaging, notes, study rooms and more.
-</Text>
+          Unlock the full University Universal experience.
+        </Text>
       </View>
 
+      {/* =========================
+          TRUST
+      ========================= */}
       <View style={styles.trustBox}>
         <Text style={styles.trustTitle}>
-  🔒 Safe & Secure Payments
-</Text>
+          🔒 Safe & Secure Payments
+        </Text>
 
-<Text style={styles.trustText}>
-  Pay securely with M-Pesa or international cards powered by Lemon Squeezy.
-</Text>
+        <Text style={styles.trustText}>
+          Pay securely with M-Pesa or international cards.
+          Card payments are processed securely by Lemon
+          Squeezy.
+        </Text>
       </View>
 
+      {/* =========================
+          FEATURES
+      ========================= */}
       <Text style={styles.sectionTitle}>
-  Why Upgrade?
-</Text>
+        Why Upgrade?
+      </Text>
 
       <View style={styles.featuresCard}>
-        <Text style={styles.cardTitle}>Premium Features</Text>
-        <Text style={styles.feature}>✓ Chat privately with students worldwide</Text>
-        <Text style={styles.feature}>✓ Join unlimited video study rooms</Text>
-        <Text style={styles.feature}>✓ Access premium study notes</Text>
-        <Text style={styles.feature}>✓ Get priority visibility across the app</Text>
+        <Text style={styles.cardTitle}>
+          Premium Features
+        </Text>
+
+        <Text style={styles.feature}>
+          ✓ Chat privately with students worldwide
+        </Text>
+
+        <Text style={styles.feature}>
+          ✓ Join unlimited video study rooms
+        </Text>
+
+        <Text style={styles.feature}>
+          ✓ Access premium study notes
+        </Text>
+
+        <Text style={styles.feature}>
+          ✓ Unlimited past-paper downloads
+        </Text>
+
+        <Text style={styles.feature}>
+          ✓ Get priority visibility across the app
+        </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Choose Currency</Text>
+      {/* =========================
+          CURRENCY
+      ========================= */}
+      <Text style={styles.sectionTitle}>
+        Choose Currency
+      </Text>
 
       <View style={styles.row}>
         <TouchableOpacity
           disabled={loading}
           style={[
             styles.currencyBtn,
-            currency === "kes" && styles.activeCurrency,
+            currency === "kes" &&
+              styles.activeCurrency,
           ]}
           onPress={() => setCurrency("kes")}
         >
-          <Text style={styles.currencyText}>KES 🇰🇪</Text>
+          <Text style={styles.currencyText}>
+            KES 🇰🇪
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           disabled={loading}
           style={[
             styles.currencyBtn,
-            currency === "usd" && styles.activeCurrency,
+            currency === "usd" &&
+              styles.activeCurrency,
           ]}
           onPress={() => setCurrency("usd")}
         >
-          <Text style={styles.currencyText}>USD 🇺🇸</Text>
+          <Text style={styles.currencyText}>
+            USD 🌎
+          </Text>
         </TouchableOpacity>
       </View>
 
+      {/* =========================
+          MPESA NUMBER
+      ========================= */}
       {currency === "kes" && (
         <TextInput
           style={styles.input}
@@ -216,103 +279,49 @@ export default function PremiumScreen({ navigation }) {
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
+          maxLength={12}
         />
       )}
 
-            {/* 2 DAYS */}
-      <View style={styles.planCard}>
-        <Text style={styles.planTitle}>Starter Plan</Text>
+      {/* =========================
+          WEEKLY PLAN
+      ========================= */}
+      <View
+        style={[
+          styles.planCard,
+          styles.popularCard,
+        ]}
+      >
+        <Text style={styles.popularBadge}>
+          MOST POPULAR
+        </Text>
+
+        <Text style={styles.planTitle}>
+          Weekly Premium
+        </Text>
+
         <Text style={styles.planDesc}>
-          Perfect for testing premium access
+          Full Premium access for 7 days.
         </Text>
 
         <Text style={styles.price}>
-          {currency === "kes" ? "KSh 50" : "$0.50"}
+          {currency === "kes"
+            ? "KSh 50"
+            : "$0.50"}
         </Text>
 
+        <Text style={styles.duration}>
+          per week
+        </Text>
+
+        {/* USD CARD */}
         {currency === "usd" && (
           <TouchableOpacity
             disabled={loading}
             style={styles.primaryBtn}
-            onPress={() => handlePayment("2days")}
-          >
-            <Text style={styles.primaryText}>
-              Subscribe with Card
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {currency === "kes" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.secondaryBtn}
-            onPress={() => handleMpesaPayment("2days", 50)}
-          >
-            <Text style={styles.secondaryText}>
-              Instant M-Pesa Payment
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-
-      {/* WEEKLY */}
-      <View style={[styles.planCard, styles.popularCard]}>
-        <Text style={styles.popularBadge}>MOST POPULAR</Text>
-        <Text style={styles.planTitle}>Student Pro</Text>
-
-        <Text style={styles.planDesc}>
-          Best for active university students
-        </Text>
-
-        <Text style={styles.price}>
-          {currency === "kes" ? "KSh 150" : "$1.50"}
-        </Text>
-
-        {currency === "usd" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.primaryBtn}
-            onPress={() => handlePayment("weekly")}
-          >
-            <Text style={styles.primaryText}>
-              Subscribe with Card
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {currency === "kes" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.secondaryBtn}
-            onPress={() => handleMpesaPayment("weekly", 150)}
-          >
-            <Text style={styles.secondaryText}>
-              Instant M-Pesa Payment
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-
-      {/* MONTHLY */}
-      <View style={[styles.planCard, styles.premiumCard]}>
-        <Text style={styles.goldBadge}>UNLIMITED PREMIUM ⭐</Text>
-        <Text style={styles.planTitle}>Unlimited Access</Text>
-
-        <Text style={styles.planDesc}>
-          Full unrestricted premium experience
-        </Text>
-
-        <Text style={styles.price}>
-          {currency === "kes" ? "KSh 500" : "$5.00"}
-        </Text>
-
-        {currency === "usd" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.primaryBtn}
-            onPress={() => handlePayment("monthly")}
+            onPress={() =>
+              handlePayment("weekly")
+            }
           >
             <Text style={styles.primaryText}>
               💳 Pay with Card
@@ -320,11 +329,17 @@ export default function PremiumScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* KES MPESA */}
         {currency === "kes" && (
           <TouchableOpacity
             disabled={loading}
             style={styles.secondaryBtn}
-            onPress={() => handleMpesaPayment("monthly", 500)}
+            onPress={() =>
+              handleMpesaPayment(
+                "weekly",
+                50
+              )
+            }
           >
             <Text style={styles.secondaryText}>
               📲 Pay with M-Pesa
@@ -333,23 +348,98 @@ export default function PremiumScreen({ navigation }) {
         )}
       </View>
 
+      {/* =========================
+          MONTHLY PLAN
+      ========================= */}
+      <View
+        style={[
+          styles.planCard,
+          styles.premiumCard,
+        ]}
+      >
+        <Text style={styles.goldBadge}>
+          ⭐ BEST VALUE
+        </Text>
+
+        <Text style={styles.planTitle}>
+          Monthly Premium
+        </Text>
+
+        <Text style={styles.planDesc}>
+          Full Premium access for one month.
+        </Text>
+
+        <Text style={styles.price}>
+          {currency === "kes"
+            ? "KSh 150"
+            : "$1.50"}
+        </Text>
+
+        <Text style={styles.duration}>
+          per month
+        </Text>
+
+        {/* USD CARD */}
+        {currency === "usd" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.primaryBtn}
+            onPress={() =>
+              handlePayment("monthly")
+            }
+          >
+            <Text style={styles.primaryText}>
+              💳 Pay with Card
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* KES MPESA */}
+        {currency === "kes" && (
+          <TouchableOpacity
+            disabled={loading}
+            style={styles.secondaryBtn}
+            onPress={() =>
+              handleMpesaPayment(
+                "monthly",
+                150
+              )
+            }
+          >
+            <Text style={styles.secondaryText}>
+              📲 Pay with M-Pesa
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* =========================
+          WARNING
+      ========================= */}
       <View style={styles.warningBox}>
         <Text style={styles.warningTitle}>
-          Don't lose access to Premium features
+          Keep your Premium access
         </Text>
 
         <Text style={styles.warningText}>
-          Upgrade today to continue messaging, studying and earning without interruption.
+          Upgrade today to enjoy the full University
+          Universal experience without restrictions.
         </Text>
       </View>
 
+      {/* =========================
+          SECURITY
+      ========================= */}
       <Text style={styles.security}>
         🔒 Secure Payments • Protected Checkout
       </Text>
 
+      {/* =========================
+          LOADING
+      ========================= */}
       {loading && (
         <Text style={styles.loading}>
-          🔄 Preparing secure checkout...
+          🔄 Preparing secure payment...
         </Text>
       )}
     </ScrollView>
@@ -373,12 +463,14 @@ const styles = {
     fontSize: 30,
     fontWeight: "bold",
     color: "#FFFFFF",
+    textAlign: "center",
   },
 
   subtitle: {
     color: "#9CA3AF",
     textAlign: "center",
     marginTop: 6,
+    lineHeight: 20,
   },
 
   trustBox: {
@@ -396,6 +488,7 @@ const styles = {
   trustText: {
     color: "#9CA3AF",
     marginTop: 4,
+    lineHeight: 20,
   },
 
   featuresCard: {
@@ -416,7 +509,8 @@ const styles = {
 
   feature: {
     color: "#9CA3AF",
-    marginTop: 4,
+    marginTop: 6,
+    lineHeight: 20,
   },
 
   sectionTitle: {
@@ -495,19 +589,25 @@ const styles = {
   planTitle: {
     color: "#FFFFFF",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 20,
   },
 
   planDesc: {
     color: "#9CA3AF",
     marginTop: 4,
     marginBottom: 8,
+    lineHeight: 20,
   },
 
   price: {
     color: "#FFFFFF",
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "bold",
+    marginBottom: 2,
+  },
+
+  duration: {
+    color: "#9CA3AF",
     marginBottom: 12,
   },
 
@@ -533,6 +633,7 @@ const styles = {
   secondaryText: {
     color: "#FFFFFF",
     textAlign: "center",
+    fontWeight: "bold",
   },
 
   warningBox: {
@@ -550,6 +651,7 @@ const styles = {
   warningText: {
     color: "#9CA3AF",
     marginTop: 4,
+    lineHeight: 20,
   },
 
   security: {
@@ -564,31 +666,4 @@ const styles = {
     textAlign: "center",
     marginBottom: 30,
   },
-
-  jobsButton: {
-  backgroundColor: "#111827",
-  padding: 18,
-  borderRadius: 16,
-  marginBottom: 20,
-  borderWidth: 1,
-  borderColor: "#4F46E5",
-},
-
-jobsButtonTitle: {
-  color: "#FFFFFF",
-  fontSize: 18,
-  fontWeight: "bold",
-},
-
-jobsButtonText: {
-  color: "#9CA3AF",
-  marginTop: 6,
-  lineHeight: 20,
-},
-
-jobsButtonAction: {
-  color: "#4F46E5",
-  fontWeight: "bold",
-  marginTop: 12,
-},
 };
