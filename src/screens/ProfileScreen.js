@@ -23,6 +23,7 @@ import {
   View,
 } from "react-native";
 
+import { signOut } from "firebase/auth";
 import { auth, db } from "../services/firebase";
 
 export default function ProfileScreen({ navigation }) {
@@ -37,6 +38,15 @@ export default function ProfileScreen({ navigation }) {
   const [isPremium, setIsPremium] = useState(false);
 
   const userId = auth.currentUser?.uid;
+
+  const handleLogout = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.log("LOGOUT ERROR:", error.code, error.message);
+    Alert.alert("Logout Failed", error.message);
+  }
+};
 
   // LOAD PROFILE
   const loadProfile = async () => {
@@ -446,6 +456,15 @@ const previousCourse = oldProfile.exists()
   </Text>
 </TouchableOpacity>
 
+<TouchableOpacity
+  style={styles.logoutBtn}
+  onPress={handleLogout}
+>
+  <Text style={styles.logoutText}>
+    🚪 Log Out
+  </Text>
+</TouchableOpacity>
+
       </View>
     </ScrollView>
   );
@@ -565,4 +584,20 @@ email: {
     fontWeight: "800",
     marginTop: 10,
   },
+
+  logoutBtn: {
+  backgroundColor: "#1F2937",
+  borderWidth: 1,
+  borderColor: "#374151",
+  padding: 16,
+  borderRadius: 14,
+  marginTop: 14,
+  alignItems: "center",
+},
+
+logoutText: {
+  color: "#F87171",
+  fontWeight: "bold",
+  fontSize: 15,
+},
 };
