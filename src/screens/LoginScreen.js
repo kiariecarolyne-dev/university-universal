@@ -41,6 +41,8 @@ export default function LoginScreen({ navigation }) {
 
       navigation.replace("Home");
     } catch (error) {
+  console.log("LOGIN FIREBASE ERROR:", error.code, error.message);
+
   let message = "Login failed. Please try again.";
 
   switch (error.code) {
@@ -67,7 +69,7 @@ export default function LoginScreen({ navigation }) {
       break;
 
     default:
-      message = "Unable to log in. Please try again.";
+      message = `Login failed: ${error.code}`;
   }
 
   Alert.alert("Login Failed", message);
@@ -93,6 +95,8 @@ export default function LoginScreen({ navigation }) {
       "A password reset link has been sent to your email."
     );
   } catch (error) {
+    console.log("PASSWORD RESET FIREBASE ERROR:", error.code, error.message);
+
     let message = "Unable to send password reset email.";
 
     switch (error.code) {
@@ -107,6 +111,9 @@ export default function LoginScreen({ navigation }) {
       case "auth/network-request-failed":
         message = "No internet connection.";
         break;
+
+      default:
+        message = `Password reset failed: ${error.code}`;
     }
 
     Alert.alert("Reset Password", message);

@@ -1,7 +1,5 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -31,6 +29,39 @@ import StudentProfileScreen from "../screens/StudentProfileScreen";
 import UploadPastPaperScreen from "../screens/UploadPastPaperScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
 import WeeklyRankingScreen from "../screens/WeeklyRankingScreen";
+
+// Diagnostic check to immediately identify broken/undefined imports
+const screenMap = {
+  MainTabs,
+  LoginScreen,
+  RegisterScreen,
+  ChatScreen,
+  CommentsScreen,
+  DailyChallengeScreen,
+  DebateBattleScreen,
+  DebateChallengesScreen,
+  DebateLobbyScreen,
+  InboxScreen,
+  JobsScreen,
+  MembersScreen,
+  NotificationsScreen,
+  PastPapersScreen,
+  PostJobScreen,
+  PremiumScreen,
+  PrivateChatScreen,
+  QuestionOfTheDayScreen,
+  StudentProfileScreen,
+  UploadPastPaperScreen,
+  VideoRoomScreen,
+  WeeklyRankingScreen,
+};
+
+Object.entries(screenMap).forEach(([name, component]) => {
+  if (!component) {
+    console.error(`❌ IMPORT ERROR: Screen "${name}" is undefined. Check if it missing 'export default'.`);
+  }
+});
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -61,7 +92,6 @@ export default function AppNavigator() {
   }
 
   return (
-  <SafeAreaProvider>
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
@@ -78,13 +108,11 @@ export default function AppNavigator() {
         {!user ? (
           <>
             {/* AUTH SCREENS */}
-
             <Stack.Screen
               name="Login"
               component={LoginScreen}
               options={{ headerShown: false }}
             />
-
             <Stack.Screen
               name="Register"
               component={RegisterScreen}
@@ -94,7 +122,6 @@ export default function AppNavigator() {
         ) : (
           <>
             {/* MAIN APP */}
-
             <Stack.Screen
               name="MainTabs"
               component={MainTabs}
@@ -102,17 +129,13 @@ export default function AppNavigator() {
             />
 
             {/* NOTIFICATIONS */}
-
-<Stack.Screen
-  name="Notifications"
-  component={NotificationsScreen}
-  options={{
-    title: "Notifications",
-  }}
-/>
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ title: "Notifications" }}
+            />
 
             {/* GROUP CHAT */}
-
             <Stack.Screen
               name="Chat"
               component={ChatScreen}
@@ -120,45 +143,33 @@ export default function AppNavigator() {
             />
 
             {/* COMMENTS */}
-
             <Stack.Screen
-  name="Comments"
-  component={CommentsScreen}
-  options={{
-    title: "Comments",
-  }}
-/>
+              name="Comments"
+              component={CommentsScreen}
+              options={{ title: "Comments" }}
+            />
 
+            {/* QUESTION OF THE DAY */}
+            <Stack.Screen
+              name="QuestionOfTheDay"
+              component={QuestionOfTheDayScreen}
+              options={{ title: "Question of the Day" }}
+            />
 
-{/* QUESTION OF THE DAY */}
+            {/* DAILY CHALLENGE */}
+            <Stack.Screen
+              name="DailyChallenge"
+              component={DailyChallengeScreen}
+              options={{ title: "Daily Challenge" }}
+            />
 
-<Stack.Screen
-  name="QuestionOfTheDay"
-  component={QuestionOfTheDayScreen}
-  options={{
-    title: "Question of the Day",
-  }}
-/>
-
-{/* DAILY CHALLENGE */}
-
-<Stack.Screen
-  name="DailyChallenge"
-  component={DailyChallengeScreen}
-  options={{
-    title: "Daily Challenge",
-  }}
-/>
-
-{/* WEEKLY RANKING */}
-
-<Stack.Screen
-  name="WeeklyRanking"
-  component={WeeklyRankingScreen}
-/>
+            {/* WEEKLY RANKING */}
+            <Stack.Screen
+              name="WeeklyRanking"
+              component={WeeklyRankingScreen}
+            />
 
             {/* PRIVATE CHAT */}
-
             <Stack.Screen
               name="PrivateChat"
               component={PrivateChatScreen}
@@ -166,7 +177,6 @@ export default function AppNavigator() {
             />
 
             {/* INBOX */}
-
             <Stack.Screen
               name="Inbox"
               component={InboxScreen}
@@ -174,7 +184,6 @@ export default function AppNavigator() {
             />
 
             {/* VIDEO STUDY ROOM */}
-
             <Stack.Screen
               name="VideoRoom"
               component={VideoRoomScreen}
@@ -182,7 +191,6 @@ export default function AppNavigator() {
             />
 
             {/* PREMIUM */}
-
             <Stack.Screen
               name="Premium"
               component={PremiumScreen}
@@ -190,21 +198,18 @@ export default function AppNavigator() {
             />
 
             {/* JOBS & CAREERS */}
-
-<Stack.Screen
-  name="Jobs"
-  component={JobsScreen}
-  options={{ title: "Jobs & Careers" }}
-/>
-
-<Stack.Screen
-  name="PostJob"
-  component={PostJobScreen}
-  options={{ title: "Post Job" }}
-/>
+            <Stack.Screen
+              name="Jobs"
+              component={JobsScreen}
+              options={{ title: "Jobs & Careers" }}
+            />
+            <Stack.Screen
+              name="PostJob"
+              component={PostJobScreen}
+              options={{ title: "Post Job" }}
+            />
 
             {/* PAST PAPERS */}
-
             <Stack.Screen
               name="PastPapers"
               component={PastPapersScreen}
@@ -212,7 +217,6 @@ export default function AppNavigator() {
             />
 
             {/* UPLOAD PAST PAPER */}
-
             <Stack.Screen
               name="UploadPastPaper"
               component={UploadPastPaperScreen}
@@ -220,7 +224,6 @@ export default function AppNavigator() {
             />
 
             {/* GROUP MEMBERS */}
-
             <Stack.Screen
               name="Members"
               component={MembersScreen}
@@ -228,7 +231,6 @@ export default function AppNavigator() {
             />
 
             {/* STUDENT PROFILE */}
-
             <Stack.Screen
               name="StudentProfile"
               component={StudentProfileScreen}
@@ -236,29 +238,25 @@ export default function AppNavigator() {
             />
 
             {/* DEBATE LOBBY */}
-
-<Stack.Screen
-  name="DebateLobby"
-  component={DebateLobbyScreen}
-/>
+            <Stack.Screen
+              name="DebateLobby"
+              component={DebateLobbyScreen}
+            />
 
             {/* DEBATE CHALLENGES */}
+            <Stack.Screen
+              name="DebateChallenges"
+              component={DebateChallengesScreen}
+            />
 
-<Stack.Screen
-  name="DebateChallenges"
-  component={DebateChallengesScreen}
-/>
-
-{/* DEBATE BATTLE */}
-
-<Stack.Screen
-  name="DebateBattle"
-  component={DebateBattleScreen}
-/>
+            {/* DEBATE BATTLE */}
+            <Stack.Screen
+              name="DebateBattle"
+              component={DebateBattleScreen}
+            />
           </>
         )}
       </Stack.Navigator>
-        </NavigationContainer>
-  </SafeAreaProvider>
-);
+    </NavigationContainer>
+  );
 }
