@@ -128,7 +128,8 @@ export default function PremiumScreen({ navigation }) {
         </Text>
 
         <Text style={styles.subtitle}>
-          Unlock the full University Universal experience.
+          Get more from your studies — exam prep, career
+          opportunities, and a global student community.
         </Text>
       </View>
 
@@ -157,24 +158,45 @@ export default function PremiumScreen({ navigation }) {
           Premium Features
         </Text>
 
-        <Text style={styles.feature}>
-          ✓ Chat privately with students worldwide
+        <Text style={styles.featureNote}>
+          Unlock more past papers for studying and exam
+          preparation, discover career and student
+          opportunities, and connect with a global student
+          community — all in one place.
         </Text>
 
         <Text style={styles.feature}>
-          ✓ Join unlimited video study rooms
+          📚 Unlimited Past Papers
         </Text>
 
         <Text style={styles.feature}>
-          ✓ Access premium study notes
+          💼 Discover Job Opportunities
+        </Text>
+
+        <Text style={styles.featureNote}>
+          Explore available job opportunities and discover
+          opportunities that may match your skills and
+          interests.
         </Text>
 
         <Text style={styles.feature}>
-          ✓ Unlimited past-paper downloads
+          🎓 Discover & Connect with Students
         </Text>
 
         <Text style={styles.feature}>
-          ✓ Get priority visibility across the app
+          💬 Private Student Chats
+        </Text>
+
+        <Text style={styles.feature}>
+          🎥 Global Study Hall
+        </Text>
+
+        <Text style={styles.feature}>
+          ⚔️ Debate Challenges
+        </Text>
+
+        <Text style={styles.feature}>
+          👥 Student Groups / Communities
         </Text>
       </View>
 
@@ -379,6 +401,13 @@ const styles = {
     color: "#9CA3AF",
     marginTop: 6,
     lineHeight: 20,
+  },
+
+  featureNote: {
+    color: "#6B7280",
+    marginTop: 2,
+    lineHeight: 18,
+    fontSize: 12,
   },
 
   sectionTitle: {
