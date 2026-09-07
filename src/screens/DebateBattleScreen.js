@@ -53,6 +53,14 @@ export default function DebateBattleScreen({
   const viewerAnnouncedRef = useRef(false);
   const finishAnnouncedRef = useRef(false);
 
+  // Older battles stored "Student" as the creator's name (null auth
+  // displayName). Resolve the real name from the users collection.
+  // Called here, before the loading early-return, so the hook order
+  // is identical on every render.
+  const resolvedNames = useResolvedNames(
+    battle ? Object.values(battle.players || {}) : []
+  );
+
   const currentUser = auth.currentUser;
 
   useEffect(() => {
@@ -484,14 +492,6 @@ const isSpectator = !isParticipant;
 // mismatch.
 const { playerOne, playerTwo } =
   getDebatePlayers(battle);
-
-// Older battles stored "Student" as the creator's name (null auth
-// displayName). Resolve the real name from the users collection.
-const resolvedNames = useResolvedNames(
-  battle
-    ? Object.values(battle.players || {})
-    : []
-);
 
 const displayName = (player, fallback = "Student") =>
   resolvedNames[player?.userId] ||
