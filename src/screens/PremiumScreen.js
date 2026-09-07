@@ -2,7 +2,6 @@ import axios from "axios";
 import { useState } from "react";
 import {
   Alert,
-  Linking,
   ScrollView,
   Text,
   TextInput,
@@ -16,7 +15,6 @@ const API_URL =
   "https://university-universal-backend.onrender.com";
 
 export default function PremiumScreen({ navigation }) {
-  const [currency, setCurrency] = useState("kes");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -44,9 +42,9 @@ export default function PremiumScreen({ navigation }) {
   };
 
   // =========================
-  // LEMON SQUEEZY CARD PAYMENT
+  // MPESA PAYMENT
   // =========================
-  const handlePayment = async (plan) => {
+  const handleMpesaPayment = async (plan, amount) => {
     if (!userId) {
       Alert.alert("Error", "Please login first");
       return;
@@ -54,124 +52,67 @@ export default function PremiumScreen({ navigation }) {
 
     if (loading) return;
 
+    const formattedPhone = formatPhone(phone);
+
+    if (!formattedPhone) {
+      Alert.alert(
+        "Invalid Number",
+        "Enter number like 0712345678"
+      );
+      return;
+    }
+
     try {
       setLoading(true);
 
-      console.log("STARTING CARD PAYMENT");
+      console.log("STARTING MPESA PAYMENT");
       console.log("PLAN:", plan);
+      console.log("AMOUNT:", amount);
+      console.log("PHONE:", formattedPhone);
 
       const response = await axios.post(
-        `${API_URL}/create-lemon-checkout`,
+        `${API_URL}/mpesa-payment`,
         {
+          phone: formattedPhone,
           userId,
           plan,
         }
       );
 
-      const checkoutUrl = response.data?.url;
-
-      if (!checkoutUrl) {
+      if (response.data?.success) {
         Alert.alert(
-          "Error",
-          "Payment session not created."
+          "📲 M-Pesa Prompt Sent",
+          `A payment request for KSh ${amount} has been sent to ${phone}.\n\n` +
+            "Check your phone for the M-Pesa prompt and enter your M-Pesa PIN.\n\n" +
+            "Your Premium will only be activated after M-Pesa confirms the payment.",
+          [
+            {
+              text: "OK",
+              style: "default",
+            },
+          ]
         );
-        return;
+      } else {
+        Alert.alert(
+          "❌ Payment Not Started",
+          "M-Pesa could not start the payment request. Please try again."
+        );
       }
-
-      await Linking.openURL(checkoutUrl);
-
-      Alert.alert(
-        "Browser Opened",
-        "Complete your payment on the secure Lemon Squeezy checkout page. When payment finishes, return to University Universal."
-      );
     } catch (error) {
       console.log(
-        "CARD PAYMENT ERROR:",
+        "MPESA FRONTEND ERROR:",
         error.response?.data || error.message
       );
 
       Alert.alert(
-        "Payment Error",
+        "❌ M-Pesa Error",
         error.response?.data?.error ||
-          "Card payment failed."
+          "We could not start the M-Pesa payment. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
-
-  // =========================
-// MPESA PAYMENT
-// =========================
-const handleMpesaPayment = async (plan, amount) => {
-  if (!userId) {
-    Alert.alert("Error", "Please login first");
-    return;
-  }
-
-  if (loading) return;
-
-  const formattedPhone = formatPhone(phone);
-
-  if (!formattedPhone) {
-    Alert.alert(
-      "Invalid Number",
-      "Enter number like 0712345678"
-    );
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    console.log("STARTING MPESA PAYMENT");
-    console.log("PLAN:", plan);
-    console.log("AMOUNT:", amount);
-    console.log("PHONE:", formattedPhone);
-
-    const response = await axios.post(
-      `${API_URL}/mpesa-payment`,
-      {
-        phone: formattedPhone,
-        userId,
-        plan,
-      }
-    );
-
-    if (response.data?.success) {
-      Alert.alert(
-        "📲 M-Pesa Prompt Sent",
-        `A payment request for KSh ${amount} has been sent to ${phone}.\n\n` +
-          "Check your phone for the M-Pesa prompt and enter your M-Pesa PIN.\n\n" +
-          "Your Premium will only be activated after M-Pesa confirms the payment.",
-        [
-          {
-            text: "OK",
-            style: "default",
-          },
-        ]
-      );
-    } else {
-      Alert.alert(
-        "❌ Payment Not Started",
-        "M-Pesa could not start the payment request. Please try again."
-      );
-    }
-  } catch (error) {
-    console.log(
-      "MPESA FRONTEND ERROR:",
-      error.response?.data || error.message
-    );
-
-    Alert.alert(
-      "❌ M-Pesa Error",
-      error.response?.data?.error ||
-        "We could not start the M-Pesa payment. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
 
   return (
     <ScrollView
@@ -200,9 +141,7 @@ const handleMpesaPayment = async (plan, amount) => {
         </Text>
 
         <Text style={styles.trustText}>
-          Pay securely with M-Pesa or international cards.
-          Card payments are processed securely by Lemon
-          Squeezy.
+          Pay securely with M-Pesa.
         </Text>
       </View>
 
@@ -240,56 +179,17 @@ const handleMpesaPayment = async (plan, amount) => {
       </View>
 
       {/* =========================
-          CURRENCY
-      ========================= */}
-      <Text style={styles.sectionTitle}>
-        Choose Currency
-      </Text>
-
-      <View style={styles.row}>
-        <TouchableOpacity
-          disabled={loading}
-          style={[
-            styles.currencyBtn,
-            currency === "kes" &&
-              styles.activeCurrency,
-          ]}
-          onPress={() => setCurrency("kes")}
-        >
-          <Text style={styles.currencyText}>
-            KES 🇰🇪
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          disabled={loading}
-          style={[
-            styles.currencyBtn,
-            currency === "usd" &&
-              styles.activeCurrency,
-          ]}
-          onPress={() => setCurrency("usd")}
-        >
-          <Text style={styles.currencyText}>
-            USD 🌎
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* =========================
           MPESA NUMBER
       ========================= */}
-      {currency === "kes" && (
-        <TextInput
-          style={styles.input}
-          placeholder="M-Pesa Number (0712345678)"
-          placeholderTextColor="#9CA3AF"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          maxLength={12}
-        />
-      )}
+      <TextInput
+        style={styles.input}
+        placeholder="M-Pesa Number (0712345678)"
+        placeholderTextColor="#9CA3AF"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+        maxLength={12}
+      />
 
       {/* =========================
           WEEKLY PLAN
@@ -313,47 +213,27 @@ const handleMpesaPayment = async (plan, amount) => {
         </Text>
 
         <Text style={styles.price}>
-          {currency === "kes"
-            ? "KSh 50"
-            : "$0.50"}
+          KSh 50
         </Text>
 
         <Text style={styles.duration}>
           per week
         </Text>
 
-        {/* USD CARD */}
-        {currency === "usd" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.primaryBtn}
-            onPress={() =>
-              handlePayment("weekly")
-            }
-          >
-            <Text style={styles.primaryText}>
-              💳 Pay with Card
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* KES MPESA */}
-        {currency === "kes" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.secondaryBtn}
-            onPress={() =>
-              handleMpesaPayment(
-                "weekly",
-                50
-              )
-            }
-          >
-            <Text style={styles.secondaryText}>
-              📲 Pay with M-Pesa
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          disabled={loading}
+          style={styles.secondaryBtn}
+          onPress={() =>
+            handleMpesaPayment(
+              "weekly",
+              50
+            )
+          }
+        >
+          <Text style={styles.secondaryText}>
+            📲 Pay with M-Pesa
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* =========================
@@ -378,47 +258,27 @@ const handleMpesaPayment = async (plan, amount) => {
         </Text>
 
         <Text style={styles.price}>
-          {currency === "kes"
-            ? "KSh 150"
-            : "$1.50"}
+          KSh 150
         </Text>
 
         <Text style={styles.duration}>
           per month
         </Text>
 
-        {/* USD CARD */}
-        {currency === "usd" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.primaryBtn}
-            onPress={() =>
-              handlePayment("monthly")
-            }
-          >
-            <Text style={styles.primaryText}>
-              💳 Pay with Card
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* KES MPESA */}
-        {currency === "kes" && (
-          <TouchableOpacity
-            disabled={loading}
-            style={styles.secondaryBtn}
-            onPress={() =>
-              handleMpesaPayment(
-                "monthly",
-                150
-              )
-            }
-          >
-            <Text style={styles.secondaryText}>
-              📲 Pay with M-Pesa
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          disabled={loading}
+          style={styles.secondaryBtn}
+          onPress={() =>
+            handleMpesaPayment(
+              "monthly",
+              150
+            )
+          }
+        >
+          <Text style={styles.secondaryText}>
+            📲 Pay with M-Pesa
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* =========================
@@ -439,17 +299,17 @@ const handleMpesaPayment = async (plan, amount) => {
           SECURITY
       ========================= */}
       <Text style={styles.security}>
-        🔒 Secure Payments • Protected Checkout
+        🔒 Secure Payments via M-Pesa
       </Text>
 
       {/* =========================
           LOADING
       ========================= */}
       {loading && (
-  <Text style={styles.loading}>
-    📲 Connecting to M-Pesa...
-  </Text>
-)}
+        <Text style={styles.loading}>
+          📲 Connecting to M-Pesa...
+        </Text>
+      )}
     </ScrollView>
   );
 }
@@ -527,32 +387,6 @@ const styles = {
     marginBottom: 12,
   },
 
-  row: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  currencyBtn: {
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#1F2937",
-    borderRadius: 12,
-    marginHorizontal: 8,
-    minWidth: 100,
-    alignItems: "center",
-  },
-
-  activeCurrency: {
-    backgroundColor: "#4F46E5",
-    borderColor: "#4F46E5",
-  },
-
-  currencyText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-
   input: {
     backgroundColor: "#111827",
     borderWidth: 1,
@@ -617,19 +451,6 @@ const styles = {
   duration: {
     color: "#9CA3AF",
     marginBottom: 12,
-  },
-
-  primaryBtn: {
-    backgroundColor: "#4F46E5",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-
-  primaryText: {
-    color: "#FFFFFF",
-    textAlign: "center",
-    fontWeight: "bold",
   },
 
   secondaryBtn: {
