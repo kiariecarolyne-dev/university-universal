@@ -23,7 +23,10 @@ import {
 import { db } from "../services/firebase";
 
 import useUser from "../hooks/useUser";
-import { getUserPlan } from "../utils/access";
+import {
+  getUserPlan,
+  isAdminUser,
+} from "../utils/access";
 
 export default function JobsScreen({ navigation }) {
   const user = useUser();
@@ -165,11 +168,16 @@ export default function JobsScreen({ navigation }) {
 
   const plan = getUserPlan(user);
 
+  // Admin access depends ONLY on users/{uid}.isAdmin === true — never on
+  // Premium membership. Admins bypass the premium lock so they can always
+  // reach the admin controls below.
+  const isAdmin = isAdminUser(user);
+
   /* =========================================
-     FREE USER
+     FREE USER (non-admin students only)
   ========================================= */
 
-  if (plan !== "premium") {
+  if (!isAdmin && plan !== "premium") {
     return (
       <View style={styles.container}>
         <View style={styles.lockCard}>
@@ -449,7 +457,7 @@ export default function JobsScreen({ navigation }) {
         )}
       />
 
-      {user.isAdmin && (
+      {isAdmin && (
   <TouchableOpacity
     style={{
       backgroundColor: "#22C55E",
@@ -466,12 +474,12 @@ export default function JobsScreen({ navigation }) {
         fontWeight: "800",
       }}
     >
-      + Post Job
+      + Post Job Vacancy
     </Text>
   </TouchableOpacity>
 )}
 
-{user.isAdmin && (
+{isAdmin && (
   <TouchableOpacity
     style={{
       backgroundColor: "#0EA5E9",
@@ -492,8 +500,6 @@ export default function JobsScreen({ navigation }) {
     </Text>
   </TouchableOpacity>
 )}
-
-      {/* INTRO */}
 
       <View style={styles.jobsIntro}>
         <Text style={styles.jobsIntroTitle}>
