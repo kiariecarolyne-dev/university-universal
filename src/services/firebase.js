@@ -36,7 +36,12 @@ try {
     persistence: getReactNativePersistence(AsyncStorage),
   });
 } catch (error) {
-  auth = getAuth(app);
+  if (error?.code === "auth/already-initialized") {
+    auth = getAuth(app);
+  } else {
+    console.error("Firebase Auth initialization error:", error);
+    throw error;
+  }
 }
 
 export { auth };

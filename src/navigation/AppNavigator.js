@@ -68,9 +68,16 @@ export default function AppNavigator() {
   const [user, setUser] = useState(undefined);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        setUser(currentUser);
+      },
+      (error) => {
+        console.error("Auth state change error:", error);
+        setUser(null);
+      }
+    );
 
     return unsubscribe;
   }, []);

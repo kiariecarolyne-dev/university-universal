@@ -38,8 +38,6 @@ export default function LoginScreen({ navigation }) {
       );
 
       Alert.alert("Success", "Login successful");
-
-      navigation.replace("Home");
     } catch (error) {
   console.log("LOGIN FIREBASE ERROR:", error.code, error.message);
 
