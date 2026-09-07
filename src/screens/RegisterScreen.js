@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { auth, db } from "../services/firebase";
+import { getTodayKey } from "../utils/access";
 
 export default function RegisterScreen({ navigation }) {
   const [fullName, setFullName] = useState("");
@@ -104,7 +105,7 @@ export default function RegisterScreen({ navigation }) {
           // VIDEO ROOM USAGE
           videoMinutesUsed: 0,
 
-          videoMinutesDate: new Date().toDateString(),
+          videoMinutesDate: getTodayKey(),
         }
       );
 

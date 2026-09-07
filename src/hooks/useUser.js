@@ -11,6 +11,8 @@ import {
   db,
 } from "../services/firebase";
 
+import { getTodayKey } from "../utils/access";
+
 export default function useUser() {
   const [userData, setUserData] = useState(null);
 
@@ -35,9 +37,7 @@ export default function useUser() {
         // -----------------------------
         // DAILY VIDEO MINUTES RESET
         // -----------------------------
-        const today = new Date()
-          .toISOString()
-          .split("T")[0];
+        const today = getTodayKey();
 
         if (
           data.videoMinutesDate !== today

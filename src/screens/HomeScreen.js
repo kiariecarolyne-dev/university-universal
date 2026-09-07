@@ -13,8 +13,10 @@ import {
   collection,
   doc,
   onSnapshot,
+  query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
@@ -64,6 +66,41 @@ export default function HomeScreen({ navigation }) {
   const [weeklyRanking, setWeeklyRanking] = useState([]);
 const [myWeeklyPosition, setMyWeeklyPosition] = useState(null);
 const [myWeeklyXP, setMyWeeklyXP] = useState(0);
+
+const [pendingChallenges, setPendingChallenges] = useState(0);
+
+/* -------------------------------------------------
+   PENDING DEBATE CHALLENGES (for this user)
+------------------------------------------------- */
+
+useEffect(() => {
+  if (!auth.currentUser) return;
+
+  const challengesQuery = query(
+    collection(db, "debateBattles"),
+    where(
+      "opponentId",
+      "==",
+      auth.currentUser.uid
+    ),
+    where("status", "==", "waiting")
+  );
+
+  const unsubscribe = onSnapshot(
+    challengesQuery,
+    (snapshot) => {
+      setPendingChallenges(snapshot.size);
+    },
+    (error) => {
+      console.log(
+        "Pending challenges error:",
+        error
+      );
+    }
+  );
+
+  return unsubscribe;
+}, []);
 
   /* -------------------------------------------------
      SET USER ONLINE
@@ -351,7 +388,7 @@ students.push({
 
       <TouchableOpacity
         style={styles.onlineCard}
-        onPress={() => navigation.navigate("Discover")}
+        onPress={() => navigation.navigate("DiscoverTab")}
       >
         <View style={styles.onlineIcon}>
           <Text style={styles.onlineEmoji}>🌍</Text>
@@ -493,7 +530,62 @@ students.push({
         ))}
       </View>
 
-     {/* =========================================
+      {/* =========================================
+          DEBATE CHALLENGES
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          ⚔️ Debate Challenges
+        </Text>
+
+        <Text style={styles.sectionHint}>
+          Battle your critical thinking against another student
+        </Text>
+      </View>
+
+      <TouchableOpacity
+  style={styles.challengeCard}
+  onPress={() =>
+    navigation.navigate("DebateChallenges")
+  }
+>
+        <View style={styles.challengeTop}>
+          <Text style={styles.challengeEmoji}>⚔️</Text>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.challengeTitle}>
+              Debate Challenges
+            </Text>
+
+            <Text style={styles.challengeText}>
+              {pendingChallenges > 0
+                ? `You have ${pendingChallenges} incoming challenge${pendingChallenges === 1 ? "" : "s"} waiting to be accepted.`
+                : "Challenge another student or accept a challenge."}
+            </Text>
+          </View>
+
+          {pendingChallenges > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {pendingChallenges}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.challengeBottom}>
+          <Text style={styles.challengeReward}>
+            🏆 Win debates to earn recognition
+          </Text>
+
+          <Text style={styles.challengeButton}>
+            Open →
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* =========================================
     YOUR STREAK
 ========================================= */}
 
@@ -899,6 +991,23 @@ const styles = {
     paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: "#1F2937",
+  },
+
+  badge: {
+    backgroundColor: "#4F46E5",
+    borderRadius: 16,
+    minWidth: 26,
+    height: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 7,
+    marginLeft: 8,
+  },
+
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
   },
 
   challengeReward: {

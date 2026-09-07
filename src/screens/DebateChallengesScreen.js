@@ -16,6 +16,7 @@ import {
     doc,
     onSnapshot,
     query,
+    serverTimestamp,
     updateDoc,
     where,
 } from "firebase/firestore";
@@ -91,7 +92,11 @@ export default function DebateChallengesScreen({
 
       await updateDoc(challengeRef, {
         status: "accepted",
-        acceptedAt: new Date(),
+        acceptedAt: serverTimestamp(),
+        acceptedBy: currentUserId,
+        currentRound: 1,
+        isPublic: true,
+        isLive: true,
       });
 
       navigation.replace(

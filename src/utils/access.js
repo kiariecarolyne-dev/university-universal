@@ -1,4 +1,20 @@
 // ==============================
+// KENYA DAY KEY (UTC+3, no DST)
+// ==============================
+
+// The app targets students in Kenya (UTC+3, no daylight saving).
+// toISOString() is UTC, so between 00:00 and 03:00 local time the
+// UTC date is still the previous day. Shift by +3h before slicing
+// the ISO date so the "day" always matches the user's local day.
+export const getTodayKey = () => {
+  const kenyaNow = new Date(
+    Date.now() + 3 * 60 * 60 * 1000
+  );
+
+  return kenyaNow.toISOString().split("T")[0];
+};
+
+// ==============================
 // SAFE DATE PARSER (prevents crashes)
 // ==============================
 const safeDate = (value) => {

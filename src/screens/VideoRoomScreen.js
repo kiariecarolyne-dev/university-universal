@@ -18,21 +18,27 @@ import {
 import { auth, db } from "../services/firebase";
 
 import useUser from "../hooks/useUser";
-import { isPremiumUser } from "../utils/access";
+import {
+  getTodayKey,
+  isPremiumUser,
+} from "../utils/access";
 
 
 export default function VideoRoomScreen({ route, navigation }) {
   const user = useUser();
 
-  const sessionStartRef = useRef(null);
+  const userRef = useRef(user);
+
+  // Joined only after the first user snapshot arrives.
+  const userLoaded = Boolean(user);
 
   const timerRef = useRef(null);
 
-  const sessionEndedRef = useRef(false);
+  const heartbeatRef = useRef(null);
 
   const [permissionsGranted, setPermissionsGranted] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayKey();
 
   const FREE_MINUTES_PER_DAY = 30;
 
@@ -68,101 +74,159 @@ const safeRoomName = String(roomName)
 
 }, []);
 
+// Keep a reference to the latest user data so the room
+// join/leave effect can read fresh values WITHOUT depending
+// on the user object identity (which changes on every
+// Firestore snapshot and used to restart the whole session,
+// charging >= 1 minute per restart).
 useEffect(() => {
-  if (!auth.currentUser || !user) return;
+  userRef.current = user;
+}, [user]);
+
+useEffect(() => {
+  const uid = auth.currentUser?.uid;
+  const currentUserData = userRef.current;
+
+  if (!uid || !userLoaded || !currentUserData) return;
 
   const participantRef = doc(
     db,
     "videoRooms",
     safeRoomName,
     "participants",
-    auth.currentUser.uid
+    uid
   );
 
-  const joinRoom = async () => {
+  const userDocRef = doc(db, "users", uid);
+
+  let disposed = false;
+  let sessionActive = false;
+  let lastCheckpoint = null;
+
+  // Charge the exact seconds elapsed since the last checkpoint.
+  const chargeElapsed = async () => {
+    if (!sessionActive || !lastCheckpoint) return;
+
+    const now = Date.now();
+    const seconds = Math.floor(
+      (now - lastCheckpoint) / 1000
+    );
+    lastCheckpoint = now;
+
+    if (seconds <= 0) return;
+
+    // Fractional minutes instead of rounding up every stay to 1 minute.
+    const minutes =
+      Math.round((seconds / 60) * 100) / 100;
+
     try {
-
-      await setDoc(participantRef, {
-  userId: auth.currentUser.uid,
-  fullName: user.fullName || "Student",
-  photo: user.photo || "",
-  joinedAt: serverTimestamp(),
-});
-
-      if (!isPremiumUser(user)) {
-  sessionStartRef.current = Date.now();
-
-  const remainingMinutes = Math.max(
-    0,
-    FREE_MINUTES_PER_DAY -
-      (user.videoMinutesUsed || 0)
-  );
-
-  // Already used all free minutes today
-if (remainingMinutes <= 0) {
-  return;
-}
-
-  timerRef.current = setTimeout(async () => {
-    sessionEndedRef.current = true;
-
-    await updateDoc(
-      doc(db, "users", auth.currentUser.uid),
-      {
-        videoMinutesUsed: increment(remainingMinutes),
-      }
-    );
-
-    await deleteDoc(participantRef);
-
-    alert(
-      "Your free 30 study minutes have ended for today."
-    );
-
-    navigation.replace("Premium");
-  }, remainingMinutes * 60 * 1000);
-}
+      await updateDoc(userDocRef, {
+        videoMinutesUsed: increment(minutes),
+      });
     } catch (error) {
       console.log(
-        "Failed to join room:",
+        "Study minutes update error:",
         error
       );
     }
   };
 
+  // Stop charging and clear timers. No-op if nothing is active.
+  const endSession = async () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+
+    if (sessionActive) {
+      await chargeElapsed();
+      sessionActive = false;
+      lastCheckpoint = null;
+    }
+  };
+
+  const joinRoom = async () => {
+    try {
+      await setDoc(participantRef, {
+        userId: uid,
+        fullName:
+          currentUserData.fullName || "Student",
+        photo: currentUserData.photo || "",
+        joinedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.log(
+        "Failed to join room:",
+        error
+      );
+      return;
+    }
+
+    // Premium users get unlimited rooms.
+    if (isPremiumUser(currentUserData)) return;
+
+    const usedMinutes = Number(
+      currentUserData.videoMinutesUsed || 0
+    );
+
+    const remainingSeconds = Math.max(
+      0,
+      (FREE_MINUTES_PER_DAY - usedMinutes) * 60
+    );
+
+    // No free minutes left - undo the participant join and
+    // let the locked screen show. Never charge a blocked user.
+    if (remainingSeconds <= 0) {
+      try {
+        await deleteDoc(participantRef);
+      } catch (error) {
+        console.log(
+          "Failed to leave room:",
+          error
+        );
+      }
+      return;
+    }
+
+    sessionActive = true;
+    lastCheckpoint = Date.now();
+
+    // Kick the user when today's free budget runs out.
+    timerRef.current = setTimeout(async () => {
+      if (disposed) return;
+
+      await endSession();
+
+      alert(
+        "Your free 30 study minutes have ended for today."
+      );
+
+      navigation.replace("Premium");
+    }, remainingSeconds * 1000);
+
+    // Heartbeat charge every 15 seconds so a crash, force close
+    // or backgrounding loses at most ~15 seconds of free time
+    // and can never jump straight to the daily limit.
+    heartbeatRef.current = setInterval(
+      chargeElapsed,
+      15000
+    );
+  };
+
   joinRoom();
 
   return () => {
+    disposed = true;
+
     const leaveRoom = async () => {
+      await endSession();
+
       try {
-
-if (timerRef.current) {
-  clearTimeout(timerRef.current);
-}
-
-        if (
-  !sessionEndedRef.current &&
-  !isPremiumUser(user) &&
-  sessionStartRef.current
-) {
-          const sessionMinutes = Math.ceil(
-            (Date.now() -
-              sessionStartRef.current) /
-              (1000 * 60)
-          );
-
-          await updateDoc(
-            doc(
-              db,
-              "users",
-              auth.currentUser.uid
-            ),
-            {
-              videoMinutesUsed: increment(sessionMinutes),
-            }
-          );
-        }
-
         await deleteDoc(participantRef);
       } catch (error) {
         console.log(
@@ -174,9 +238,7 @@ if (timerRef.current) {
 
     leaveRoom();
   };
-}, [safeRoomName, user]);
-
-if (!user) return null;
+}, [safeRoomName, userLoaded]);
 
 if (!user) return null;
 
