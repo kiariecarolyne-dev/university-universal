@@ -26,6 +26,8 @@ import {
 import { signOut } from "firebase/auth";
 import { auth, db } from "../services/firebase";
 
+import { isAdminUser } from "../utils/access";
+
 export default function ProfileScreen({ navigation }) {
   const [fullName, setFullName] = useState("");
   const [university, setUniversity] = useState("");
@@ -36,6 +38,7 @@ export default function ProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const userId = auth.currentUser?.uid;
 
@@ -64,6 +67,7 @@ export default function ProfileScreen({ navigation }) {
         setYear(data.year || "");
         setPhoto(data.photo || "");
         setIsPremium(data.isPremium === true);
+        setIsAdmin(data.isAdmin === true);
       }
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -429,28 +433,31 @@ const previousCourse = oldProfile.exists()
   )}
 </TouchableOpacity>
 
+const showJobs =
+  isPremium || isAdminUser({ isAdmin });
+
 <TouchableOpacity
   style={styles.premiumBtn}
   onPress={() =>
     navigation.navigate(
-      isPremium ? "Jobs" : "Premium"
+      showJobs ? "Jobs" : "Premium"
     )
   }
 >
   <Text style={styles.premiumBtnTitle}>
-    {isPremium
+    {showJobs
       ? "💼 Jobs & Careers"
       : "⭐ Upgrade to Premium"}
   </Text>
 
   <Text style={styles.premiumBtnText}>
-    {isPremium
+    {showJobs
       ? "Explore graduate jobs, internships and remote opportunities."
       : "Unlock Jobs & Careers together with all Premium features."}
   </Text>
 
   <Text style={styles.premiumBtnArrow}>
-    {isPremium
+    {showJobs
       ? "Explore Jobs →"
       : "View Premium →"}
   </Text>
