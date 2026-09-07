@@ -286,7 +286,15 @@ export default function JobsScreen({ navigation }) {
 
   const renderJob = ({ item }) => {
     return (
-      <View style={styles.jobCard}>
+      <TouchableOpacity
+        style={styles.jobCard}
+        activeOpacity={0.9}
+        onPress={() =>
+          navigation.navigate("JobDetail", {
+            jobId: item.id,
+          })
+        }
+      >
 
         <View style={styles.jobHeader}>
           <View style={{ flex: 1 }}>
@@ -366,7 +374,7 @@ export default function JobsScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
 
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -447,7 +455,7 @@ export default function JobsScreen({ navigation }) {
       backgroundColor: "#22C55E",
       padding: 14,
       borderRadius: 12,
-      marginBottom: 15,
+      marginBottom: 10,
     }}
     onPress={() => navigation.navigate("PostJob")}
   >
@@ -459,6 +467,28 @@ export default function JobsScreen({ navigation }) {
       }}
     >
       + Post Job
+    </Text>
+  </TouchableOpacity>
+)}
+
+{user.isAdmin && (
+  <TouchableOpacity
+    style={{
+      backgroundColor: "#0EA5E9",
+      padding: 14,
+      borderRadius: 12,
+      marginBottom: 15,
+    }}
+    onPress={() => navigation.navigate("AdminJobs")}
+  >
+    <Text
+      style={{
+        color: "#FFFFFF",
+        textAlign: "center",
+        fontWeight: "800",
+      }}
+    >
+      🗂️ Manage Jobs
     </Text>
   </TouchableOpacity>
 )}

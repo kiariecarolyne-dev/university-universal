@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
     ActivityIndicator,
@@ -15,12 +15,21 @@ import {
 import {
     addDoc,
     collection,
+    doc,
     serverTimestamp,
+    updateDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
 
-export default function PostJobScreen({ navigation }) {
+import useUser from "../hooks/useUser";
+import { isAdminUser } from "../utils/access";
+
+export default function PostJobScreen({ navigation, route }) {
+  const user = useUser();
+
+  const editingJob = route?.params?.job || null;
+
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
   const [location, setLocation] = useState("");
@@ -31,8 +40,40 @@ export default function PostJobScreen({ navigation }) {
   const [applyUrl, setApplyUrl] = useState("");
   const [source, setSource] = useState("");
   const [deadline, setDeadline] = useState("");
+  // Optional extra fields
+  const [salary, setSalary] = useState("");
+  const [applicationEmail, setApplicationEmail] = useState("");
+  const [applicationInstructions, setApplicationInstructions] = useState("");
 
   const [loading, setLoading] = useState(false);
+
+  /* ------------------------------------------------
+     EDIT MODE: PRE-FILL THE FORM
+  ------------------------------------------------ */
+
+  useEffect(() => {
+    if (!editingJob) return;
+
+    setTitle(editingJob.title || "");
+    setCompany(editingJob.company || "");
+    setLocation(editingJob.location || "");
+    setType(editingJob.type || "");
+    setCategory(editingJob.category || "");
+    setWorkMode(editingJob.workMode || "");
+    setDescription(editingJob.description || "");
+    setApplyUrl(
+      editingJob.applyUrl || ""
+    );
+    setSource(editingJob.source || "");
+    setDeadline(editingJob.deadline || "");
+    setSalary(editingJob.salary || "");
+    setApplicationEmail(
+      editingJob.applicationEmail || ""
+    );
+    setApplicationInstructions(
+      editingJob.applicationInstructions || ""
+    );
+  }, [editingJob]);
 
   const postJob = async () => {
     // =========================
@@ -47,8 +88,8 @@ export default function PostJobScreen({ navigation }) {
       !category.trim() ||
       !workMode.trim() ||
       !description.trim() ||
-!applyUrl.trim() ||
-!deadline
+      !applyUrl.trim() ||
+      !deadline
     ) {
       Alert.alert(
         "Missing Information",
@@ -59,16 +100,16 @@ export default function PostJobScreen({ navigation }) {
 
     const cleanApplyUrl = applyUrl.trim();
 
-if (
-  !cleanApplyUrl.startsWith("https://") &&
-  !cleanApplyUrl.startsWith("http://")
-) {
-  Alert.alert(
-    "Invalid Application Link",
-    "Please enter a complete link starting with https:// or http://"
-  );
-  return;
-}
+    if (
+      !cleanApplyUrl.startsWith("https://") &&
+      !cleanApplyUrl.startsWith("http://")
+    ) {
+      Alert.alert(
+        "Invalid Application Link",
+        "Please enter a complete link starting with https:// or http://"
+      );
+      return;
+    }
 
     // =========================
     // CHECK USER
@@ -82,68 +123,137 @@ if (
       return;
     }
 
+    if (!isAdminUser(user)) {
+      Alert.alert(
+        "Admin Only",
+        "Only admin accounts can post or edit jobs."
+      );
+      return;
+    }
+
+    const payload = {
+      title: title.trim(),
+      company: company.trim(),
+      location: location.trim(),
+      type: type.trim(),
+      category: category.trim(),
+      workMode: workMode.trim(),
+      description: description.trim(),
+      applyUrl: applyUrl.trim(),
+      source: source.trim(),
+      deadline: deadline,
+      salary: salary.trim() || null,
+      applicationEmail:
+        applicationEmail.trim() || null,
+      applicationInstructions:
+        applicationInstructions.trim() || null,
+    };
+
     try {
       setLoading(true);
 
-      // =========================
-      // SAVE JOB TO FIRESTORE
-      // =========================
+      if (editingJob) {
+        // =====================
+        // UPDATE EXISTING JOB
+        // =====================
 
-      await addDoc(collection(db, "jobs"), {
-        title: title.trim(),
-        company: company.trim(),
-        location: location.trim(),
-        type: type.trim(),
-        category: category.trim(),
-        workMode: workMode.trim(),
-        description: description.trim(),
-applyUrl: applyUrl.trim(),
-source: source.trim(),
-deadline: deadline,
-        // Job management
-        active: true,
-
-        // Admin who posted it
-        postedBy: auth.currentUser.uid,
-
-        // Firestore timestamp
-        createdAt: serverTimestamp(),
-      });
-
-      Alert.alert(
-        "Job Posted 🎉",
-        "The job has been successfully added to University Universal.",
-        [
+        await updateDoc(
+          doc(db, "jobs", editingJob.id),
           {
-            text: "OK",
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+            ...payload,
+            updatedAt: serverTimestamp(),
+          }
+        );
 
-      // Clear form
-      setTitle("");
-      setCompany("");
-      setLocation("");
-      setType("");
-      setCategory("");
-      setWorkMode("");
-      setDescription("");
-      setApplyUrl("");
-      setSource("");
-setDeadline("");
+        Alert.alert(
+          "Job Updated 🎉",
+          "The job has been updated successfully.",
+          [
+            {
+              text: "OK",
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } else {
+        // =====================
+        // SAVE JOB TO FIRESTORE
+        // =====================
 
+        await addDoc(collection(db, "jobs"), {
+          ...payload,
+          // Job management
+          active: true,
+
+          // Admin who posted it
+          postedBy: auth.currentUser.uid,
+
+          // Firestore timestamp
+          createdAt: serverTimestamp(),
+        });
+
+        Alert.alert(
+          "Job Posted 🎉",
+          "The job has been successfully added to University Universal.",
+          [
+            {
+              text: "OK",
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+
+        // Clear form
+        setTitle("");
+        setCompany("");
+        setLocation("");
+        setType("");
+        setCategory("");
+        setWorkMode("");
+        setDescription("");
+        setApplyUrl("");
+        setSource("");
+        setDeadline("");
+        setSalary("");
+        setApplicationEmail("");
+        setApplicationInstructions("");
+      }
     } catch (error) {
       console.log("POST JOB ERROR:", error);
 
       Alert.alert(
         "Error",
-        "Unable to post the job. Please try again."
+        "Unable to save the job. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
+
+  /* ------------------------------------------------
+     GATE: ADMIN ONLY
+  ------------------------------------------------ */
+
+  if (!user) return null;
+
+  if (!isAdminUser(user)) {
+    return (
+      <View style={styles.locked}>
+        <Text style={styles.lockedEmoji}>
+          🔐
+        </Text>
+
+        <Text style={styles.lockedTitle}>
+          Admin only
+        </Text>
+
+        <Text style={styles.lockedText}>
+          You need an admin account to post or
+          edit job vacancies.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -155,11 +265,15 @@ setDeadline("");
 
       <View style={styles.header}>
         <Text style={styles.title}>
-          💼 Post a Job
+          {editingJob
+            ? "✏️ Edit Job"
+            : "💼 Post a Job"}
         </Text>
 
         <Text style={styles.subtitle}>
-          Share a job opportunity with University Universal students.
+          {editingJob
+            ? "Update the vacancy details below."
+            : "Share a job opportunity with University Universal students."}
         </Text>
       </View>
 
@@ -401,7 +515,60 @@ setDeadline("");
   Select the deadline shown on the original job listing.
 </Text>
 
-      {/* POST BUTTON */}
+      {/* OPTIONAL: SALARY */}
+
+      <Text style={styles.label}>
+        Salary (optional)
+      </Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. KES 40,000/month"
+        placeholderTextColor="#6B7280"
+        value={salary}
+        onChangeText={setSalary}
+      />
+
+      {/* OPTIONAL: APPLICATION EMAIL */}
+
+      <Text style={styles.label}>
+        Application Email (optional)
+      </Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="hello@company.com"
+        placeholderTextColor="#6B7280"
+        value={applicationEmail}
+        onChangeText={setApplicationEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
+
+      <Text style={styles.linkHint}>
+        If set, students can also apply by email.
+      </Text>
+
+      {/* OPTIONAL: APPLICATION INSTRUCTIONS */}
+
+      <Text style={styles.label}>
+        Application Instructions (optional)
+      </Text>
+
+      <TextInput
+        style={[
+          styles.input,
+          styles.descriptionInput,
+        ]}
+        placeholder="e.g. Send your CV and cover letter..."
+        placeholderTextColor="#6B7280"
+        value={applicationInstructions}
+        onChangeText={setApplicationInstructions}
+        multiline
+        textAlignVertical="top"
+      />
+
+      {/* POST / SAVE BUTTON */}
 
       <TouchableOpacity
         style={styles.postButton}
@@ -412,7 +579,9 @@ setDeadline("");
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.postButtonText}>
-            🚀 Post Job
+            {editingJob
+              ? "💾 Save Changes"
+              : "🚀 Post Job"}
           </Text>
         )}
       </TouchableOpacity>
@@ -523,5 +692,32 @@ optionText: {
 
 optionTextActive: {
   color: "#FFFFFF",
+},
+
+locked: {
+  flex: 1,
+  backgroundColor: "#05070A",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 30,
+},
+
+lockedEmoji: {
+  fontSize: 50,
+  marginBottom: 12,
+},
+
+lockedTitle: {
+  color: "#FFFFFF",
+  fontSize: 20,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+lockedText: {
+  color: "#9CA3AF",
+  textAlign: "center",
+  marginTop: 8,
+  lineHeight: 20,
 },
 });

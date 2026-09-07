@@ -12,32 +12,68 @@ import {
 import {
     collection,
     onSnapshot,
-    orderBy,
     query,
     where,
 } from "firebase/firestore";
 
 import { db } from "../services/firebase";
 
+import useResolvedNames from "../hooks/useResolvedNames";
+import {
+    getDebatePlayers,
+    isDebateFinished,
+} from "../utils/debates";
+
 export default function LiveDebatesScreen({ navigation }) {
   const [debates, setDebates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const allPlayers = debates.flatMap(
+    (debate) =>
+      Object.values(debate?.players || {})
+  );
+
+  const resolvedNames =
+    useResolvedNames(allPlayers);
 
   useEffect(() => {
     const debatesQuery = query(
       collection(db, "debateBattles"),
       where("isPublic", "==", true),
-      where("isLive", "==", true),
-      orderBy("acceptedAt", "desc")
+      where("isLive", "==", true)
     );
 
     const unsubscribe = onSnapshot(
       debatesQuery,
       (snapshot) => {
-        const liveDebates = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const liveDebates = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = {
+            id: docSnap.id,
+            ...docSnap.data(),
+          };
+
+          // Finished debates (both final defenses submitted) are no
+          // longer live. Filtering client-side avoids the composite
+          // index that orderBy("acceptedAt") would require.
+          if (isDebateFinished(data)) {
+            return;
+          }
+
+          liveDebates.push(data);
+        });
+
+        // Newest accepted first.
+        liveDebates.sort((a, b) => {
+          const aTime =
+            a.acceptedAt?.toMillis?.() || 0;
+          const bTime =
+            b.acceptedAt?.toMillis?.() || 0;
+
+          return bTime - aTime;
+        });
 
         setDebates(liveDebates);
         setLoading(false);
@@ -48,6 +84,10 @@ export default function LiveDebatesScreen({ navigation }) {
           error
         );
 
+        setError(
+          "Unable to load live debates. Please try again."
+        );
+
         setLoading(false);
       }
     );
@@ -56,12 +96,13 @@ export default function LiveDebatesScreen({ navigation }) {
   }, []);
 
   const renderDebate = ({ item }) => {
-    const players = Object.values(
-      item.players || {}
-    );
+    const { playerOne, playerTwo } =
+      getDebatePlayers(item);
 
-    const playerOne = players[0];
-    const playerTwo = players[1];
+    const nameOf = (player) =>
+      resolvedNames[player?.userId] ||
+      player?.name ||
+      "Student";
 
     return (
       <TouchableOpacity
@@ -88,7 +129,7 @@ export default function LiveDebatesScreen({ navigation }) {
           </View>
 
           <Text style={styles.watchText}>
-            👀 Watch
+            👥 {item.liveViewers || 0} watching
           </Text>
 
         </View>
@@ -122,7 +163,7 @@ export default function LiveDebatesScreen({ navigation }) {
               style={styles.playerName}
               numberOfLines={1}
             >
-              {playerOne?.name || "Student"}
+              {nameOf(playerOne)}
             </Text>
 
             {playerOne?.position && (
@@ -156,7 +197,7 @@ export default function LiveDebatesScreen({ navigation }) {
               style={styles.playerName}
               numberOfLines={1}
             >
-              {playerTwo?.name || "Student"}
+              {nameOf(playerTwo)}
             </Text>
 
             {playerTwo?.position && (
@@ -211,6 +252,31 @@ export default function LiveDebatesScreen({ navigation }) {
 
         <Text style={styles.loadingText}>
           Finding live debates...
+        </Text>
+
+      </View>
+    );
+  }
+
+
+  // -------------------------------------------------
+  // ERROR
+  // -------------------------------------------------
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+
+        <Text style={styles.emptyEmoji}>
+          ⚠️
+        </Text>
+
+        <Text style={styles.emptyTitle}>
+          Something went wrong
+        </Text>
+
+        <Text style={styles.emptyText}>
+          {error}
         </Text>
 
       </View>

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Image,
   ScrollView,
   Text,
@@ -10,7 +11,18 @@ import {
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { auth } from "../services/firebase";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  query,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
+
+import { auth, db } from "../services/firebase";
+
+import { createPrivateRoomKey } from "../utils/calls";
 
 export default function StudentProfileScreen({ route, navigation }) {
   const { member } = route.params;
@@ -19,6 +31,7 @@ export default function StudentProfileScreen({ route, navigation }) {
 
   const [customMessage, setCustomMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [startingCall, setStartingCall] = useState(false);
 
   const emojis = [
     "😀",
@@ -54,6 +67,87 @@ export default function StudentProfileScreen({ route, navigation }) {
     fullName: member.fullName,
     email: member.email,
     photo: member.photo,
+  };
+
+  // Creates a call record in the calls collection so the recipient
+  // gets a ringing alert, then shows the outgoing-call screen. Reuses
+  // an existing ringing call to avoid duplicate calls/rooms.
+  const startCall = async () => {
+    const currentUserId =
+      auth.currentUser?.uid;
+
+    const otherUserId =
+      member.id || member.userId;
+
+    if (!currentUserId || !otherUserId) {
+      Alert.alert(
+        "Error",
+        "Unable to start the call."
+      );
+      return;
+    }
+
+    if (currentUserId === otherUserId) {
+      return;
+    }
+
+    const room = createPrivateRoomKey(
+      currentUserId,
+      otherUserId
+    );
+
+    try {
+      setStartingCall(true);
+
+      const existingQuery = query(
+        collection(db, "calls"),
+        where(
+          "callerId",
+          "==",
+          currentUserId
+        ),
+        where(
+          "calleeId",
+          "==",
+          otherUserId
+        ),
+        where("status", "==", "ringing")
+      );
+
+      const existingSnapshot =
+        await getDocs(existingQuery);
+
+      if (!existingSnapshot.empty) {
+        navigation.navigate("OutgoingCall", {
+          callId: existingSnapshot.docs[0].id,
+        });
+        return;
+      }
+
+      const callRef = await addDoc(
+        collection(db, "calls"),
+        {
+          callerId: currentUserId,
+          calleeId: otherUserId,
+          status: "ringing",
+          room,
+          createdAt: serverTimestamp(),
+        }
+      );
+
+      navigation.navigate("OutgoingCall", {
+        callId: callRef.id,
+      });
+    } catch (error) {
+      console.log("Start call error:", error);
+
+      Alert.alert(
+        "Error",
+        "Unable to start the call."
+      );
+    } finally {
+      setStartingCall(false);
+    }
   };
 
   return (
@@ -260,29 +354,13 @@ export default function StudentProfileScreen({ route, navigation }) {
 
       <TouchableOpacity
         style={styles.videoButton}
-        onPress={() => {
-          const currentUserId =
-            auth.currentUser?.uid;
-
-          const otherUserId =
-            member.id || member.userId;
-
-          if (!currentUserId || !otherUserId) {
-            return;
-          }
-
-          const roomName =
-            currentUserId < otherUserId
-              ? `private-${currentUserId}-${otherUserId}`
-              : `private-${otherUserId}-${currentUserId}`;
-
-          navigation.navigate("VideoRoom", {
-            roomName,
-          });
-        }}
+        disabled={startingCall}
+        onPress={startCall}
       >
         <Text style={styles.buttonText}>
-          📹 Start Video Call
+          {startingCall
+            ? "📹 Starting..."
+            : "📹 Start Video Call"}
         </Text>
       </TouchableOpacity>
 

@@ -69,6 +69,54 @@ const [myWeeklyXP, setMyWeeklyXP] = useState(0);
 
 const [pendingChallenges, setPendingChallenges] = useState(0);
 
+const [liveDebatesCount, setLiveDebatesCount] = useState(0);
+
+/* -------------------------------------------------
+   LIVE DEBATES COUNT (for the Home live card)
+------------------------------------------------ */
+
+useEffect(() => {
+  if (!auth.currentUser) return;
+
+  const liveQuery = query(
+    collection(db, "debateBattles"),
+    where("isLive", "==", true)
+  );
+
+  const unsubscribe = onSnapshot(
+    liveQuery,
+    (snapshot) => {
+      let count = 0;
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+
+        const p1 = data.players?.[data.createdBy];
+        const p2 = data.players?.[data.opponentId];
+
+        const finished =
+          data.status === "finished" ||
+          Boolean(
+            p1?.finalResponse &&
+              p2?.finalResponse
+          );
+
+        if (!finished) count++;
+      });
+
+      setLiveDebatesCount(count);
+    },
+    (error) => {
+      console.log(
+        "Live debates count error:",
+        error
+      );
+    }
+  );
+
+  return unsubscribe;
+}, []);
+
 /* -------------------------------------------------
    PENDING DEBATE CHALLENGES (for this user)
 ------------------------------------------------- */
@@ -586,6 +634,69 @@ students.push({
       </TouchableOpacity>
 
       {/* =========================================
+          LIVE DEBATES
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          🔥 Live Debates
+        </Text>
+
+        <Text style={styles.sectionHint}>
+          Watch public debates happen live
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.challengeCard}
+        onPress={() =>
+          navigation.navigate("LiveDebates")
+        }
+      >
+        <View style={styles.challengeTop}>
+          <Text style={styles.challengeEmoji}>
+            🔥
+          </Text>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.challengeTitle}>
+              Live Debate Feed
+            </Text>
+
+            <Text style={styles.challengeText}>
+              {liveDebatesCount > 0
+                ? `${liveDebatesCount} debate${
+                    liveDebatesCount === 1
+                      ? ""
+                      : "s"
+                  } happening live right now.`
+                : "No debates are live right now. Be the first to go public!"}
+            </Text>
+          </View>
+
+          {liveDebatesCount > 0 && (
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+
+              <Text style={styles.liveBadgeText}>
+                LIVE
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.challengeBottom}>
+          <Text style={styles.challengeReward}>
+            🗳️ Vote for the winner
+          </Text>
+
+          <Text style={styles.challengeButton}>
+            Watch →
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* =========================================
     YOUR STREAK
 ========================================= */}
 
@@ -1008,6 +1119,32 @@ const styles = {
     color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "800",
+  },
+
+  /* LIVE BADGE */
+
+  liveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#450A0A",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginLeft: 8,
+  },
+
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#EF4444",
+    marginRight: 6,
+  },
+
+  liveBadgeText: {
+    color: "#FCA5A5",
+    fontSize: 10,
+    fontWeight: "900",
   },
 
   challengeReward: {

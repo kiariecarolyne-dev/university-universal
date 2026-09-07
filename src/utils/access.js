@@ -107,3 +107,10 @@ export const canAccessVideoRoom = (user) => {
 export const canAccessNotes = (user) => {
   return isPremiumUser(user);
 };
+
+// ==============================
+// ADMIN CHECK (single source of truth)
+// ==============================
+export const isAdminUser = (user) => {
+  return Boolean(user && user.isAdmin === true);
+};

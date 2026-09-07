@@ -23,6 +23,8 @@ import {
 
 import { auth, db } from "../services/firebase";
 
+import useResolvedNames from "../hooks/useResolvedNames";
+
 export default function DebateChallengesScreen({
   navigation,
 }) {
@@ -30,6 +32,17 @@ export default function DebateChallengesScreen({
   const [loading, setLoading] = useState(true);
 
   const currentUserId = auth.currentUser?.uid;
+
+  // Older battles stored the challenger's name as the "Student"
+  // placeholder (null auth displayName). Resolve real names from the
+  // users collection when that happens.
+  const allPlayers = challenges.flatMap(
+    (challenge) =>
+      Object.values(challenge?.players || {})
+  );
+
+  const resolvedNames =
+    useResolvedNames(allPlayers);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -164,7 +177,8 @@ export default function DebateChallengesScreen({
           </Text>
 
           <Text style={styles.challengeFrom}>
-            {creator?.name ||
+            {resolvedNames[creator?.userId] ||
+              creator?.name ||
               "A student"}{" "}
             wants to challenge you!
           </Text>

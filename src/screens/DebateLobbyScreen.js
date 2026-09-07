@@ -14,6 +14,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   onSnapshot,
   serverTimestamp,
   updateDoc,
@@ -251,6 +252,51 @@ const acceptDebate = async () => {
 
     const topic = getRandomTopic();
 
+    // The Firebase Auth displayName is null (RegisterScreen never calls
+    // updateProfile), so the creator's real name must come from the
+    // users collection. Otherwise the battle card shows a generic
+    // "Student" in "Player A vs Student".
+    let creatorName =
+      currentUser.displayName || "Student";
+
+    try {
+      const creatorSnapshot = await getDoc(
+        doc(db, "users", currentUser.uid)
+      );
+
+      if (creatorSnapshot.exists()) {
+        creatorName =
+          creatorSnapshot.data().fullName ||
+          creatorName;
+      }
+    } catch (error) {
+      console.log(
+        "Fetch creator name error:",
+        error
+      );
+    }
+
+    let opponentName = opponent.fullName;
+
+    if (!opponentName) {
+      try {
+        const opponentSnapshot = await getDoc(
+          doc(db, "users", opponent.id)
+        );
+
+        if (opponentSnapshot.exists()) {
+          opponentName =
+            opponentSnapshot.data().fullName ||
+            "Student";
+        }
+      } catch (error) {
+        console.log(
+          "Fetch opponent name error:",
+          error
+        );
+      }
+    }
+
     const battleData = {
   topic: topic.topic,
 
@@ -274,9 +320,7 @@ const acceptDebate = async () => {
         [currentUser.uid]: {
           userId: currentUser.uid,
 
-          name:
-            currentUser.displayName ||
-            "Student",
+          name: creatorName,
 
           email:
             currentUser.email || "",
@@ -297,9 +341,7 @@ const acceptDebate = async () => {
         [opponent.id]: {
           userId: opponent.id,
 
-          name:
-            opponent.fullName ||
-            "Student",
+          name: opponentName,
 
           email:
             opponent.email || "",

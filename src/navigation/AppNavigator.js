@@ -6,8 +6,13 @@ import { ActivityIndicator, View } from "react-native";
 
 import { auth } from "../services/firebase";
 
+import { navigationRef } from "../utils/navigationRef";
+
+import IncomingCallHandler from "../components/IncomingCallHandler";
+
 import MainTabs from "./MainTabs";
 
+import AdminJobsScreen from "../screens/AdminJobsScreen";
 import ChatScreen from "../screens/ChatScreen";
 import CommentsScreen from "../screens/CommentsScreen";
 import DailyChallengeScreen from "../screens/DailyChallengeScreen";
@@ -15,10 +20,14 @@ import DebateBattleScreen from "../screens/DebateBattleScreen";
 import DebateChallengesScreen from "../screens/DebateChallengesScreen";
 import DebateLobbyScreen from "../screens/DebateLobbyScreen";
 import InboxScreen from "../screens/InboxScreen";
+import JobApplicationsScreen from "../screens/JobApplicationsScreen";
+import JobDetailScreen from "../screens/JobDetailScreen";
 import JobsScreen from "../screens/JobsScreen";
+import LiveDebatesScreen from "../screens/LiveDebatesScreen";
 import LoginScreen from "../screens/LoginScreen";
 import MembersScreen from "../screens/MembersScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
+import OutgoingCallScreen from "../screens/OutgoingCallScreen";
 import PastPapersScreen from "../screens/PastPapersScreen";
 import PostJobScreen from "../screens/PostJobScreen";
 import PremiumScreen from "../screens/PremiumScreen";
@@ -33,6 +42,7 @@ import WeeklyRankingScreen from "../screens/WeeklyRankingScreen";
 // Diagnostic check to immediately identify broken/undefined imports
 const screenMap = {
   MainTabs,
+  AdminJobsScreen,
   LoginScreen,
   RegisterScreen,
   ChatScreen,
@@ -42,9 +52,13 @@ const screenMap = {
   DebateChallengesScreen,
   DebateLobbyScreen,
   InboxScreen,
+  JobApplicationsScreen,
+  JobDetailScreen,
   JobsScreen,
+  LiveDebatesScreen,
   MembersScreen,
   NotificationsScreen,
+  OutgoingCallScreen,
   PastPapersScreen,
   PostJobScreen,
   PremiumScreen,
@@ -99,8 +113,9 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
+    <>
+      <NavigationContainer ref={navigationRef}>
+        <Stack.Navigator
         screenOptions={{
           headerStyle: {
             backgroundColor: "#05070A",
@@ -261,9 +276,47 @@ export default function AppNavigator() {
               name="DebateBattle"
               component={DebateBattleScreen}
             />
+
+            {/* LIVE DEBATES */}
+            <Stack.Screen
+              name="LiveDebates"
+              component={LiveDebatesScreen}
+              options={{ title: "Live Debates" }}
+            />
+
+            {/* OUTGOING CALL */}
+            <Stack.Screen
+              name="OutgoingCall"
+              component={OutgoingCallScreen}
+              options={{ headerShown: false }}
+            />
+
+            {/* JOB DETAIL */}
+            <Stack.Screen
+              name="JobDetail"
+              component={JobDetailScreen}
+              options={{ title: "Job Details" }}
+            />
+
+            {/* JOB APPLICATIONS */}
+            <Stack.Screen
+              name="JobApplications"
+              component={JobApplicationsScreen}
+              options={{ title: "Applications" }}
+            />
+
+            {/* ADMIN JOB MANAGEMENT */}
+            <Stack.Screen
+              name="AdminJobs"
+              component={AdminJobsScreen}
+              options={{ title: "Job Management" }}
+            />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
+
+      {user && <IncomingCallHandler />}
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -12,12 +12,22 @@ import {
 } from "react-native";
 
 import {
+  collection,
   doc,
+  increment,
   onSnapshot,
+  serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
+
+import useResolvedNames from "../hooks/useResolvedNames";
+import {
+  getDebatePlayers,
+  isDebateFinished,
+} from "../utils/debates";
 
 export default function DebateBattleScreen({
   route,
@@ -36,6 +46,12 @@ export default function DebateBattleScreen({
   const [submitting, setSubmitting] = useState(false);
 
   const [voting, setVoting] = useState(false);
+
+  const [votes, setVotes] = useState([]);
+
+  // Guards so viewer counting and the finish write happen once only.
+  const viewerAnnouncedRef = useRef(false);
+  const finishAnnouncedRef = useRef(false);
 
   const currentUser = auth.currentUser;
 
@@ -83,6 +99,115 @@ export default function DebateBattleScreen({
     return unsubscribe;
   }, [battleId]);
 
+  /* -------------------------------------------------
+     AUDIENCE VOTES (subcollection, one doc per voter)
+  ------------------------------------------------- */
+
+  useEffect(() => {
+    if (!battleId) return;
+
+    const unsubscribe = onSnapshot(
+      collection(
+        db,
+        "debateBattles",
+        battleId,
+        "votes"
+      ),
+      (snapshot) => {
+        const loaded = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+
+          loaded.push({
+            uid: docSnap.id,
+            votedFor: data.votedFor,
+          });
+        });
+
+        setVotes(loaded);
+      },
+      (error) => {
+        console.log(
+          "Debate votes error:",
+          error
+        );
+      }
+    );
+
+    return unsubscribe;
+  }, [battleId]);
+
+  /* -------------------------------------------------
+     FINISH LIFECYCLE + LIVE VIEWER COUNT
+  ------------------------------------------------- */
+
+  useEffect(() => {
+    if (!battle) return;
+
+    const uid = auth.currentUser?.uid;
+
+    const battleRef = doc(
+      db,
+      "debateBattles",
+      battleId
+    );
+
+    const isParticipant = Boolean(
+      battle.players?.[uid]
+    );
+
+    // Once both final defenses exist, participants mark the debate
+    // as finished and pull it from the live feed. Idempotent with
+    // last-write-wins, guarded by a ref so it only runs once.
+    const finished = isDebateFinished(battle);
+
+    if (
+      finished &&
+      isParticipant &&
+      battle.status !== "finished" &&
+      !finishAnnouncedRef.current
+    ) {
+      finishAnnouncedRef.current = true;
+
+      updateDoc(battleRef, {
+        status: "finished",
+        isLive: false,
+        endedAt: serverTimestamp(),
+      }).catch(() => {
+        finishAnnouncedRef.current = false;
+      });
+    }
+
+    // Count spectators for the live feed (approximate; stale if the
+    // app is force-killed while watching).
+    const isViewer = !isParticipant;
+
+    if (
+      isViewer &&
+      !viewerAnnouncedRef.current
+    ) {
+      viewerAnnouncedRef.current = true;
+
+      updateDoc(battleRef, {
+        liveViewers: increment(1),
+      }).catch(() => {});
+    }
+  }, [battle]);
+
+  useEffect(() => {
+    return () => {
+      if (viewerAnnouncedRef.current) {
+        updateDoc(
+          doc(db, "debateBattles", battleId),
+          {
+            liveViewers: increment(-1),
+          }
+        ).catch(() => {});
+      }
+    };
+  }, [battleId]);
+
   const submitArgument = async () => {
   if (!position) {
     Alert.alert(
@@ -101,6 +226,15 @@ export default function DebateBattleScreen({
   }
 
   if (!currentUser) return;
+
+  // Spectators are read-only: only debate participants may submit.
+  if (!battle?.players?.[currentUser.uid]) {
+    Alert.alert(
+      "Spectator Mode",
+      "Only debate participants can submit responses."
+    );
+    return;
+  }
 
   try {
     setSubmitting(true);
@@ -149,6 +283,15 @@ const submitResponse = async () => {
 
   if (!currentUser) return;
 
+  // Spectators are read-only: only debate participants may submit.
+  if (!battle?.players?.[currentUser.uid]) {
+    Alert.alert(
+      "Spectator Mode",
+      "Only debate participants can submit responses."
+    );
+    return;
+  }
+
   try {
     setSubmitting(true);
 
@@ -194,6 +337,15 @@ const submitFinalResponse = async () => {
   }
 
   if (!currentUser) return;
+
+  // Spectators are read-only: only debate participants may submit.
+  if (!battle?.players?.[currentUser.uid]) {
+    Alert.alert(
+      "Spectator Mode",
+      "Only debate participants can submit responses."
+    );
+    return;
+  }
 
   try {
     setSubmitting(true);
@@ -244,14 +396,8 @@ const voteForDebater = async (playerId) => {
     return;
   }
 
-  // Debate participants cannot vote
-  if (battle?.players?.[currentUser.uid]) {
-    Alert.alert(
-      "Participants Cannot Vote",
-      "You cannot vote in your own debate."
-    );
-    return;
-  }
+  // Any authenticated user (participant OR spectator) may vote once
+  // the debate is finished. One vote doc per uid = one vote per user.
 
   // Make sure the selected player actually exists
   if (!playerId) {
@@ -274,16 +420,25 @@ const voteForDebater = async (playerId) => {
   try {
     setVoting(true);
 
-    const battleRef = doc(
+    // One vote doc per voter (doc id = uid), so a user can never
+    // vote more than once. Overwriting the same id changes the vote.
+    const voteRef = doc(
       db,
       "debateBattles",
-      battleId
+      battleId,
+      "votes",
+      currentUser.uid
     );
 
-    await updateDoc(battleRef, {
-      [`audienceVotes.${currentUser.uid}`]:
-        playerId,
+    await setDoc(voteRef, {
+      votedFor: playerId,
+      createdAt: serverTimestamp(),
     });
+
+    Alert.alert(
+      "Vote Cast",
+      "Thanks for voting!"
+    );
 
   } catch (error) {
     console.log(
@@ -323,12 +478,25 @@ const isParticipant = Boolean(myPlayer);
 
 const isSpectator = !isParticipant;
 
-const debatePlayers = Object.values(
-  battle.players || {}
+// Deterministic player order: creator (challenger) is always player
+// one, the opponent is always player two. Object.values() order is
+// NOT reliable for Firestore maps, which caused the "A vs Student"
+// mismatch.
+const { playerOne, playerTwo } =
+  getDebatePlayers(battle);
+
+// Older battles stored "Student" as the creator's name (null auth
+// displayName). Resolve the real name from the users collection.
+const resolvedNames = useResolvedNames(
+  battle
+    ? Object.values(battle.players || {})
+    : []
 );
 
-const playerOne = debatePlayers[0];
-const playerTwo = debatePlayers[1];
+const displayName = (player, fallback = "Student") =>
+  resolvedNames[player?.userId] ||
+  player?.name ||
+  fallback;
 
   const opponentId =
     Object.keys(battle.players || {}).find(
@@ -364,8 +532,10 @@ const bothArgumentsSubmitted =
 const bothResponsesSubmitted =
   Boolean(myResponse && opponentResponse);
 
-const debateFinished =
-  Boolean(myFinalResponse && opponentFinalResponse);
+// Battle-level finish condition so BOTH participants and spectators
+// (who have no myPlayer) agree on when voting opens: once both final
+// defenses exist (or the battle has been marked finished).
+const debateFinished = isDebateFinished(battle);
 
   // -------------------------------------------------
 // LIVE ROUND STATUS
@@ -421,21 +591,18 @@ const spectatorRound =
 // AUDIENCE VOTE RESULTS
 // -------------------------------------------------
 
-const audienceVotes = battle.audienceVotes || {};
+const votesFor = (playerId) =>
+  votes.filter(
+    (vote) => vote.votedFor === playerId
+  ).length;
 
-const playerOneVotes = Object.values(
-  audienceVotes
-).filter(
-  (playerId) =>
-    playerId === playerOne?.userId
-).length;
+const playerOneVotes = votesFor(
+  playerOne?.userId
+);
 
-const playerTwoVotes = Object.values(
-  audienceVotes
-).filter(
-  (playerId) =>
-    playerId === playerTwo?.userId
-).length;
+const playerTwoVotes = votesFor(
+  playerTwo?.userId
+);
 
 const totalAudienceVotes =
   playerOneVotes + playerTwoVotes;
@@ -454,10 +621,209 @@ const playerTwoPercentage =
       )
     : 0;
 
-    const myVote =
+const myVote =
   currentUser
-    ? audienceVotes[currentUser.uid]
+    ? votes.find(
+        (vote) => vote.uid === currentUser.uid
+      )?.votedFor || null
     : null;
+
+  // Shared "who won" voting + result card shown to BOTH spectators and
+  // participants once the debate is finished. Only rendered when
+  // `debateFinished` (battle-level) is true.
+  const renderVotingAndResult = () => {
+    if (!debateFinished) return null;
+
+    return (
+      <View>
+
+        {/* AUDIENCE VOTING */}
+
+        <View style={styles.votingCard}>
+
+          <Text style={styles.votingEmoji}>
+            🗳️
+          </Text>
+
+          <Text style={styles.votingTitle}>
+            Who Won This Debate?
+          </Text>
+
+          <Text style={styles.votingSubtitle}>
+            Vote for the student you think argued
+            better.
+          </Text>
+
+          {/* PLAYER ONE */}
+
+          <View style={styles.voteResultCard}>
+
+            <View style={styles.voteResultHeader}>
+
+              <Text style={styles.votePlayerName}>
+                🧠 {displayName(playerOne)}
+              </Text>
+
+              <Text style={styles.votePercentage}>
+                {playerOnePercentage}%
+              </Text>
+
+            </View>
+
+            <View style={styles.voteBarBackground}>
+
+              <View
+                style={[
+                  styles.voteBarFill,
+                  {
+                    width: `${playerOnePercentage}%`,
+                  },
+                ]}
+              />
+
+            </View>
+
+            <Text style={styles.voteCount}>
+              {playerOneVotes}{" "}
+              {playerOneVotes === 1
+                ? "vote"
+                : "votes"}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.voteButton,
+                myVote === playerOne?.userId &&
+                  styles.selectedVoteButton,
+              ]}
+              disabled={voting}
+              onPress={() =>
+                voteForDebater(playerOne?.userId)
+              }
+            >
+              <Text style={styles.voteButtonText}>
+                {myVote === playerOne?.userId
+                  ? "✅ You voted for this debater"
+                  : `🗳️ Vote for ${displayName(playerOne)}`}
+              </Text>
+            </TouchableOpacity>
+
+          </View>
+
+          {/* PLAYER TWO */}
+
+          <View style={styles.voteResultCard}>
+
+            <View style={styles.voteResultHeader}>
+
+              <Text style={styles.votePlayerName}>
+                🧠 {displayName(playerTwo)}
+              </Text>
+
+              <Text style={styles.votePercentage}>
+                {playerTwoPercentage}%
+              </Text>
+
+            </View>
+
+            <View style={styles.voteBarBackground}>
+
+              <View
+                style={[
+                  styles.voteBarFill,
+                  {
+                    width: `${playerTwoPercentage}%`,
+                  },
+                ]}
+              />
+
+            </View>
+
+            <Text style={styles.voteCount}>
+              {playerTwoVotes}{" "}
+              {playerTwoVotes === 1
+                ? "vote"
+                : "votes"}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.voteButton,
+                myVote === playerTwo?.userId &&
+                  styles.selectedVoteButton,
+              ]}
+              disabled={voting}
+              onPress={() =>
+                voteForDebater(playerTwo?.userId)
+              }
+            >
+              <Text style={styles.voteButtonText}>
+                {myVote === playerTwo?.userId
+                  ? "✅ You voted for this debater"
+                  : `🗳️ Vote for ${displayName(playerTwo)}`}
+              </Text>
+            </TouchableOpacity>
+
+          </View>
+
+          {/* TOTAL */}
+
+          <Text style={styles.totalVotesText}>
+            👥 {totalAudienceVotes} audience{" "}
+            {totalAudienceVotes === 1
+              ? "vote"
+              : "votes"}
+          </Text>
+
+          {voting && (
+            <ActivityIndicator
+              size="small"
+              color="#818CF8"
+              style={{ marginTop: 10 }}
+            />
+          )}
+
+        </View>
+
+        {/* DEBATE COMPLETE */}
+
+        <View style={styles.resultCard}>
+
+          <Text style={styles.resultEmoji}>
+            🏆
+          </Text>
+
+          <Text style={styles.resultTitle}>
+            Debate Complete!
+          </Text>
+
+          <Text style={styles.resultText}>
+            Both students have completed all three
+            rounds of the debate.
+          </Text>
+
+          <View style={styles.finishedBadge}>
+
+            <Text style={styles.finishedBadgeText}>
+              🔥 LIVE DEBATE FINISHED
+            </Text>
+
+          </View>
+
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.submitText}>
+              Done
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+
+      </View>
+    );
+  };
 
   return (
     <ScrollView
@@ -501,7 +867,7 @@ const playerTwoPercentage =
           </Text>
 
           <Text style={styles.playerName}>
-            {playerOne?.name || "Student"}
+            {displayName(playerOne)}
           </Text>
 
           <Text style={styles.score}>
@@ -519,7 +885,7 @@ const playerTwoPercentage =
           </Text>
 
           <Text style={styles.playerName}>
-            {playerTwo?.name || "Student"}
+            {displayName(playerTwo)}
           </Text>
 
           <Text style={styles.score}>
@@ -664,7 +1030,7 @@ const playerTwoPercentage =
             <View style={styles.publicPlayerHeader}>
 
               <Text style={styles.publicPlayerName}>
-                🧠 {player?.name || "Student"}
+                🧠 {displayName(player)}
               </Text>
 
               {player?.position && (
@@ -724,7 +1090,7 @@ const playerTwoPercentage =
           >
 
             <Text style={styles.publicPlayerName}>
-              🧠 {player?.name || "Student"}'s rebuttal
+              🧠 {displayName(player)}'s rebuttal
             </Text>
 
 
@@ -766,7 +1132,7 @@ const playerTwoPercentage =
           >
 
             <Text style={styles.publicPlayerName}>
-              🧠 {player?.name || "Student"}'s final defense
+              🧠 {displayName(player)}'s final defense
             </Text>
 
 
@@ -787,169 +1153,9 @@ const playerTwoPercentage =
     )}
 
 
-{/* ----------------------------------------- */}
-{/* AUDIENCE VOTING */}
-{/* ----------------------------------------- */}
+{/* AUDIENCE VOTING + RESULT (shared with participants) */}
 
-{debateFinished && (
-
-  <View style={styles.votingCard}>
-
-    <Text style={styles.votingEmoji}>
-      🗳️
-    </Text>
-
-    <Text style={styles.votingTitle}>
-      Who Won This Debate?
-    </Text>
-
-    <Text style={styles.votingSubtitle}>
-      Vote for the student you think argued
-      better.
-    </Text>
-
-
-    {/* PLAYER ONE */}
-
-    <View style={styles.voteResultCard}>
-
-      <View style={styles.voteResultHeader}>
-
-        <Text style={styles.votePlayerName}>
-          🧠 {playerOne?.name || "Student"}
-        </Text>
-
-        <Text style={styles.votePercentage}>
-          {playerOnePercentage}%
-        </Text>
-
-      </View>
-
-
-      <View style={styles.voteBarBackground}>
-
-        <View
-          style={[
-            styles.voteBarFill,
-            {
-              width: `${playerOnePercentage}%`,
-            },
-          ]}
-        />
-
-      </View>
-
-
-      <Text style={styles.voteCount}>
-        {playerOneVotes}{" "}
-        {playerOneVotes === 1
-          ? "vote"
-          : "votes"}
-      </Text>
-
-
-      <TouchableOpacity
-  style={[
-    styles.voteButton,
-    myVote === playerOne?.userId &&
-      styles.selectedVoteButton,
-  ]}
-  disabled={voting}
-  onPress={() =>
-    voteForDebater(playerOne?.userId)
-  }
->
-  <Text style={styles.voteButtonText}>
-    {myVote === playerOne?.userId
-      ? "✅ You voted for this debater"
-      : `🗳️ Vote for ${playerOne?.name || "Student"}`}
-  </Text>
-</TouchableOpacity>
-
-    </View>
-
-
-    {/* PLAYER TWO */}
-
-    <View style={styles.voteResultCard}>
-
-      <View style={styles.voteResultHeader}>
-
-        <Text style={styles.votePlayerName}>
-          🧠 {playerTwo?.name || "Student"}
-        </Text>
-
-        <Text style={styles.votePercentage}>
-          {playerTwoPercentage}%
-        </Text>
-
-      </View>
-
-
-      <View style={styles.voteBarBackground}>
-
-        <View
-          style={[
-            styles.voteBarFill,
-            {
-              width: `${playerTwoPercentage}%`,
-            },
-          ]}
-        />
-
-      </View>
-
-
-      <Text style={styles.voteCount}>
-        {playerTwoVotes}{" "}
-        {playerTwoVotes === 1
-          ? "vote"
-          : "votes"}
-      </Text>
-
-
-      <TouchableOpacity
-  style={[
-    styles.voteButton,
-    myVote === playerTwo?.userId &&
-      styles.selectedVoteButton,
-  ]}
-  disabled={voting}
-  onPress={() =>
-    voteForDebater(playerTwo?.userId)
-  }
->
-  <Text style={styles.voteButtonText}>
-    {myVote === playerTwo?.userId
-      ? "✅ You voted for this debater"
-      : `🗳️ Vote for ${playerTwo?.name || "Student"}`}
-  </Text>
-</TouchableOpacity>
-
-    </View>
-
-
-    {/* TOTAL */}
-
-    <Text style={styles.totalVotesText}>
-      👥 {totalAudienceVotes} audience{" "}
-      {totalAudienceVotes === 1
-        ? "vote"
-        : "votes"}
-    </Text>
-
-
-    {voting && (
-      <ActivityIndicator
-        size="small"
-        color="#818CF8"
-        style={{ marginTop: 10 }}
-      />
-    )}
-
-  </View>
-
-)}
+    {renderVotingAndResult()}
 
     {/* ----------------------------------------- */}
     {/* WAITING STATUS */}
@@ -990,84 +1196,13 @@ const playerTwoPercentage =
 
     )}
 
-
-    {/* ----------------------------------------- */}
-    {/* DEBATE COMPLETE */}
-    {/* ----------------------------------------- */}
-
-    {debateFinished && (
-
-      <View style={styles.resultCard}>
-
-        <Text style={styles.resultEmoji}>
-          🏆
-        </Text>
-
-        <Text style={styles.resultTitle}>
-          Debate Complete!
-        </Text>
-
-        <Text style={styles.resultText}>
-          Both students have completed all three
-          rounds of the debate.
-        </Text>
-
-
-        <View style={styles.finishedBadge}>
-
-          <Text style={styles.finishedBadgeText}>
-            🔥 LIVE DEBATE FINISHED
-          </Text>
-
-        </View>
-
-
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={() => navigation.goBack()}
-        >
-
-          <Text style={styles.submitText}>
-            Done
-          </Text>
-
-        </TouchableOpacity>
-
-      </View>
-
-    )}
-
   </View>
 
 ) : debateFinished ? (
 
-  /* 🏆 PARTICIPANT — DEBATE FINISHED */
+  /* 🏆 DEBATE FINISHED — vote + result (same as spectators) */
 
-  <View style={styles.resultCard}>
-
-    <Text style={styles.resultEmoji}>
-      🏆
-    </Text>
-
-    <Text style={styles.resultTitle}>
-      Debate Complete!
-    </Text>
-
-    <Text style={styles.resultText}>
-      Both students have completed all three
-      rounds of the debate.
-    </Text>
-
-    <TouchableOpacity
-      style={styles.submitButton}
-      onPress={() => navigation.goBack()}
-    >
-      <Text style={styles.submitText}>
-        Done
-      </Text>
-    </TouchableOpacity>
-
-  </View>
+  renderVotingAndResult()
 
 ) : !myArgument ? (
 
@@ -1186,7 +1321,7 @@ const playerTwoPercentage =
     <View style={styles.opponentCard}>
 
       <Text style={styles.opponentLabel}>
-        🧠 {opponent?.name || "Opponent"}'s argument
+        🧠 {displayName(opponent, "Opponent")}'s argument
       </Text>
 
       <Text style={styles.opponentArgument}>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Text, TouchableOpacity, View } from "react-native";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { Camera } from "expo-camera";
@@ -10,6 +10,7 @@ import {
   deleteDoc,
   doc,
   increment,
+  onSnapshot,
   serverTimestamp,
   setDoc,
   updateDoc
@@ -48,6 +49,56 @@ export default function VideoRoomScreen({ route, navigation }) {
 const safeRoomName = String(roomName)
   .replace(/[^a-zA-Z0-9_-]/g, "")
   .slice(0, 50);
+
+  // Present only when the room was entered through a private call.
+  const callId = route.params?.callId || null;
+
+  const selfEndedRef = useRef(false);
+
+  // Mark the call ended when the local user leaves the call room.
+  useEffect(() => {
+    if (!callId) return;
+
+    return () => {
+      selfEndedRef.current = true;
+
+      updateDoc(doc(db, "calls", callId), {
+        status: "ended",
+        endedAt: serverTimestamp(),
+      }).catch(() => {});
+    };
+  }, [callId]);
+
+  // Alert the user when the other side hangs up.
+  useEffect(() => {
+    if (!callId) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, "calls", callId),
+      (snapshot) => {
+        if (selfEndedRef.current) return;
+
+        const data = snapshot.data();
+
+        if (data && data.status === "ended") {
+          Alert.alert(
+            "Call Ended",
+            "The other person has left the call."
+          );
+
+          navigation.goBack();
+        }
+      },
+      (error) => {
+        console.log(
+          "Call status error:",
+          error
+        );
+      }
+    );
+
+    return () => unsubscribe();
+  }, [callId]);
 
   useEffect(() => {
   const requestPermissions = async () => {
