@@ -319,6 +319,11 @@ const previousCourse = oldProfile.exists()
     );
   }
 
+  // Admin (isAdmin === true) or Premium users can access Jobs & Careers.
+  // Uses the shared isAdminUser() helper for the admin check.
+  const showJobs =
+    isPremium || isAdminUser({ isAdmin });
+
   return (
     <ScrollView
       style={styles.container}
@@ -432,9 +437,6 @@ const previousCourse = oldProfile.exists()
     </Text>
   )}
 </TouchableOpacity>
-
-const showJobs =
-  isPremium || isAdminUser({ isAdmin });
 
 <TouchableOpacity
   style={styles.premiumBtn}
