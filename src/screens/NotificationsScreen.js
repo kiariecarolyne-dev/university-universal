@@ -195,6 +195,11 @@ if (
         "Open notification error:",
         error
       );
+
+      Alert.alert(
+        "Something went wrong",
+        "We couldn't open this notification. Please try again."
+      );
     }
   };
 
@@ -432,15 +437,15 @@ if (
             <Text
               style={styles.emptyTitle}
             >
-              No notifications yet
+              You're all caught up
             </Text>
 
             <Text
               style={styles.emptyText}
             >
-              When students like or comment
-              on your posts, you'll see it
-              here.
+              When something important
+              happens, your notifications
+              will appear here.
             </Text>
           </View>
         }

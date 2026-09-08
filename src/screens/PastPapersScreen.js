@@ -21,6 +21,7 @@ import {
 } from "firebase/firestore";
 
 import useUser from "../hooks/useUser";
+import EmptyState from "../components/EmptyState";
 import { auth, db } from "../services/firebase";
 
 
@@ -31,6 +32,7 @@ export default function PastPapersScreen({ navigation }) {
   const [filteredPapers, setFilteredPapers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     loadPapers();
@@ -38,6 +40,9 @@ export default function PastPapersScreen({ navigation }) {
 
   const loadPapers = async () => {
     try {
+      setLoading(true);
+      setLoadError(false);
+
       const snapshot = await getDocs(collection(db, "pastPapers"));
 
       const data = snapshot.docs.map(doc => ({
@@ -49,7 +54,8 @@ export default function PastPapersScreen({ navigation }) {
       setFilteredPapers(data);
 
     } catch (error) {
-      console.log(error);
+      console.log("Past papers load error:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -185,6 +191,13 @@ const downloadPDF = async (paper) => {
         backgroundColor:"#0B0F14"
       }}>
         <ActivityIndicator size="large" color="#22C55E" />
+        <Text style={{
+          color: "#9CA3AF",
+          fontSize: 13,
+          marginTop: 12,
+        }}>
+          Loading past papers...
+        </Text>
       </View>
     );
   }
@@ -266,38 +279,32 @@ const downloadPDF = async (paper) => {
         data={filteredPapers}
         keyExtractor={(item)=>item.id}
         ListEmptyComponent={
-  <View
-    style={{
-      alignItems: "center",
-      marginTop: 30,
-      padding: 20,
-    }}
-  >
-    <Text style={{ fontSize: 40, marginBottom: 10 }}>
-      📭
-    </Text>
-
-    <Text
-      style={{
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "bold",
+  loadError ? (
+    <EmptyState
+      emoji="😕"
+      title="Couldn't load past papers"
+      text="Check your connection and try again."
+      actionLabel="Try Again"
+      onAction={loadPapers}
+    />
+  ) : search.trim() ? (
+    <EmptyState
+      emoji="📚"
+      title="No papers found"
+      text="Try another course, university, unit, or year."
+      actionLabel="Clear Search"
+      onAction={() => {
+        setSearch("");
+        setFilteredPapers(papers);
       }}
-    >
-      No past papers found
-    </Text>
-
-    <Text
-      style={{
-        color: "#9CA3AF",
-        fontSize: 12,
-        textAlign: "center",
-        marginTop: 6,
-      }}
-    >
-      Try a different search term, or check back later.
-    </Text>
-  </View>
+    />
+  ) : (
+    <EmptyState
+      emoji="📚"
+      title="No papers found"
+      text="Papers will appear here once they're uploaded. Check back later."
+    />
+  )
 }
         renderItem={({ item }) => (
   <View

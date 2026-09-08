@@ -21,6 +21,7 @@ export default function FriendsMatchScreen({ navigation }) {
 
   const [matchCount, setMatchCount] = useState(0);
   const [loadingCount, setLoadingCount] = useState(true);
+  const [matchError, setMatchError] = useState(false);
 
   const uid = auth.currentUser?.uid;
 
@@ -41,9 +42,12 @@ export default function FriendsMatchScreen({ navigation }) {
         ).length;
         setMatchCount(active);
         setLoadingCount(false);
+        setMatchError(false);
       },
-      () => {
+      (error) => {
+        console.log("Matches listener error:", error);
         setLoadingCount(false);
+        setMatchError(true);
       }
     );
 
@@ -116,13 +120,36 @@ export default function FriendsMatchScreen({ navigation }) {
           <Text style={styles.cardEmoji}>⭐</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>Your Matches</Text>
-            <Text style={styles.cardText}>
-              {loadingCount
-                ? "Loading..."
-                : matchCount > 0
-                ? `You have ${matchCount} mutual match${matchCount === 1 ? "" : "es"}.`
-                : "No matches yet — start swiping!"}
-            </Text>
+
+            {loadingCount ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator
+                  size="small"
+                  color="#4F46E5"
+                />
+
+                <Text style={styles.cardText}>
+                  Loading...
+                </Text>
+              </View>
+            ) : matchError ? (
+              <Text style={styles.cardText}>
+                Couldn't load your matches. Check your
+                connection and try again.
+              </Text>
+            ) : matchCount > 0 ? (
+              <Text style={styles.cardText}>
+                {`You have ${matchCount} mutual match${
+                  matchCount === 1 ? "" : "es"
+                }.`}
+              </Text>
+            ) : (
+              <Text style={styles.cardText}>
+                💛 No matches yet — complete your preferences
+                and start swiping to discover students who
+                share your interests and goals.
+              </Text>
+            )}
           </View>
 
           {!loadingCount && matchCount > 0 && (
@@ -207,6 +234,11 @@ const styles = {
     color: "#9CA3AF",
     fontSize: 13,
     lineHeight: 19,
+  },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
   },
   cardBottom: {
     flexDirection: "row",

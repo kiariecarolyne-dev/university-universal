@@ -1751,7 +1751,7 @@ const toggleLike = async (post) => {
                 styles.emptyEmoji
               }
             >
-              🌍
+              💬
             </Text>
 
             <Text
@@ -1759,8 +1759,7 @@ const toggleLike = async (post) => {
                 styles.emptyTitle
               }
             >
-              Your student community
-              is waiting
+              Start the conversation
             </Text>
 
             <Text
@@ -1768,9 +1767,9 @@ const toggleLike = async (post) => {
                 styles.emptyText
               }
             >
-              Be the first to share
-              something with fellow
-              students.
+              Share something with the student
+              community and be the first to
+              start a discussion.
             </Text>
 
             <TouchableOpacity
@@ -1787,8 +1786,7 @@ const toggleLike = async (post) => {
                   styles.emptyButtonText
                 }
               >
-                ✍️ Create your first
-                post
+                ✍️ Create a Post
               </Text>
             </TouchableOpacity>
           </View>

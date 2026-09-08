@@ -9,6 +9,8 @@ import {
 
 import { db } from "../services/firebase";
 
+import EmptyState from "../components/EmptyState";
+
 import {
   ActivityIndicator,
   Alert,
@@ -31,6 +33,7 @@ export default function GroupsScreen({ navigation }) {
   const [onlineStudents, setOnlineStudents] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const user = useUser();
 
   const loadGroups = async () => {
@@ -38,11 +41,19 @@ export default function GroupsScreen({ navigation }) {
       if (!user) return;
 
       setLoading(true);
+      setLoadError(false);
 
       const recommended = await getRecommendedGroups(user);
       setGroups(recommended || []);
     } catch (error) {
-      Alert.alert("Error", error.message);
+      console.log("Groups load error:", error);
+
+      setLoadError(true);
+
+      Alert.alert(
+        "Couldn't load groups",
+        "Check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -66,9 +77,15 @@ export default function GroupsScreen({ navigation }) {
       where("online", "==", true)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setOnlineStudents(snapshot.size);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setOnlineStudents(snapshot.size);
+      },
+      (error) => {
+        console.log("Online count listener error:", error);
+      }
+    );
 
     return unsubscribe;
   }, []);
@@ -289,6 +306,19 @@ export default function GroupsScreen({ navigation }) {
                 {filteredGroups.length === 1 ? "" : "s"}
               </Text>
             </View>
+
+            {loading && groups.length > 0 && (
+              <View style={styles.reloadingRow}>
+                <ActivityIndicator
+                  size="small"
+                  color="#4F46E5"
+                />
+
+                <Text style={styles.reloadingText}>
+                  Updating groups...
+                </Text>
+              </View>
+            )}
           </>
         }
         ListEmptyComponent={
@@ -303,18 +333,34 @@ export default function GroupsScreen({ navigation }) {
                 Loading study groups...
               </Text>
             </View>
+          ) : loadError ? (
+            <EmptyState
+              emoji="😕"
+              title="Couldn't load groups"
+              text="Check your connection and try again."
+              actionLabel="Try Again"
+              onAction={loadGroups}
+              card={false}
+            />
+          ) : search.trim() || courseFilter !== "All" ? (
+            <EmptyState
+              emoji="👥"
+              title="No groups match your search"
+              text="Try a different search or filter to see more groups."
+              actionLabel="Clear Filters"
+              onAction={() => {
+                setSearch("");
+                setCourseFilter("All");
+              }}
+              card={false}
+            />
           ) : (
-            <View style={styles.stateBox}>
-              <Text style={styles.stateEmoji}>💬</Text>
-
-              <Text style={styles.stateTitle}>
-                No groups found
-              </Text>
-
-              <Text style={styles.stateHint}>
-                Try a different search or filter.
-              </Text>
-            </View>
+            <EmptyState
+              emoji="👥"
+              title="Your community is waiting"
+              text="Join a group related to your course, interests, or goals."
+              card={false}
+            />
           )
         }
         renderItem={({ item }) => (
@@ -694,6 +740,20 @@ const styles = {
     alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 20,
+  },
+
+  reloadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+
+  reloadingText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    marginLeft: 8,
   },
 
   stateEmoji: {

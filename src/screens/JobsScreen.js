@@ -22,6 +22,8 @@ import {
 
 import { db } from "../services/firebase";
 
+import EmptyState from "../components/EmptyState";
+
 import useUser from "../hooks/useUser";
 import {
   getUserPlan,
@@ -33,6 +35,8 @@ export default function JobsScreen({ navigation }) {
 
   const [jobs, setJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -85,6 +89,8 @@ export default function JobsScreen({ navigation }) {
   ========================================= */
 
   useEffect(() => {
+    let active = true;
+
     const jobsQuery = query(
       collection(db, "jobs"),
       orderBy("createdAt", "desc")
@@ -93,6 +99,8 @@ export default function JobsScreen({ navigation }) {
     const unsubscribe = onSnapshot(
       jobsQuery,
       (snapshot) => {
+        if (!active) return;
+
         const loadedJobs = [];
 
         snapshot.forEach((docSnap) => {
@@ -113,16 +121,22 @@ export default function JobsScreen({ navigation }) {
 });
 
         setJobs(loadedJobs);
+        setLoadError(false);
         setLoadingJobs(false);
       },
       (error) => {
         console.log("JOBS LOAD ERROR:", error);
+        if (!active) return;
+        setLoadError(true);
         setLoadingJobs(false);
       }
     );
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [reloadKey]);
 
   /* =========================================
      APPLY
@@ -545,21 +559,35 @@ export default function JobsScreen({ navigation }) {
             paddingBottom: 40,
           }}
           ListEmptyComponent={
-            <View style={styles.emptyCard}>
-
-              <Text style={styles.emptyIcon}>
-                🔎
-              </Text>
-
-              <Text style={styles.emptyTitle}>
-                No jobs found
-              </Text>
-
-              <Text style={styles.emptyText}>
-                Try another search or category.
-              </Text>
-
-            </View>
+            loadError ? (
+              <EmptyState
+                emoji="😕"
+                title="Couldn't load jobs"
+                text="Something went wrong. Please try again."
+                actionLabel="Try Again"
+                onAction={() =>
+                  setReloadKey((key) => key + 1)
+                }
+              />
+            ) : search.trim() ||
+              selectedCategory !== "All" ? (
+              <EmptyState
+                emoji="💼"
+                title="No opportunities match your search"
+                text="Try another search or category to see more opportunities."
+                actionLabel="Reset Filters"
+                onAction={() => {
+                  setSearch("");
+                  setSelectedCategory("All");
+                }}
+              />
+            ) : (
+              <EmptyState
+                emoji="💼"
+                title="Opportunities are coming"
+                text="No opportunities match your current search yet. Check back later."
+              />
+            )
           }
         />
 

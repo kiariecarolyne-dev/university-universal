@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { collection, getDocs } from "firebase/firestore";
+import EmptyState from "../components/EmptyState";
 import useUser from "../hooks/useUser";
 import { auth, db } from "../services/firebase";
 
@@ -27,11 +28,13 @@ export default function DiscoverScreen({ navigation }) {
   const [countries, setCountries] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const user = useUser();
 
   const loadStudents = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
 
       const snapshot = await getDocs(collection(db, "users"));
 
@@ -68,7 +71,14 @@ export default function DiscoverScreen({ navigation }) {
 
       setCountries(uniqueCountries);
     } catch (error) {
-      Alert.alert("Error", error.message);
+      console.log("Discover load error:", error);
+
+      setLoadError(true);
+
+      Alert.alert(
+        "Couldn't load students",
+        "Check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -274,6 +284,19 @@ export default function DiscoverScreen({ navigation }) {
                 {displayedStudents.length === 1 ? "" : "s"}
               </Text>
             </View>
+
+            {loading && students.length > 0 && (
+              <View style={styles.reloadingRow}>
+                <ActivityIndicator
+                  size="small"
+                  color="#4F46E5"
+                />
+
+                <Text style={styles.reloadingText}>
+                  Updating students...
+                </Text>
+              </View>
+            )}
           </>
         }
         ListEmptyComponent={
@@ -288,20 +311,37 @@ export default function DiscoverScreen({ navigation }) {
                 Finding students...
               </Text>
             </View>
+          ) : loadError ? (
+            <EmptyState
+              emoji="😕"
+              title="Couldn't load students"
+              text="Check your connection and try again."
+              actionLabel="Try Again"
+              onAction={loadStudents}
+              card={false}
+            />
+          ) : search.trim() ||
+            selectedCourse !== "All" ||
+            selectedCountry !== "All" ? (
+            <EmptyState
+              emoji="🌍"
+              title="Your student network is waiting"
+              text="No students match your current search. Try clearing your filters to see everyone."
+              actionLabel="Clear Filters"
+              onAction={() => {
+                setSearch("");
+                setSelectedCourse("All");
+                setSelectedCountry("All");
+              }}
+              card={false}
+            />
           ) : (
-            <View style={styles.stateBox}>
-              <Text style={styles.stateEmoji}>
-                🔍
-              </Text>
-
-              <Text style={styles.stateTitle}>
-                No students found
-              </Text>
-
-              <Text style={styles.stateHint}>
-                Try changing your search or filters.
-              </Text>
-            </View>
+            <EmptyState
+              emoji="🌍"
+              title="Your student network is waiting"
+              text="Connect with students from your course, university, and beyond."
+              card={false}
+            />
           )
         }
         renderItem={({ item }) => (
@@ -651,6 +691,20 @@ const styles = {
     alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 20,
+  },
+
+  reloadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+
+  reloadingText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    marginLeft: 8,
   },
 
   stateEmoji: {

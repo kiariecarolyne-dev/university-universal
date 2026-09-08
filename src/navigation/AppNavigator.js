@@ -1,10 +1,15 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { onAuthStateChanged } from "firebase/auth";
+import {
+  doc,
+  onSnapshot,
+  setDoc,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-import { auth } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 
 import { navigationRef } from "../utils/navigationRef";
 
@@ -31,6 +36,7 @@ import MatchPreferencesScreen from "../screens/MatchPreferencesScreen";
 import MatchSwipeScreen from "../screens/MatchSwipeScreen";
 import MembersScreen from "../screens/MembersScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
+import OnboardingScreen from "../screens/OnboardingScreen";
 import OutgoingCallScreen from "../screens/OutgoingCallScreen";
 import PastPapersScreen from "../screens/PastPapersScreen";
 import PostJobScreen from "../screens/PostJobScreen";
@@ -67,6 +73,7 @@ const screenMap = {
   MatchSwipeScreen,
   MembersScreen,
   NotificationsScreen,
+  OnboardingScreen,
   OutgoingCallScreen,
   PastPapersScreen,
   PostJobScreen,
@@ -90,6 +97,8 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const [user, setUser] = useState(undefined);
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
@@ -106,8 +115,110 @@ export default function AppNavigator() {
     return unsubscribe;
   }, []);
 
+  /* =============================================
+     ONBOARDING GATE
+     Watches users/{uid} once the user is signed in
+     and decides whether onboarding is required.
+
+     - onboardingCompleted === true       → skip
+     - clearly complete profile (name +
+       real course & university)          → skip + mark completed
+     - otherwise                          → show onboarding
+     - document missing / listener error  → skip (never lock out)
+  ============================================= */
+
+  useEffect(() => {
+    if (!user) {
+      setProfileChecked(false);
+      setNeedsOnboarding(false);
+      return;
+    }
+
+    let active = true;
+
+    const unsub = onSnapshot(
+      doc(db, "users", user.uid),
+      (snapshot) => {
+        if (!active) return;
+
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+
+          const hasName =
+            typeof data.fullName === "string" &&
+            data.fullName.trim().length > 0;
+
+          const hasRealCourse =
+            typeof data.course === "string" &&
+            data.course.trim() !== "" &&
+            data.course !== "Not set yet";
+
+          const hasRealUniversity =
+            typeof data.university === "string" &&
+            data.university.trim() !== "" &&
+            data.university !== "Not set yet";
+
+          const profileComplete =
+            hasName && hasRealCourse && hasRealUniversity;
+
+          if (
+            !data.onboardingCompleted &&
+            profileComplete
+          ) {
+            // Legacy user with a fully populated profile:
+            // treat onboarding as done and record it once.
+            setDoc(
+              doc(db, "users", user.uid),
+              { onboardingCompleted: true },
+              { merge: true }
+            ).catch(() => {});
+          }
+
+          setNeedsOnboarding(
+            data.onboardingCompleted !== true &&
+              !profileComplete
+          );
+        } else {
+          // Missing document — never block the user.
+          setNeedsOnboarding(false);
+        }
+
+        setProfileChecked(true);
+      },
+      (error) => {
+        console.log("Profile gate error:", error);
+
+        if (active) {
+          setNeedsOnboarding(false);
+          setProfileChecked(true);
+        }
+      }
+    );
+
+    return () => {
+      active = false;
+      unsub();
+    };
+  }, [user]);
+
   // Loading screen while checking authentication
   if (user === undefined) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#05070A",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
+
+  // Brief pause while deciding whether onboarding is needed
+  if (user && !profileChecked) {
     return (
       <View
         style={{
@@ -153,6 +264,15 @@ export default function AppNavigator() {
           </>
         ) : (
           <>
+            {/* ONBOARDING (only for users who have not completed it) */}
+            {needsOnboarding && (
+              <Stack.Screen
+                name="Onboarding"
+                component={OnboardingScreen}
+                options={{ headerShown: false }}
+              />
+            )}
+
             {/* MAIN APP */}
             <Stack.Screen
               name="MainTabs"

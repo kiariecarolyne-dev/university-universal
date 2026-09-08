@@ -425,8 +425,14 @@ students.push({
           {user.fullName?.split(" ")[0] || "Student"}
         </Text>
 
+        {/* Personalized tagline — only shown when real data exists */}
         <Text style={styles.subtitle}>
-          Study together, connect with students, and discover opportunities.
+          {user.course &&
+          user.course !== "Not set yet"
+            ? `Find students studying ${user.course}`
+            : user.interests?.length
+            ? "Connect with students who share your interests"
+            : "Study together, connect with students, and discover opportunities."}
         </Text>
       </View>
 
