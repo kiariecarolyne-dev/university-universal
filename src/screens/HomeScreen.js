@@ -881,6 +881,35 @@ students.push({
       </View>
 
       {/* =========================================
+          FRIENDS & MATCH
+      ========================================= */}
+
+      <TouchableOpacity
+        style={styles.utilityCard}
+        onPress={() =>
+          navigation.navigate("FriendsMatch")
+        }
+      >
+        <Text style={styles.utilityEmoji}>
+          ❤️
+        </Text>
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.utilityTitle}>
+            Friends & Match
+          </Text>
+
+          <Text style={styles.utilityText}>
+            Find friends and matches who share your interests.
+          </Text>
+        </View>
+
+        <Text style={styles.utilityArrow}>
+          →
+        </Text>
+      </TouchableOpacity>
+
+      {/* =========================================
           PAST PAPERS
       ========================================= */}
 

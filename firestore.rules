@@ -1,0 +1,439 @@
+rules_version = '2';
+
+// ==============================
+// University Universal — Firestore Security Rules (Phase 2 hardening)
+// Apply in the Firebase console (no firestore.rules is deployed from repo).
+// ==============================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------
+    // SHARED HELPERS
+    // -----------------------------------------------------------
+    // isAdmin() performs a rules-side lookup of users/{uid}.isAdmin.
+    // Admin SDK / Cloud Functions bypass rules entirely, so all
+    // legit backend writes still work.
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isLoggedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // A user may toggle ONLY their own uid out of / into the "likes"
+    // array field, and no other field may change.
+    function isOwnLikeToggle() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["likes"])
+        && (
+          (request.auth.uid in request.resource.data.likes && !(request.auth.uid in resource.data.likes))
+          || (request.auth.uid in resource.data.likes && !(request.auth.uid in request.resource.data.likes))
+        );
+    }
+
+    // Private chat IDs are deterministic "{uidA}_{uidB}" (sorted).
+    function isChatParticipant(chatId) {
+      return isLoggedIn() && chatId.split("_").hasAny([request.auth.uid]);
+    }
+
+    // The other participant's uid in a debate battle.
+    function otherPlayerUid(createdBy, opponentId) {
+      return request.auth.uid == createdBy ? opponentId : createdBy;
+    }
+
+    // ==============================
+    // USERS
+    // ==============================
+    // Reads stay public (Discover / Ranking / Friends & Match need it).
+    // Create/update/delete must be owner-only.
+    // PRIVILEGED-FIELD PROTECTION: a user may NEVER write isAdmin, and
+    // may only ever set isPremium -> false / premiumUntil -> null (the
+    // trial expiry cleanup in useUser.js writes exactly those values).
+    // Any attempt to escalate (isAdmin=true, isPremium=true, a non-null
+    // premiumUntil) is denied. Premium activation is done by M-PESA /
+    // backend (Admin SDK), which bypasses rules, so this does not break
+    // paid upgrades.
+    match /users/{uid} {
+      allow read: if true;
+
+      allow create: if isLoggedIn()
+        && request.auth.uid == uid
+        && request.resource.data.isAdmin == false
+        && request.resource.data.isPremium == false
+        && request.resource.data.premiumUntil == false;
+
+      allow update: if isLoggedIn()
+        && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["isAdmin"])
+        && !(request.resource.data.diff(resource.data).affectedKeys().hasAny(["isPremium"])
+             && request.resource.data.isPremium == true)
+        && !(request.resource.data.diff(resource.data).affectedKeys().hasAny(["premiumUntil"])
+             && request.resource.data.premiumUntil != null);
+
+      allow delete: if isLoggedIn()
+        && request.auth.uid == uid;
+    }
+
+    // ------------------------------
+    // USERS / BLOCKS (own subcollection)
+    // ------------------------------
+    match /users/{uid}/blocks/{blockedUid} {
+      allow read, create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
+    // ------------------------------
+    // USERS / NOTIFICATIONS
+    // ------------------------------
+    // Create is cross-user (app writes into the recipient's collection),
+    // but the sender must be the authenticated user. All 3 callers of
+    // createNotification() pass fromUserId == auth.currentUser.uid.
+    match /users/{uid}/notifications/{notificationId} {
+      allow read, update, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow create: if isLoggedIn()
+        && request.resource.data.fromUserId == request.auth.uid;
+    }
+
+    // ==============================
+    // LIKES  (Friends & Match — do not weaken)
+    // ==============================
+    match /likes/{id} {
+      allow read: if isLoggedIn()
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+
+      allow create: if isLoggedIn()
+        && request.auth.uid == resource.data.fromUid
+        && resource.data.toUid != request.auth.uid;
+
+      allow update, delete: if isLoggedIn()
+        && request.auth.uid == resource.data.fromUid
+        && resource.data.toUid != request.auth.uid;
+    }
+
+    // ==============================
+    // MATCHES  (Friends & Match — do not weaken)
+    // ==============================
+    match /matches/{pairId} {
+      allow read: if isLoggedIn() && request.auth.uid in resource.data.users;
+
+      allow update: if isLoggedIn() && request.auth.uid in resource.data.users;
+
+      allow create: if isLoggedIn()
+        && request.auth.uid in resource.data.users
+        && resource.data.users[0] != resource.data.users[1]
+        && get(/databases/$(database)/documents/likes/$(resource.data.users[0])_$(resource.data.users[1])).data.status == "like"
+        && get(/databases/$(database)/documents/likes/$(resource.data.users[1])_$(resource.data.users[0])).data.status == "like";
+
+      allow delete: if false;
+    }
+
+    // ==============================
+    // REPORTS  (Friends & Match — do not weaken)
+    // ==============================
+    match /reports/{reportId} {
+      allow create: if isLoggedIn() && request.auth.uid == resource.data.reporterId;
+
+      allow read, update: if isAdmin();
+
+      allow delete: if false;
+    }
+
+    // ==============================
+    // PRIVATE CHATS
+    // ==============================
+    // Chat IDs are deterministic "{uidA}_{uidB}" (sorted). The chat doc
+    // stores a participants array. Only the two participants may read /
+    // write the chat and its messages. The existing Premium UI gate in
+    // PrivateChatScreen is unchanged; these rules add server-side
+    // enforcement on top.
+    match /privateChats/{chatId} {
+      allow read, update, delete: if isLoggedIn()
+        && request.auth.uid in resource.data.participants;
+
+      allow create: if isLoggedIn()
+        && request.auth.uid in request.resource.data.participants
+        && chatId.split("_").hasAll(request.resource.data.participants);
+    }
+
+    match /privateChats/{chatId}/messages/{messageId} {
+      allow read: if isLoggedIn() && isChatParticipant(chatId);
+
+      allow create: if isLoggedIn()
+        && isChatParticipant(chatId)
+        && request.resource.data.senderId == request.auth.uid;
+
+      // Mark-as-read: only the receiver may flip read false -> true.
+      allow update: if isLoggedIn()
+        && resource.data.receiverId == request.auth.uid
+        && resource.data.read == false
+        && request.resource.data.read == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"]);
+
+      allow delete: if false;
+    }
+
+    // ==============================
+    // GROUPS
+    // ==============================
+    // Parent group + members stay open: the app reads the whole groups
+    // collection for recommendations, and membership docs are only ever
+    // auto-created for the user's OWN course group (EditProfileScreen).
+    // There is no in-app join action for arbitrary recommended groups, so
+    // gating messages on membership would break group chat. Instead we
+    // harden message CREATE (authentication + sender email must match the
+    // authenticated account) so senders cannot spoof anyone else's email.
+    match /groups/{groupId} {
+      allow read, create, update, delete: if true;
+    }
+
+    match /groups/{groupId}/members/{memberId} {
+      allow read, create, update, delete: if true;
+    }
+
+    match /groups/{groupId}/messages/{msgId} {
+      allow read, update, delete: if true;
+
+      allow create: if isLoggedIn()
+        && request.resource.data.sender == request.auth.email;
+    }
+
+    // ==============================
+    // POSTS
+    // ==============================
+    // Likes are stored as a "likes" ARRAY field on the post document
+    // (SocialScreen uses arrayUnion/arrayRemove), NOT a subcollection.
+    // So: owner may create/update/delete; any authenticated user may
+    // toggle ONLY their own like (no post-content tampering).
+    match /posts/{postId} {
+      allow read: if true;
+
+      allow create: if isLoggedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isLoggedIn()
+        && (resource.data.userId == request.auth.uid
+            || isOwnLikeToggle());
+
+      allow delete: if isLoggedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // ------------------------------
+    // POST COMMENTS  (SocialScreen comments)
+    // ------------------------------
+    match /posts/{postId}/comments/{commentId} {
+      allow read: if true;
+      allow create: if isLoggedIn();
+      allow update: if isLoggedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isLoggedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    // ==============================
+    // JOBS
+    // ==============================
+    // Jobs are read by everyone (JobsScreen reads the full collection and
+    // filters active client-side; JobDetailScreen reads a single job).
+    // Create/update/delete are ADMIN ONLY. Applications are private:
+    // the applicant may create/read their own (doc id == applicant uid),
+    // admins may read/manage everything.
+    match /jobs/{jobId} {
+      allow read: if isLoggedIn();
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /jobs/{jobId}/applications/{applicationId} {
+      allow read: if isLoggedIn()
+        && (applicationId == request.auth.uid || isAdmin());
+
+      allow create: if isLoggedIn()
+        && applicationId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ==============================
+    // CALLS
+    // ==============================
+    match /calls/{callId} {
+      allow read: if isLoggedIn()
+        && (resource.data.callerId == request.auth.uid
+            || resource.data.calleeId == request.auth.uid);
+
+      allow create: if isLoggedIn()
+        && request.resource.data.callerId == request.auth.uid;
+
+      allow update: if isLoggedIn()
+        && (resource.data.callerId == request.auth.uid
+            || resource.data.calleeId == request.auth.uid);
+
+      allow delete: if false;
+    }
+
+    // ==============================
+    // VIDEO ROOMS
+    // ==============================
+    // Participants reads stay public (HomeScreen counts GlobalStudyHall
+    // and course rooms). A user may only create/update/delete their OWN
+    // participant doc (doc id == uid). The parent room doc is written by
+    // backend/Cloud Functions; require authentication on it.
+    match /videoRooms/{roomId} {
+      allow read: if isLoggedIn();
+
+      allow create, update: if isLoggedIn();
+
+      allow delete: if false;
+    }
+
+    match /videoRooms/{roomId}/participants/{uid} {
+      allow read: if true;
+
+      allow create: if isLoggedIn()
+        && request.auth.uid == uid
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isLoggedIn() && request.auth.uid == uid;
+
+      allow delete: if isLoggedIn() && request.auth.uid == uid;
+    }
+
+    // ==============================
+    // DEBATE BATTLES
+    // ==============================
+    // Reads stay public (live feed lists public battles). Any
+    // authenticated spectator may only increment/decrement liveViewers.
+    // Participants may update their OWN player subtree plus battle state
+    // (status/isPublic/isLive/currentRound/acceptedAt/acceptedBy/endedAt)
+    // but may NEVER change the opponent's player data, topic, category,
+    // or the battle identifiers.
+    match /debateBattles/{battleId} {
+      allow read: if true;
+
+      allow create: if isLoggedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.opponentId != request.auth.uid;
+
+      allow update: if isLoggedIn() && (
+        // Spectator live-viewer counting (single top-level field)
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["liveViewers"])
+        ||
+        (
+          (resource.data.createdBy == request.auth.uid
+            || resource.data.opponentId == request.auth.uid)
+          // Opponent's player data must be untouched
+          && request.resource.data.players[otherPlayerUid(resource.data.createdBy, resource.data.opponentId)]
+             == resource.data.players[otherPlayerUid(resource.data.createdBy, resource.data.opponentId)]
+          // Identity / content fields are immutable once created
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["topic", "category", "createdBy", "opponentId"])
+          // If acceptedBy is being set it must be the writing participant
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["acceptedBy"])
+              || request.resource.data.acceptedBy == request.auth.uid)
+        )
+      );
+
+      allow delete: if false;
+    }
+
+    // ------------------------------
+    // DEBATE VOTES  (doc id == voter uid — keep intact)
+    // ------------------------------
+    match /debateBattles/{battleId}/votes/{voteId} {
+      allow read: if true;
+
+      allow create, update: if isLoggedIn()
+        && request.auth.uid == voteId;
+
+      allow delete: if false;
+    }
+
+    // ==============================
+    // DAILY CHALLENGE  (backend content)
+    // ==============================
+    // The app client never reads/writes this collection; question content
+    // is seeded by backend/Cloud Functions (which bypass rules).
+    match /dailyChallenges/{challengeId} {
+      allow read: if isLoggedIn();
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==============================
+    // DAILY CHALLENGE ANSWERS
+    // ==============================
+    // Document id is "{userId}_{date}" and the doc stores userId.
+    // A user may only read/create/update their OWN answer doc.
+    match /dailyChallengeAnswers/{docId} {
+      allow read: if isLoggedIn()
+        && docId.startsWith(request.auth.uid + "_");
+
+      allow create: if isLoggedIn()
+        && docId.startsWith(request.auth.uid + "_")
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isLoggedIn()
+        && docId.startsWith(request.auth.uid + "_")
+        && request.resource.data.userId == request.auth.uid;
+
+      allow delete: if false;
+    }
+
+    // ==============================
+    // QUESTIONS  (QOTD backend content)
+    // ==============================
+    // The client only ever writes dailyQuestions/<date>/answers/*.
+    // The "questions" collection is seeded by backend/Cloud Functions.
+    match /questions/{questionId} {
+      allow read: if isLoggedIn();
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==============================
+    // DAILY QUESTIONS
+    // ==============================
+    // Parent doc (the question of the day) is admin/backend content; the
+    // client never writes it. Answers: read public; author may create /
+    // edit / delete their own; any authenticated user may toggle ONLY
+    // their own like (likes is an array field on the answer doc).
+    match /dailyQuestions/{dateKey} {
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /dailyQuestions/{dateKey}/answers/{answerId} {
+      allow read: if true;
+
+      allow create: if isLoggedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isLoggedIn()
+        && (resource.data.userId == request.auth.uid
+            || isOwnLikeToggle());
+
+      allow delete: if isLoggedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // ==============================
+    // PAST PAPERS
+    // ==============================
+    // Content is seeded by backend/admin. Reads stay public. Any user may
+    // increment the downloads counter (existing behavior), but no other
+    // field may be modified by students.
+    match /pastPapers/{paperId} {
+      allow read: if true;
+
+      allow create: if isAdmin();
+
+      allow update: if isLoggedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["downloads"]);
+
+      allow delete: if isAdmin();
+    }
+  }
+}

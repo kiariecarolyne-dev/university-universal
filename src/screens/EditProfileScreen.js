@@ -24,6 +24,10 @@ import {
 } from "react-native";
 
 import { auth, db } from "../services/firebase";
+import {
+  INTERESTS_CATALOG,
+  LOOKING_FOR_OPTIONS,
+} from "../utils/matching";
 
 const API_URL =
   "https://university-universal-backend.onrender.com";
@@ -37,6 +41,10 @@ export default function EditProfileScreen({ navigation }) {
   const [photo, setPhoto] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+
+  const [interests, setInterests] = useState([]);
+  const [lookingFor, setLookingFor] = useState([]);
+  const [matchVisible, setMatchVisible] = useState(true);
 
   const userId = auth.currentUser?.uid;
 
@@ -60,6 +68,9 @@ export default function EditProfileScreen({ navigation }) {
           setCountry(data.country || "");
           setYear(data.year || "");
           setPhoto(data.photo || "");
+          setInterests(data.interests || []);
+          setLookingFor(data.lookingFor || []);
+          setMatchVisible(data.matchVisible !== false);
         }
       } catch (error) {
         if (mounted) {
@@ -245,6 +256,9 @@ export default function EditProfileScreen({ navigation }) {
           year,
           photo: photoURL,
           email: auth.currentUser?.email,
+          interests,
+          lookingFor,
+          matchVisible,
         },
         { merge: true }
       );
@@ -384,6 +398,96 @@ export default function EditProfileScreen({ navigation }) {
             style={styles.input}
           />
 
+          <Text style={styles.sectionLabel}>
+            Match Profile (optional)
+          </Text>
+
+          <Text style={styles.label}>Interests</Text>
+          <View style={styles.chipRow}>
+            {INTERESTS_CATALOG.map((item) => {
+              const selected = interests.includes(item.key);
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[
+                    styles.chip,
+                    selected && styles.chipActive,
+                  ]}
+                  onPress={() => {
+                    setInterests((prev) =>
+                      selected
+                        ? prev.filter((i) => i !== item.key)
+                        : [...prev, item.key]
+                    );
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected && styles.chipTextActive,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={styles.label}>What are you looking for?</Text>
+          <View style={styles.chipRow}>
+            {LOOKING_FOR_OPTIONS.map((item) => {
+              const selected = lookingFor.includes(item.key);
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[
+                    styles.chip,
+                    selected && styles.chipActive,
+                  ]}
+                  onPress={() => {
+                    setLookingFor((prev) =>
+                      selected
+                        ? prev.filter((l) => l !== item.key)
+                        : [...prev, item.key]
+                    );
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected && styles.chipTextActive,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={styles.toggleRow}
+            onPress={() => setMatchVisible((prev) => !prev)}
+          >
+            <Text style={styles.toggleLabel}>
+              Show my profile in matches
+            </Text>
+            <View
+              style={[
+                styles.toggle,
+                matchVisible && styles.toggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.toggleDot,
+                  matchVisible && styles.toggleDotActive,
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={saveProfile}
@@ -488,5 +592,82 @@ const styles = {
     fontWeight: "bold",
     fontSize: 15,
     letterSpacing: 0.3,
+  },
+
+  sectionLabel: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+    marginTop: 24,
+    marginBottom: 4,
+  },
+
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 14,
+    gap: 8,
+  },
+
+  chip: {
+    backgroundColor: "#1F2937",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+
+  chipActive: {
+    backgroundColor: "#4F46E5",
+    borderColor: "#4F46E5",
+  },
+
+  chipText: {
+    color: "#D1D5DB",
+    fontSize: 13,
+  },
+
+  chipTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+
+  toggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+
+  toggleLabel: {
+    color: "#D1D5DB",
+    fontSize: 14,
+  },
+
+  toggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#374151",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+
+  toggleActive: {
+    backgroundColor: "#4F46E5",
+  },
+
+  toggleDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#9CA3AF",
+  },
+
+  toggleDotActive: {
+    alignSelf: "flex-end",
+    backgroundColor: "#FFFFFF",
   },
 };

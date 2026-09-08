@@ -139,6 +139,25 @@ export default function ProfileScreen({ navigation }) {
       </Text>
 
       <View style={styles.card}>
+        {/* FRIENDS & MATCH */}
+        <TouchableOpacity
+          style={styles.rowBtn}
+          onPress={() => navigation.navigate("FriendsMatch")}
+        >
+          <Text style={styles.rowBtnTitle}>
+            ❤️ Friends & Match
+          </Text>
+
+          <Text style={styles.rowBtnText}>
+            Find friends and matches, set preferences and view your matches.
+          </Text>
+
+          <Text style={styles.rowBtnArrow}>
+            Open Friends & Match →</Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
         {/* JOBS & CAREERS */}
         <TouchableOpacity
           style={styles.rowBtn}

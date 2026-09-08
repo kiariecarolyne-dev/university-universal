@@ -20,12 +20,15 @@ import DebateBattleScreen from "../screens/DebateBattleScreen";
 import DebateChallengesScreen from "../screens/DebateChallengesScreen";
 import DebateLobbyScreen from "../screens/DebateLobbyScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
+import FriendsMatchScreen from "../screens/FriendsMatchScreen";
 import InboxScreen from "../screens/InboxScreen";
 import JobApplicationsScreen from "../screens/JobApplicationsScreen";
 import JobDetailScreen from "../screens/JobDetailScreen";
 import JobsScreen from "../screens/JobsScreen";
 import LiveDebatesScreen from "../screens/LiveDebatesScreen";
 import LoginScreen from "../screens/LoginScreen";
+import MatchPreferencesScreen from "../screens/MatchPreferencesScreen";
+import MatchSwipeScreen from "../screens/MatchSwipeScreen";
 import MembersScreen from "../screens/MembersScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
 import OutgoingCallScreen from "../screens/OutgoingCallScreen";
@@ -39,6 +42,7 @@ import StudentProfileScreen from "../screens/StudentProfileScreen";
 import UploadPastPaperScreen from "../screens/UploadPastPaperScreen";
 import VideoRoomScreen from "../screens/VideoRoomScreen";
 import WeeklyRankingScreen from "../screens/WeeklyRankingScreen";
+import YourMatchesScreen from "../screens/YourMatchesScreen";
 
 // Diagnostic check to immediately identify broken/undefined imports
 const screenMap = {
@@ -53,11 +57,14 @@ const screenMap = {
   DebateChallengesScreen,
   DebateLobbyScreen,
   EditProfileScreen,
+  FriendsMatchScreen,
   InboxScreen,
   JobApplicationsScreen,
   JobDetailScreen,
   JobsScreen,
   LiveDebatesScreen,
+  MatchPreferencesScreen,
+  MatchSwipeScreen,
   MembersScreen,
   NotificationsScreen,
   OutgoingCallScreen,
@@ -70,6 +77,7 @@ const screenMap = {
   UploadPastPaperScreen,
   VideoRoomScreen,
   WeeklyRankingScreen,
+  YourMatchesScreen,
 };
 
 Object.entries(screenMap).forEach(([name, component]) => {
@@ -198,6 +206,28 @@ export default function AppNavigator() {
               name="PrivateChat"
               component={PrivateChatScreen}
               options={{ title: "Private Chat" }}
+            />
+
+            {/* FRIENDS & MATCH */}
+            <Stack.Screen
+              name="FriendsMatch"
+              component={FriendsMatchScreen}
+              options={{ title: "Friends & Match" }}
+            />
+            <Stack.Screen
+              name="MatchSwipe"
+              component={MatchSwipeScreen}
+              options={{ title: "Find Your Match" }}
+            />
+            <Stack.Screen
+              name="YourMatches"
+              component={YourMatchesScreen}
+              options={{ title: "Your Matches" }}
+            />
+            <Stack.Screen
+              name="MatchPreferences"
+              component={MatchPreferencesScreen}
+              options={{ title: "Match Preferences" }}
             />
 
             {/* EDIT PROFILE */}
