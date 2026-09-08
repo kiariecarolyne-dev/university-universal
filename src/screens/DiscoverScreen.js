@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Image,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -21,11 +23,16 @@ export default function DiscoverScreen({ navigation }) {
   const [students, setStudents] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("All");
   const [courses, setCourses] = useState([]);
-const [selectedCountry, setSelectedCountry] = useState("All");
+  const [selectedCountry, setSelectedCountry] = useState("All");
+  const [countries, setCountries] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const user = useUser();
 
   const loadStudents = async () => {
     try {
+      setLoading(true);
+
       const snapshot = await getDocs(collection(db, "users"));
 
       const data = snapshot.docs.map((doc) => ({
@@ -34,31 +41,44 @@ const [selectedCountry, setSelectedCountry] = useState("All");
       }));
 
       const filtered = data.filter(
-  (student) => student.id !== auth.currentUser?.uid
-);
+        (student) => student.id !== auth.currentUser?.uid
+      );
 
-setStudents(filtered);
+      setStudents(filtered);
 
-const uniqueCourses = [
-  "All",
-  ...new Set(
-    filtered
-      .map((student) => student.course)
-      .filter(Boolean)
-  ),
-];
+      const uniqueCourses = [
+        "All",
+        ...new Set(
+          filtered
+            .map((student) => student.course)
+            .filter(Boolean)
+        ),
+      ];
 
-setCourses(uniqueCourses);
+      setCourses(uniqueCourses);
+
+      const uniqueCountries = [
+        "All",
+        ...new Set(
+          filtered
+            .map((student) => student.country)
+            .filter(Boolean)
+        ),
+      ];
+
+      setCountries(uniqueCountries);
     } catch (error) {
       Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  loadStudents();
-}, [user]);
+    loadStudents();
+  }, [user]);
 
   const handlePrivateMessage = (student) => {
     if (!isPremiumUser(user)) {
@@ -74,329 +94,587 @@ setCourses(uniqueCourses);
     navigation.navigate("PrivateChat", { student });
   };
 
-  const displayedStudents = students.filter(
-  (student) =>
-    selectedCourse === "All" ||
-    student.course === selectedCourse
-);
+  const trimmedSearch = search.trim().toLowerCase();
+
+  const displayedStudents = students.filter((student) => {
+    if (
+      selectedCourse !== "All" &&
+      student.course !== selectedCourse
+    ) {
+      return false;
+    }
+
+    if (
+      selectedCountry !== "All" &&
+      student.country !== selectedCountry
+    ) {
+      return false;
+    }
+
+    if (trimmedSearch) {
+      const haystack = [
+        student.fullName,
+        student.course,
+        student.university,
+        student.country,
+      ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase())
+        .join(" ");
+
+      if (!haystack.includes(trimmedSearch)) return false;
+    }
+
+    return true;
+  });
 
   if (!user) return null;
 
   return (
     <View style={styles.container}>
+      <FlatList
+        data={displayedStudents}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <>
+            {/* HEADER */}
+            <View style={styles.header}>
+              <Text style={styles.title}>
+                Discover Students
+              </Text>
 
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>
-  🌍 Discover Students
-</Text>
-        <Text style={styles.subtitle}>
-  {displayedStudents.length} students available to connect 🌍
-</Text>
-      </View>
+              <Text style={styles.subtitle}>
+                Meet students, connect, and grow together.
+              </Text>
+            </View>
 
-      {/* TRIAL BANNER */}
-      {isInTrialPeriod(user) && (
-        <View style={styles.trialBanner}>
-          <Text style={styles.trialText}>
-            🚀 Trial Active • Upgrade to unlock private messaging
-          </Text>
-        </View>
-      )}
+            {/* SEARCH */}
+            <View style={styles.searchBar}>
+              <Text style={styles.searchIcon}>
+                🔍
+              </Text>
 
-      <View style={styles.filtersRow}>
-  <FlatList
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    data={courses}
-    keyExtractor={(item) => item}
-    renderItem={({ item }) => (
-      <TouchableOpacity
-        style={[
-          styles.filterChip,
-          selectedCourse === item &&
-            styles.activeChip,
-        ]}
-        onPress={() => setSelectedCourse(item)}
-      >
-        <Text
-  style={[
-    styles.filterText,
-    selectedCourse === item && styles.activeFilterText,
-  ]}
->
-  {item}
-</Text>
-      </TouchableOpacity>
-    )}
-  />
-</View>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search students..."
+                placeholderTextColor="#6B7280"
+                value={search}
+                onChangeText={setSearch}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-{/* STUDENTS */}
+              {search.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearch("")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-<FlatList
-  data={displayedStudents}
-  numColumns={3}
-  keyExtractor={(item) => item.id}
-  showsVerticalScrollIndicator={false}
-  contentContainerStyle={{ paddingBottom: 30 }}
-  columnWrapperStyle={{
-    justifyContent: "space-between",
-    marginBottom: 15,
-  }}
-  ListEmptyComponent={
-    <Text style={styles.empty}>
-      No students found yet.
-    </Text>
-  }
-  renderItem={({ item }) => (
-    <TouchableOpacity
-      style={styles.studentCard}
-      onPress={() =>
-  navigation.navigate("StudentProfile", {
-    member: item,
-  })
-}
-      activeOpacity={0.9}
-    >
-      <View style={styles.imageContainer}>
-  {item.photo ? (
-    <Image
-      source={{ uri: item.photo }}
-      style={styles.studentImage}
-    />
-  ) : (
-    <View style={styles.studentPlaceholder}>
-      <Text style={styles.studentLetter}>
-        {item.fullName
-          ? item.fullName.charAt(0).toUpperCase()
-          : "S"}
-      </Text>
+            {/* INTRO STRIP */}
+            <View style={styles.introCard}>
+              <Text style={styles.introEmoji}>🌍</Text>
+
+              <Text style={styles.introText}>
+                Connect with students from around the world
+              </Text>
+            </View>
+
+            {/* TRIAL BANNER */}
+            {isInTrialPeriod(user) && (
+              <View style={styles.trialBanner}>
+                <Text style={styles.trialText}>
+                  🚀 Trial Active • Upgrade to unlock private messaging
+                </Text>
+              </View>
+            )}
+
+            {/* COURSE FILTER */}
+
+            <View style={styles.filtersRow}>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={courses}
+                keyExtractor={(item) => `course-${item}`}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      selectedCourse === item &&
+                        styles.activeChip,
+                    ]}
+                    onPress={() => setSelectedCourse(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        selectedCourse === item &&
+                          styles.activeFilterText,
+                      ]}
+                    >
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+
+            {/* COUNTRY FILTER */}
+
+            <View style={styles.filtersRow}>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={countries}
+                keyExtractor={(item) => `country-${item}`}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      selectedCountry === item &&
+                        styles.activeChip,
+                    ]}
+                    onPress={() => setSelectedCountry(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        selectedCountry === item &&
+                          styles.activeFilterText,
+                      ]}
+                    >
+                      {item === "All" ? "🌍 All" : item}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+
+            {/* SECTION HEADER */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                Students you may know
+              </Text>
+
+              <Text style={styles.sectionHint}>
+                {displayedStudents.length} student
+                {displayedStudents.length === 1 ? "" : "s"}
+              </Text>
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.stateBox}>
+              <ActivityIndicator
+                size="small"
+                color="#4F46E5"
+              />
+
+              <Text style={styles.stateText}>
+                Finding students...
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.stateBox}>
+              <Text style={styles.stateEmoji}>
+                🔍
+              </Text>
+
+              <Text style={styles.stateTitle}>
+                No students found
+              </Text>
+
+              <Text style={styles.stateHint}>
+                Try changing your search or filters.
+              </Text>
+            </View>
+          )
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.studentCard}
+            onPress={() =>
+              navigation.navigate("StudentProfile", {
+                member: item,
+              })
+            }
+            activeOpacity={0.85}
+          >
+            <View style={styles.avatarWrap}>
+              {item.photo ? (
+                <Image
+                  source={{ uri: item.photo }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <Text style={styles.avatarLetter}>
+                    {item.fullName
+                      ? item.fullName.charAt(0).toUpperCase()
+                      : "S"}
+                  </Text>
+                </View>
+              )}
+
+              {item.online && (
+                <View style={styles.onlineDot} />
+              )}
+            </View>
+
+            <View style={styles.studentInfo}>
+              <Text
+                numberOfLines={1}
+                style={styles.studentName}
+              >
+                {item.fullName || "Student"}
+              </Text>
+
+              <Text
+                numberOfLines={1}
+                style={styles.studentCourse}
+              >
+                {item.course || "Course"}
+              </Text>
+
+              <Text
+                numberOfLines={1}
+                style={styles.studentUniversity}
+              >
+                {item.university || "University"}
+              </Text>
+
+              {item.country ? (
+                <Text
+                  numberOfLines={1}
+                  style={styles.studentCountry}
+                >
+                  🌍 {item.country}
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={styles.viewProfile}>
+              <Text style={styles.viewProfileText}>
+                View
+              </Text>
+
+              <Text style={styles.chevron}>›</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
     </View>
-  )}
-
-  {item.online && (
-    <View style={styles.onlineDot} />
-  )}
-</View>
-
-<Text numberOfLines={1} style={styles.studentName}>
-        {item.fullName || "Student"}
-      </Text>
-
-      <Text numberOfLines={1} style={styles.studentUniversity}>
-        {item.university || "University"}
-      </Text>
-
-      <Text numberOfLines={1} style={styles.studentCourse}>
-        {item.course || "Course"}
-      </Text>
-    </TouchableOpacity>
-  )}
-/>
-    </View>
-
-   
   );
 }
 
 /* =========================
-   PREMIUM UI
+   STYLES
 ========================= */
 
 const styles = {
   container: {
     flex: 1,
     backgroundColor: "#05070A",
-    padding: 16,
-    paddingTop: 50,
   },
 
+  list: {
+    padding: 16,
+    paddingTop: 18,
+    paddingBottom: 40,
+  },
+
+  /* HEADER */
+
   header: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
 
   title: {
-    fontSize: 27,
-    fontWeight: "bold",
     color: "#FFFFFF",
+    fontSize: 26,
+    fontWeight: "800",
   },
 
   subtitle: {
     color: "#9CA3AF",
-    marginTop: 5,
+    fontSize: 13,
+    marginTop: 4,
+    lineHeight: 18,
   },
+
+  /* SEARCH */
+
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 14,
+    paddingHorizontal: 13,
+    height: 44,
+    marginBottom: 12,
+  },
+
+  searchIcon: {
+    fontSize: 15,
+    marginRight: 9,
+  },
+
+  searchInput: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 14,
+    padding: 0,
+  },
+
+  clearIcon: {
+    fontSize: 14,
+    color: "#6B7280",
+    paddingHorizontal: 4,
+  },
+
+  /* INTRO STRIP */
+
+  introCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+
+  introEmoji: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+
+  introText: {
+    color: "#D1D5DB",
+    fontSize: 13,
+    flex: 1,
+  },
+
+  /* TRIAL BANNER */
 
   trialBanner: {
     backgroundColor: "#1F2937",
     padding: 12,
     borderRadius: 12,
-    marginBottom: 15,
+    marginBottom: 12,
   },
 
   trialText: {
     color: "#FBBF24",
     fontSize: 12,
+    fontWeight: "600",
   },
 
-  card: {
+  /* FILTER CHIPS */
+
+  filtersRow: {
+    marginBottom: 10,
+  },
+
+  filterChip: {
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    marginRight: 8,
+  },
+
+  activeChip: {
+    backgroundColor: "#4F46E5",
+    borderColor: "#4F46E5",
+  },
+
+  filterText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  activeFilterText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+
+  /* SECTION HEADER */
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginTop: 10,
+    marginBottom: 12,
+  },
+
+  sectionTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+  sectionHint: {
+    color: "#6B7280",
+    fontSize: 12,
+  },
+
+  /* STUDENT CARD */
+
+  studentCard: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#0F172A",
     borderWidth: 1,
     borderColor: "#1F2937",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
+    padding: 12,
+    marginBottom: 10,
   },
 
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 14,
+  avatarWrap: {
+    width: 56,
+    height: 56,
   },
 
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#111827",
+    borderWidth: 2,
+    borderColor: "#1F2937",
+  },
+
+  avatarFallback: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "#4F46E5",
+    borderWidth: 2,
+    borderColor: "#4F46E5",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
 
-  avatarImage: {
-  width: 56,
-  height: 56,
-  borderRadius: 28,
-  marginRight: 12,
-},
-
-  avatarText: {
+  avatarLetter: {
     color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: "800",
   },
 
-  name: {
+  onlineDot: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: "#22C55E",
+    borderWidth: 2,
+    borderColor: "#05070A",
+  },
+
+  studentInfo: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 10,
+  },
+
+  studentName: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 15,
+    fontWeight: "800",
   },
 
-  country: {
-    color: "#9CA3AF",
-    marginTop: 3,
-    fontSize: 12,
-  },
-
-  meta: {
+  studentCourse: {
     color: "#D1D5DB",
-    marginTop: 6,
+    fontSize: 12,
+    marginTop: 2,
   },
 
-  btn: {
-    marginTop: 14,
-    backgroundColor: "#4F46E5",
-    padding: 13,
-    borderRadius: 12,
+  studentUniversity: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginTop: 1,
+  },
+
+  studentCountry: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  viewProfile: {
+    flexDirection: "row",
     alignItems: "center",
   },
 
-  btnText: {
+  viewProfileText: {
+    color: "#4F46E5",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  chevron: {
+    color: "#4F46E5",
+    fontSize: 18,
+    fontWeight: "700",
+    marginLeft: 2,
+  },
+
+  /* EMPTY / LOADING STATE */
+
+  stateBox: {
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+
+  stateEmoji: {
+    fontSize: 34,
+    marginBottom: 12,
+  },
+
+  stateTitle: {
     color: "#FFFFFF",
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "800",
   },
 
-  empty: {
-    color: "#9CA3AF",
+  stateHint: {
+    color: "#6B7280",
+    fontSize: 13,
+    marginTop: 6,
     textAlign: "center",
-    marginTop: 40,
+    lineHeight: 18,
   },
 
-studentCard: {
-  width: "31%",
-  marginBottom: 18,
-},
-
-imageContainer: {
-  position: "relative",
-},
-
-onlineDot: {
-  position: "absolute",
-  right: 8,
-  bottom: 8,
-  width: 14,
-  height: 14,
-  borderRadius: 7,
-  backgroundColor: "#22C55E",
-  borderWidth: 2,
-  borderColor: "#05070A",
-},
-
-studentImage: {
-  width: "100%",
-  height: 150,
-  borderRadius: 18,
-},
-
-studentPlaceholder: {
-  width: "100%",
-  height: 150,
-  borderRadius: 18,
-  backgroundColor: "#4F46E5",
-  justifyContent: "center",
-  alignItems: "center",
-},
-
-studentLetter: {
-  color: "#FFFFFF",
-  fontSize: 42,
-  fontWeight: "bold",
-},
-
-studentName: {
-  color: "#FFFFFF",
-  fontSize: 15,
-  fontWeight: "700",
-  marginTop: 8,
-},
-
-studentUniversity: {
-  color: "#CBD5E1",
-  fontSize: 11,
-  marginTop: 2,
-},
-
-studentCourse: {
-  color: "#94A3B8",
-  fontSize: 11,
-},
-
-filtersRow: {
-  flexDirection: "row",
-  marginBottom: 15,
-},
-
-filterChip: {
-  backgroundColor: "#1F2937",
-  paddingHorizontal: 14,
-  paddingVertical: 8,
-  borderRadius: 20,
-  marginRight: 10,
-},
-
-activeChip: {
-  backgroundColor: "#4F46E5",
-},
-
-filterText: {
-  color: "#FFFFFF",
-  fontSize: 12,
-},
-
-activeFilterText: {
-  fontWeight: "bold",
-},
-
+  stateText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    marginTop: 12,
+  },
 };

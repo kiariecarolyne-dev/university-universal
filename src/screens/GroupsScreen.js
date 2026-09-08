@@ -10,6 +10,7 @@ import {
 import { db } from "../services/firebase";
 
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   RefreshControl,
@@ -26,58 +27,87 @@ import { getRecommendedGroups } from "../utils/matchGroups";
 export default function GroupsScreen({ navigation }) {
   const [groups, setGroups] = useState([]);
   const [search, setSearch] = useState("");
+  const [courseFilter, setCourseFilter] = useState("All");
   const [onlineStudents, setOnlineStudents] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const user = useUser();
 
   const loadGroups = async () => {
     try {
       if (!user) return;
 
+      setLoading(true);
+
       const recommended = await getRecommendedGroups(user);
       setGroups(recommended || []);
     } catch (error) {
       Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const onRefresh = async () => {
-  setRefreshing(true);
+    setRefreshing(true);
 
-  await loadGroups();
+    await loadGroups();
 
-  setRefreshing(false);
-};
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     loadGroups();
   }, [user]);
 
   useEffect(() => {
-  const q = query(
-    collection(db, "users"),
-    where("online", "==", true)
-  );
+    const q = query(
+      collection(db, "users"),
+      where("online", "==", true)
+    );
 
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    setOnlineStudents(snapshot.size);
-  });
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setOnlineStudents(snapshot.size);
+    });
 
-  return unsubscribe;
-}, []);
+    return unsubscribe;
+  }, []);
+
+  const recommended = useMemo(() => {
+    if (!user) return [];
+
+    return groups.filter(
+      (group) =>
+        group.course === user.course ||
+        group.university === user.university
+    );
+  }, [groups, user]);
 
   const filteredGroups = useMemo(() => {
-  const text = search.toLowerCase();
+    const text = search.trim().toLowerCase();
+    const isMyCourse = courseFilter === "My Course";
 
-  return groups.filter((group) => {
-    return (
-      group.name?.toLowerCase().includes(text) ||
-      group.course?.toLowerCase().includes(text)
-    );
-  });
-}, [groups, search]);
+    return groups.filter((group) => {
+      if (isMyCourse && group.course !== user?.course) {
+        return false;
+      }
 
-if (!user) return null;
+      if (!text) return true;
+
+      const haystack = [
+        group.name,
+        group.course,
+        group.university,
+      ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase())
+        .join(" ");
+
+      return haystack.includes(text);
+    });
+  }, [groups, search, courseFilter, user]);
+
+  if (!user) return null;
 
   const handleOpenGroup = (group) => {
     if (isPremiumUser(user) || isInTrialPeriod(user)) {
@@ -93,102 +123,257 @@ if (!user) return null;
     navigation.navigate("Premium");
   };
 
+  const showRecommended =
+    recommended.length > 0 &&
+    !search.trim() &&
+    courseFilter === "All";
+
   return (
     <View style={styles.container}>
-
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>
-  👥 Study Groups
-</Text>
-        <Text style={styles.subtitle}>
-          Join study communities matched to your university and course
-        </Text>
-      </View>
-
-      <View style={styles.infoCard}>
-  <Text style={styles.infoTitle}>
-    🌍 Learn Together
-  </Text>
-
-  <Text style={styles.infoText}>
-    Join discussions, ask questions, share ideas and collaborate with students studying similar courses.
-  </Text>
-</View>
-
-<TextInput
-  placeholder="Search groups..."
-  placeholderTextColor="#6B7280"
-  value={search}
-  onChangeText={setSearch}
-  style={styles.searchInput}
-/>
-
-<View style={styles.liveCard}>
-  <Text style={styles.liveTitle}>
-    🟢 Students studying right now
-  </Text>
-
-  <Text style={styles.liveNumber}>
-    {onlineStudents}
-  </Text>
-</View>
-
-      {/* LIST */}
       <FlatList
         data={filteredGroups}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 30 }}
-
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={styles.list}
         refreshControl={
-  <RefreshControl
-    refreshing={refreshing}
-    onRefresh={onRefresh}
-    tintColor="#4F46E5"
-  />
-}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            No groups available yet
-          </Text>
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#4F46E5"
+          />
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => handleOpenGroup(item)}
-          >
+        ListHeaderComponent={
+          <>
+            {/* HEADER */}
+            <View style={styles.header}>
+              <Text style={styles.title}>
+                Study Groups
+              </Text>
 
-            {/* GROUP NAME */}
-            <View style={styles.groupHeader}>
-  <Text style={styles.groupName}>
-  📚 {item.name}
-</Text>
-
-  {item.course === user.course && (
-    <View style={styles.recommendedBadge}>
-      <Text style={styles.recommendedText}>
-        Recommended
-      </Text>
-    </View>
-  )}
-</View>
-
-            {/* COURSE TAG */}
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>
-                {item.course}
+              <Text style={styles.subtitle}>
+                Learn, discuss and connect with students.
               </Text>
             </View>
 
-            <Text style={styles.members}>
-  👥 {item.memberCount || 0} members
-</Text>
+            {/* SEARCH */}
+            <View style={styles.searchBar}>
+              <Text style={styles.searchIcon}>🔍</Text>
 
-            {/* CTA hint */}
-            <Text style={styles.hint}>
-              💬 Tap to join the conversation
-            </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search groups..."
+                placeholderTextColor="#6B7280"
+                value={search}
+                onChangeText={setSearch}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
+              {search.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearch("")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* LIVE NOW */}
+            <View style={styles.liveCard}>
+              <View style={styles.liveDot} />
+
+              <Text style={styles.liveTitle}>
+                Students studying right now
+              </Text>
+
+              <Text style={styles.liveNumber}>
+                {onlineStudents}
+              </Text>
+            </View>
+
+            {/* FILTER CHIPS */}
+            <View style={styles.filtersRow}>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={["All", "My Course"]}
+                keyExtractor={(item) => item}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      courseFilter === item && styles.activeChip,
+                    ]}
+                    onPress={() => setCourseFilter(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        courseFilter === item &&
+                          styles.activeFilterText,
+                      ]}
+                    >
+                      {item === "All" ? "All Groups" : item}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+
+            {/* RECOMMENDED FOR YOU */}
+            {showRecommended && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    Recommended for you
+                  </Text>
+
+                  <Text style={styles.sectionHint}>
+                    Matched to your course
+                  </Text>
+                </View>
+
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={recommended}
+                  keyExtractor={(item) => `rec-${item.id}`}
+                  keyboardShouldPersistTaps="handled"
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.recCard}
+                      onPress={() => handleOpenGroup(item)}
+                      activeOpacity={0.85}
+                    >
+                      <View style={styles.recIcon}>
+                        <Text style={styles.recIconEmoji}>📚</Text>
+                      </View>
+
+                      <Text
+                        numberOfLines={1}
+                        style={styles.recName}
+                      >
+                        {item.name || "Study Group"}
+                      </Text>
+
+                      <Text
+                        numberOfLines={1}
+                        style={styles.recCourse}
+                      >
+                        {item.course || "General"}
+                      </Text>
+
+                      <Text style={styles.recMembers}>
+                        👥 {item.memberCount || 0} members
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </>
+            )}
+
+            {/* ALL GROUPS */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {search.trim() ? "Results" : "All groups"}
+              </Text>
+
+              <Text style={styles.sectionHint}>
+                {filteredGroups.length} group
+                {filteredGroups.length === 1 ? "" : "s"}
+              </Text>
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.stateBox}>
+              <ActivityIndicator
+                size="small"
+                color="#4F46E5"
+              />
+
+              <Text style={styles.stateText}>
+                Loading study groups...
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.stateBox}>
+              <Text style={styles.stateEmoji}>💬</Text>
+
+              <Text style={styles.stateTitle}>
+                No groups found
+              </Text>
+
+              <Text style={styles.stateHint}>
+                Try a different search or filter.
+              </Text>
+            </View>
+          )
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.groupCard}
+            onPress={() => handleOpenGroup(item)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.groupIcon}>
+              <Text style={styles.groupIconEmoji}>📚</Text>
+            </View>
+
+            <View style={styles.groupInfo}>
+              <View style={styles.groupNameRow}>
+                <Text
+                  numberOfLines={1}
+                  style={styles.groupName}
+                >
+                  {item.name || "Study Group"}
+                </Text>
+
+                {item.course === user.course && (
+                  <View style={styles.recommendedBadge}>
+                    <Text style={styles.recommendedText}>
+                      Recommended
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.groupMetaRow}>
+                <View style={styles.tag}>
+                  <Text
+                    numberOfLines={1}
+                    style={styles.tagText}
+                  >
+                    {item.course || "General"}
+                  </Text>
+                </View>
+
+                <Text style={styles.members}>
+                  👥 {item.memberCount || 0}
+                </Text>
+              </View>
+
+              {item.description ? (
+                <Text
+                  numberOfLines={1}
+                  style={styles.description}
+                >
+                  {item.description}
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={styles.openAction}>
+              <Text style={styles.openActionText}>Open</Text>
+              <Text style={styles.chevron}>›</Text>
+            </View>
           </TouchableOpacity>
         )}
       />
@@ -197,149 +382,342 @@ if (!user) return null;
 }
 
 /* =========================
-   DARK SaaS STYLE
+   DARK MODERN STYLE
 ========================= */
 const styles = {
   container: {
     flex: 1,
     backgroundColor: "#05070A",
-    padding: 16,
-    paddingTop: 50,
   },
 
+  list: {
+    padding: 16,
+    paddingTop: 18,
+    paddingBottom: 40,
+  },
+
+  /* HEADER */
+
   header: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: "bold",
     color: "#FFFFFF",
+    fontSize: 26,
+    fontWeight: "800",
   },
 
   subtitle: {
     color: "#9CA3AF",
-    marginTop: 5,
+    fontSize: 13,
+    marginTop: 4,
+    lineHeight: 18,
   },
 
-  infoCard: {
-  backgroundColor: "#111827",
-  borderWidth: 1,
-  borderColor: "#1F2937",
-  borderRadius: 16,
-  padding: 16,
-  marginBottom: 18,
-},
+  /* SEARCH */
 
-infoTitle: {
-  color: "#FFFFFF",
-  fontWeight: "bold",
-  marginBottom: 6,
-  fontSize: 15,
-},
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 14,
+    paddingHorizontal: 13,
+    height: 44,
+    marginBottom: 12,
+  },
 
-infoText: {
-  color: "#9CA3AF",
-  lineHeight: 20,
-},
+  searchIcon: {
+    fontSize: 15,
+    marginRight: 9,
+  },
 
-liveCard: {
-  backgroundColor: "#111827",
-  borderRadius: 16,
-  padding: 18,
-  alignItems: "center",
-  marginBottom: 18,
-  borderWidth: 1,
-  borderColor: "#1F2937",
-},
+  searchInput: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 14,
+    padding: 0,
+  },
 
-liveTitle: {
-  color: "#9CA3AF",
-  fontSize: 13,
-},
+  clearIcon: {
+    fontSize: 14,
+    color: "#6B7280",
+    paddingHorizontal: 4,
+  },
 
-liveNumber: {
-  color: "#22C55E",
-  fontSize: 34,
-  fontWeight: "bold",
-  marginTop: 6,
-},
+  /* LIVE NOW */
 
-searchInput: {
-  backgroundColor: "#111827",
-  borderWidth: 1,
-  borderColor: "#1F2937",
-  borderRadius: 12,
-  color: "#FFFFFF",
-  padding: 14,
-  marginBottom: 18,
-},
+  liveCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
 
-  card: {
+  liveDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#22C55E",
+    marginRight: 10,
+  },
+
+  liveTitle: {
+    color: "#D1D5DB",
+    fontSize: 13,
+    flex: 1,
+  },
+
+  liveNumber: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  /* FILTER CHIPS */
+
+  filtersRow: {
+    marginBottom: 10,
+  },
+
+  filterChip: {
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    marginRight: 8,
+  },
+
+  activeChip: {
+    backgroundColor: "#4F46E5",
+    borderColor: "#4F46E5",
+  },
+
+  filterText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  activeFilterText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+
+  /* SECTIONS */
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginTop: 8,
+    marginBottom: 12,
+  },
+
+  sectionTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+  sectionHint: {
+    color: "#6B7280",
+    fontSize: 12,
+  },
+
+  /* RECOMMENDED CARD */
+
+  recCard: {
+    width: 196,
     backgroundColor: "#0F172A",
     borderWidth: 1,
     borderColor: "#1F2937",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    padding: 14,
+    marginRight: 10,
+    marginBottom: 4,
   },
 
-  groupHeader: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 8,
-},
+  recIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#4F46E5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
 
-recommendedBadge: {
-  backgroundColor: "#10B981",
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  borderRadius: 20,
-},
+  recIconEmoji: {
+    fontSize: 20,
+  },
 
-recommendedText: {
-  color: "#FFFFFF",
-  fontSize: 11,
-  fontWeight: "bold",
-},
+  recName: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  recCourse: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  recMembers: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 6,
+    fontWeight: "600",
+  },
+
+  /* GROUP CARD */
+
+  groupCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+  },
+
+  groupIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#4F46E5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  groupIconEmoji: {
+    fontSize: 22,
+  },
+
+  groupInfo: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 10,
+  },
+
+  groupNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
   groupName: {
-    fontSize: 16,
-    fontWeight: "bold",
     color: "#FFFFFF",
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: "800",
+    flexShrink: 1,
+  },
+
+  recommendedBadge: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+
+  recommendedText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+
+  groupMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 5,
   },
 
   tag: {
-    alignSelf: "flex-start",
     backgroundColor: "#1F2937",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
     borderRadius: 20,
+    maxWidth: 150,
   },
 
   tagText: {
     color: "#9CA3AF",
-    fontSize: 12,
+    fontSize: 11,
   },
 
   members: {
-  color: "#10B981",
-  marginTop: 10,
-  fontWeight: "600",
-  fontSize: 13,
-},
-
-  hint: {
-    color: "#6B7280",
-    marginTop: 10,
+    color: "#10B981",
     fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 10,
   },
 
-  empty: {
-    color: "#9CA3AF",
+  description: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginTop: 5,
+  },
+
+  openAction: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  openActionText: {
+    color: "#4F46E5",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  chevron: {
+    color: "#4F46E5",
+    fontSize: 18,
+    fontWeight: "700",
+    marginLeft: 2,
+  },
+
+  /* EMPTY / LOADING STATE */
+
+  stateBox: {
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+
+  stateEmoji: {
+    fontSize: 34,
+    marginBottom: 12,
+  },
+
+  stateTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  stateHint: {
+    color: "#6B7280",
+    fontSize: 13,
+    marginTop: 6,
     textAlign: "center",
-    marginTop: 30,
+    lineHeight: 18,
+  },
+
+  stateText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+    marginTop: 12,
   },
 };

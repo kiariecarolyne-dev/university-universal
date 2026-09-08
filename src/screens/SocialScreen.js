@@ -41,6 +41,8 @@ const MAX_POST_LENGTH = 500;
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 const MAX_VIDEO_DURATION = 5 * 60 * 1000;
 
+const EMOJI_QUICK = ["😊", "🔥", "🎉", "🤩", "😂"];
+
 const BACKEND_URL =
   "https://university-universal-backend.onrender.com";
 
@@ -81,6 +83,7 @@ export default function SocialScreen({ navigation, route }) {
   const [selectedMedia, setSelectedMedia] = useState(null);
 
   const flatListRef = useRef(null);
+  const inputRef = useRef(null);
 const handledNotificationRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -1164,9 +1167,11 @@ const toggleLike = async (post) => {
           {/* LIKE */}
 
           <TouchableOpacity
-            style={
-              styles.actionButton
-            }
+            style={[
+              styles.actionButton,
+              likedByCurrentUser &&
+                styles.actionButtonActive,
+            ]}
             onPress={() =>
               toggleLike(
                 item
@@ -1270,8 +1275,16 @@ const toggleLike = async (post) => {
           styles.loadingContainer
         }
       >
+        <Text
+          style={
+            styles.loadingEmoji
+          }
+        >
+          🌍
+        </Text>
+
         <ActivityIndicator
-          size="large"
+          size="small"
           color="#4F46E5"
         />
 
@@ -1280,7 +1293,7 @@ const toggleLike = async (post) => {
             styles.loadingText
           }
         >
-          Loading student community...
+          Finding your community...
         </Text>
       </View>
     );
@@ -1346,7 +1359,7 @@ const toggleLike = async (post) => {
                   styles.title
                 }
               >
-                💬 Social
+                Student Community
               </Text>
 
               <Text
@@ -1354,8 +1367,9 @@ const toggleLike = async (post) => {
                   styles.subtitle
                 }
               >
-                Connect with students
-                around the world.
+                Connect, share, and
+                learn with students
+                worldwide.
               </Text>
             </View>
 
@@ -1407,7 +1421,8 @@ const toggleLike = async (post) => {
                       styles.createPrompt
                     }
                   >
-                    What's happening?
+                    What's on your
+                    mind?
                   </Text>
 
                   <Text
@@ -1424,13 +1439,14 @@ const toggleLike = async (post) => {
               {/* INPUT */}
 
               <TextInput
+                ref={inputRef}
                 value={
                   postText
                 }
                 onChangeText={
                   setPostText
                 }
-                placeholder="Share something with students worldwide..."
+                placeholder="Write something to share..."
                 placeholderTextColor="#6B7280"
                 multiline
                 maxLength={
@@ -1441,6 +1457,41 @@ const toggleLike = async (post) => {
                 }
                 textAlignVertical="top"
               />
+
+              {/* EMOJI QUICK ACTIONS */}
+
+              <View
+                style={
+                  styles.emojiRow
+                }
+              >
+                {EMOJI_QUICK.map(
+                  (emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      style={
+                        styles.emojiChip
+                      }
+                      onPress={() =>
+                        setPostText(
+                          (prev) =>
+                            prev +
+                            emoji
+                        )
+                      }
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={
+                          styles.emojiChipText
+                        }
+                      >
+                        {emoji}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
 
               {/* MEDIA PREVIEW */}
 
@@ -1650,22 +1701,42 @@ const toggleLike = async (post) => {
                 styles.feedHeader
               }
             >
-              <Text
+              <View
                 style={
-                  styles.feedTitle
+                  styles.feedHeaderLeft
                 }
               >
-                🌍 Student Community
-              </Text>
+                <Text
+                  style={
+                    styles.feedTitle
+                  }
+                >
+                  Community Feed
+                </Text>
 
-              <Text
+                <Text
+                  style={
+                    styles.feedSubtitle
+                  }
+                >
+                  What students are
+                  sharing right now
+                </Text>
+              </View>
+
+              <View
                 style={
-                  styles.feedSubtitle
+                  styles.feedCountPill
                 }
               >
-                What's happening around
-                the world
-              </Text>
+                <Text
+                  style={
+                    styles.feedCount
+                  }
+                >
+                  {posts.length}
+                </Text>
+              </View>
             </View>
           </>
         }
@@ -1688,7 +1759,8 @@ const toggleLike = async (post) => {
                 styles.emptyTitle
               }
             >
-              Be the first to post!
+              Your student community
+              is waiting
             </Text>
 
             <Text
@@ -1696,11 +1768,29 @@ const toggleLike = async (post) => {
                 styles.emptyText
               }
             >
-              Start the conversation
-              and let students around
-              the world know what's on
-              your mind.
+              Be the first to share
+              something with fellow
+              students.
             </Text>
+
+            <TouchableOpacity
+              style={
+                styles.emptyButton
+              }
+              onPress={() =>
+                inputRef.current?.focus()
+              }
+              activeOpacity={0.8}
+            >
+              <Text
+                style={
+                  styles.emptyButtonText
+                }
+              >
+                ✍️ Create your first
+                post
+              </Text>
+            </TouchableOpacity>
           </View>
         }
         ListFooterComponent={
@@ -1712,18 +1802,10 @@ const toggleLike = async (post) => {
             >
               <Text
                 style={
-                  styles.footerEmoji
-                }
-              >
-                🌍
-              </Text>
-
-              <Text
-                style={
                   styles.footerText
                 }
               >
-                You're connected to
+                🌍 You're connected to
                 students worldwide.
               </Text>
             </View>
@@ -1746,6 +1828,7 @@ const styles = {
 
   listContent: {
     padding: 16,
+    paddingTop: 12,
     paddingBottom: 40,
   },
 
@@ -1760,6 +1843,11 @@ const styles = {
     alignItems: "center",
   },
 
+  loadingEmoji: {
+    fontSize: 30,
+    marginBottom: 14,
+  },
+
   loadingText: {
     color: "#9CA3AF",
     marginTop: 12,
@@ -1769,29 +1857,29 @@ const styles = {
   /* HEADER */
 
   header: {
-    marginTop: 28,
-    marginBottom: 20,
+    marginBottom: 16,
   },
 
   title: {
     color: "#FFFFFF",
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "800",
   },
 
   subtitle: {
     color: "#9CA3AF",
-    fontSize: 14,
-    marginTop: 5,
+    fontSize: 13,
+    marginTop: 4,
+    lineHeight: 18,
   },
 
   /* CREATE CARD */
 
   createCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 25,
+    backgroundColor: "#0F172A",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 22,
     borderWidth: 1,
     borderColor: "#1F2937",
   },
@@ -1799,20 +1887,23 @@ const styles = {
   createHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 13,
+    marginBottom: 12,
   },
 
   smallAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginRight: 10,
+    borderWidth: 2,
+    borderColor: "#1F2937",
+    backgroundColor: "#111827",
   },
 
   smallAvatarPlaceholder: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#4F46E5",
     justifyContent: "center",
     alignItems: "center",
@@ -1826,9 +1917,9 @@ const styles = {
   },
 
   createPrompt: {
-    color: "#D1D5DB",
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
   createSubtext: {
@@ -1838,15 +1929,39 @@ const styles = {
   },
 
   input: {
-    backgroundColor: "#0F172A",
-    borderRadius: 13,
-    minHeight: 90,
-    padding: 13,
+    backgroundColor: "#111827",
+    borderRadius: 12,
+    minHeight: 86,
+    padding: 12,
     color: "#FFFFFF",
     fontSize: 14,
     lineHeight: 21,
     borderWidth: 1,
     borderColor: "#1F2937",
+  },
+
+  /* EMOJI QUICK */
+
+  emojiRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  emojiChip: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+
+  emojiChipText: {
+    fontSize: 17,
   },
 
   createBottom: {
@@ -1863,9 +1978,9 @@ const styles = {
 
   postButton: {
     backgroundColor: "#4F46E5",
-    paddingHorizontal: 23,
+    paddingHorizontal: 22,
     paddingVertical: 10,
-    borderRadius: 11,
+    borderRadius: 12,
     minWidth: 70,
     alignItems: "center",
   },
@@ -1885,28 +2000,28 @@ const styles = {
   mediaButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
 
   mediaButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0F172A",
+    backgroundColor: "#111827",
     borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
     borderWidth: 1,
     borderColor: "#1F2937",
   },
 
   mediaButtonEmoji: {
-    fontSize: 17,
+    fontSize: 16,
     marginRight: 5,
   },
 
   mediaButtonText: {
     color: "#D1D5DB",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
 
@@ -1928,13 +2043,13 @@ const styles = {
 
   previewImage: {
     width: "100%",
-    height: 220,
+    height: 200,
     borderRadius: 14,
   },
 
   videoPreview: {
-    height: 160,
-    backgroundColor: "#0F172A",
+    height: 150,
+    backgroundColor: "#111827",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
@@ -1943,7 +2058,7 @@ const styles = {
   },
 
   videoPreviewEmoji: {
-    fontSize: 42,
+    fontSize: 34,
   },
 
   videoPreviewText: {
@@ -1980,28 +2095,52 @@ const styles = {
   /* FEED HEADER */
 
   feedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
     marginBottom: 12,
+  },
+
+  feedHeaderLeft: {
+    flex: 1,
+    marginRight: 12,
   },
 
   feedTitle: {
     color: "#FFFFFF",
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: "800",
   },
 
   feedSubtitle: {
     color: "#6B7280",
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 3,
+  },
+
+  feedCountPill: {
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#1F2937",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+
+  feedCount: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    fontWeight: "800",
   },
 
   /* POST */
 
   postCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 13,
+    backgroundColor: "#0F172A",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#1F2937",
   },
@@ -2012,15 +2151,18 @@ const styles = {
   },
 
   avatar: {
-    width: 43,
-    height: 43,
+    width: 44,
+    height: 44,
     borderRadius: 22,
     marginRight: 11,
+    borderWidth: 2,
+    borderColor: "#1F2937",
+    backgroundColor: "#111827",
   },
 
   avatarPlaceholder: {
-    width: 43,
-    height: 43,
+    width: 44,
+    height: 44,
     borderRadius: 22,
     backgroundColor: "#4F46E5",
     justifyContent: "center",
@@ -2051,38 +2193,38 @@ const styles = {
   },
 
   moreButton: {
-    padding: 5,
+    padding: 6,
   },
 
   moreText: {
     color: "#9CA3AF",
-    fontSize: 22,
+    fontSize: 20,
   },
 
   postText: {
     color: "#E5E7EB",
     fontSize: 14,
     lineHeight: 22,
-    marginTop: 15,
+    marginTop: 13,
   },
 
   /* POST MEDIA */
 
   postMedia: {
-    marginTop: 14,
-    borderRadius: 14,
+    marginTop: 13,
+    borderRadius: 16,
     overflow: "hidden",
   },
 
   postMediaImage: {
     width: "100%",
-    height: 240,
-    borderRadius: 14,
+    height: 220,
+    borderRadius: 16,
   },
 
   postVideo: {
     width: "100%",
-    height: 240,
+    height: 220,
     backgroundColor: "#000000",
   },
 
@@ -2093,18 +2235,27 @@ const styles = {
     alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: "#1F2937",
-    marginTop: 15,
-    paddingTop: 12,
+    marginTop: 13,
+    paddingTop: 11,
+    gap: 6,
   },
 
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 24,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+
+  actionButtonActive: {
+    backgroundColor: "#31141F",
+    borderWidth: 1,
+    borderColor: "#7F1D1D",
   },
 
   actionEmoji: {
-    fontSize: 17,
+    fontSize: 16,
     marginRight: 5,
   },
 
@@ -2116,28 +2267,29 @@ const styles = {
 
   likedText: {
     color: "#F87171",
+    fontWeight: "800",
   },
 
   /* EMPTY */
 
   emptyCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 25,
+    backgroundColor: "#0F172A",
+    borderRadius: 16,
+    padding: 24,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#1F2937",
-    marginTop: 5,
+    marginTop: 4,
   },
 
   emptyEmoji: {
-    fontSize: 42,
-    marginBottom: 12,
+    fontSize: 36,
+    marginBottom: 10,
   },
 
   emptyTitle: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
     textAlign: "center",
   },
@@ -2147,23 +2299,32 @@ const styles = {
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
-    marginTop: 7,
+    marginTop: 6,
+  },
+
+  emptyButton: {
+    backgroundColor: "#4F46E5",
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    marginTop: 16,
+  },
+
+  emptyButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
   },
 
   /* FOOTER */
 
   footer: {
     alignItems: "center",
-    paddingVertical: 25,
-  },
-
-  footerEmoji: {
-    fontSize: 24,
+    paddingVertical: 22,
   },
 
   footerText: {
     color: "#6B7280",
-    fontSize: 11,
-    marginTop: 6,
+    fontSize: 12,
   },
 };

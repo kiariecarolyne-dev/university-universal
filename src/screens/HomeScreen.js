@@ -501,15 +501,35 @@ students.push({
       </View>
 
       {/* =========================================
-          LIVE STUDENT ACTIVITY
+          STUDENTS ONLINE NOW
       ========================================= */}
 
       <TouchableOpacity
         style={styles.onlineCard}
         onPress={() => navigation.navigate("DiscoverTab")}
+        activeOpacity={0.85}
       >
-        <View style={styles.onlineIcon}>
-          <Text style={styles.onlineEmoji}>🌍</Text>
+        <View style={styles.onlineAvatars}>
+          <View
+            style={[
+              styles.onlineAvatar,
+              styles.onlineAvatarOne,
+            ]}
+          />
+
+          <View
+            style={[
+              styles.onlineAvatar,
+              styles.onlineAvatarTwo,
+            ]}
+          />
+
+          <View
+            style={[
+              styles.onlineAvatar,
+              styles.onlineAvatarThree,
+            ]}
+          />
         </View>
 
         <View style={styles.onlineInfo}>
@@ -522,164 +542,175 @@ students.push({
           </Text>
         </View>
 
-        <Text style={styles.onlineArrow}>›</Text>
-      </TouchableOpacity>
-
-      {/* =========================================
-          DAILY CHALLENGE
-      ========================================= */}
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          🎯 Today's Challenge
-        </Text>
-
-        <Text style={styles.sectionHint}>
-          Compete with students worldwide
-        </Text>
-      </View>
-
-      <TouchableOpacity
-  style={styles.challengeCard}
-  onPress={() => navigation.navigate("DailyChallenge")}
->
-        <View style={styles.challengeTop}>
-          <Text style={styles.challengeEmoji}>🧠</Text>
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.challengeTitle}>
-              Daily Student Quiz
-            </Text>
-
-            <Text style={styles.challengeText}>
-              Test your knowledge and see how you rank globally.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.challengeBottom}>
-          <Text style={styles.challengeReward}>
-  ⭐ Earn 10 XP
-</Text>
-
-          <Text style={styles.challengeButton}>
-            Play →
+        <View style={styles.viewStudentsBtn}>
+          <Text style={styles.viewStudentsText}>
+            View →
           </Text>
         </View>
       </TouchableOpacity>
 
       {/* =========================================
-          QUESTION OF THE DAY
+          TODAY'S CHALLENGE + QUESTION OF THE DAY
       ========================================= */}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          💬 Question of the Day
-        </Text>
-      </View>
-
-      <View style={styles.questionCard}>
-        <Text style={styles.questionEmoji}>
-          💭
-        </Text>
-
-        <Text style={styles.question}>
-          If you could study at any university in the world,
-          where would you go?
-        </Text>
-
-        <TouchableOpacity
-  style={styles.questionButton}
-  onPress={() => navigation.navigate("QuestionOfTheDay")}
->
-  <Text style={styles.questionButtonText}>
-    Answer Question
-  </Text>
-</TouchableOpacity>
-
-        <Text style={styles.responses}>
-          🌍 Student responses coming soon
-        </Text>
-      </View>
-
-      {/* =========================================
-          GLOBAL STUDY HALL
-      ========================================= */}
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          🌎 Global Study Hall
+          Today
         </Text>
 
         <Text style={styles.sectionHint}>
-          Study together with students worldwide
+          Daily challenge & question of the day
         </Text>
       </View>
 
-      <View style={styles.videoGrid}>
-        {rooms.map((room) => (
+      <View style={styles.duoRow}>
+        <TouchableOpacity
+          style={styles.duoTile}
+          onPress={() => navigation.navigate("DailyChallenge")}
+          activeOpacity={0.85}
+        >
+          <View style={styles.duoIcon}>
+            <Text style={styles.duoEmoji}>🧠</Text>
+          </View>
+
+          <Text style={styles.duoTitle}>
+            Daily Quiz
+          </Text>
+
+          <Text style={styles.duoText}>
+            Earn 10 XP today
+          </Text>
+
+          <View style={styles.duoAction}>
+            <Text style={styles.duoActionText}>
+              Play →
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.duoTile}
+          onPress={() => navigation.navigate("QuestionOfTheDay")}
+          activeOpacity={0.85}
+        >
+          <View style={styles.duoIcon}>
+            <Text style={styles.duoEmoji}>💬</Text>
+          </View>
+
+          <Text style={styles.duoTitle}>
+            Question of the Day
+          </Text>
+
+          <Text style={styles.duoText}>
+            Share your answer
+          </Text>
+
+          <View style={styles.duoAction}>
+            <Text style={styles.duoActionText}>
+              Answer →
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* =========================================
+          STUDY HALL
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          Study Hall
+        </Text>
+
+        <Text style={styles.sectionHint}>
+          Study live with students worldwide
+        </Text>
+      </View>
+
+      <View style={styles.studyHallCard}>
+        {rooms.map((room, index) => (
           <TouchableOpacity
             key={room.id}
-            style={styles.videoCard}
+            style={[
+              styles.roomRow,
+              index !== rooms.length - 1 &&
+                styles.roomRowBorder,
+            ]}
             onPress={() =>
               navigation.navigate("VideoRoom", {
                 roomName: room.id,
               })
             }
+            activeOpacity={0.85}
           >
-            <Text style={styles.videoEmoji}>
-              {room.emoji}
-            </Text>
-
-            <Text style={styles.videoCardTitle}>
-              {room.title}
-            </Text>
-
-            <Text style={styles.videoCardHint}>
-              👥 {roomCounts[room.id] || 0} students studying
-            </Text>
-
-            <View style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>
-                Join Study Hall
+            <View style={styles.roomIcon}>
+              <Text style={styles.roomEmoji}>
+                {room.emoji}
               </Text>
             </View>
+
+            <View style={styles.roomInfo}>
+              <Text style={styles.roomName}>
+                {room.title}
+              </Text>
+
+              <Text style={styles.roomMeta}>
+                👥 {roomCounts[room.id] || 0} students studying
+              </Text>
+            </View>
+
+            {room.id === "GlobalStudyHall" ? (
+              <View style={styles.livePill}>
+                <View style={styles.liveDot} />
+
+                <Text style={styles.livePillText}>
+                  LIVE
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.roomJoin}>
+                Join →
+              </Text>
+            )}
           </TouchableOpacity>
         ))}
       </View>
 
       {/* =========================================
-          DEBATE CHALLENGES
+          DEBATE & COMPETE
       ========================================= */}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          ⚔️ Debate Challenges
+          Debate & Compete
         </Text>
 
         <Text style={styles.sectionHint}>
-          Battle your critical thinking against another student
+          Challenge students, watch and vote
         </Text>
       </View>
 
-      <TouchableOpacity
-  style={styles.challengeCard}
-  onPress={() =>
-    navigation.navigate("DebateChallenges")
-  }
->
-        <View style={styles.challengeTop}>
-          <Text style={styles.challengeEmoji}>⚔️</Text>
+      <View style={styles.debateCard}>
+        <TouchableOpacity
+          style={styles.debateRow}
+          onPress={() =>
+            navigation.navigate("DebateChallenges")
+          }
+          activeOpacity={0.85}
+        >
+          <View style={styles.debateIcon}>
+            <Text style={styles.debateEmoji}>⚔️</Text>
+          </View>
 
-          <View style={{ flex: 1 }}>
-            <Text style={styles.challengeTitle}>
+          <View style={styles.debateInfo}>
+            <Text style={styles.debateTitle}>
               Debate Challenges
             </Text>
 
-            <Text style={styles.challengeText}>
+            <Text style={styles.debateText}>
               {pendingChallenges > 0
-                ? `You have ${pendingChallenges} incoming challenge${pendingChallenges === 1 ? "" : "s"} waiting to be accepted.`
-                : "Challenge another student or accept a challenge."}
+                ? `${pendingChallenges} incoming challenge${pendingChallenges === 1 ? "" : "s"} waiting`
+                : "Challenge or accept a student"}
             </Text>
           </View>
 
@@ -690,57 +721,36 @@ students.push({
               </Text>
             </View>
           )}
-        </View>
 
-        <View style={styles.challengeBottom}>
-          <Text style={styles.challengeReward}>
-            🏆 Win debates to earn recognition
-          </Text>
+          <Text style={styles.debateArrow}>›</Text>
+        </TouchableOpacity>
 
-          <Text style={styles.challengeButton}>
-            Open →
-          </Text>
-        </View>
-      </TouchableOpacity>
+        <View style={styles.debateDivider} />
 
-      {/* =========================================
-          LIVE DEBATES
-      ========================================= */}
+        <TouchableOpacity
+          style={styles.debateRow}
+          onPress={() =>
+            navigation.navigate("LiveDebates")
+          }
+          activeOpacity={0.85}
+        >
+          <View style={styles.debateIcon}>
+            <Text style={styles.debateEmoji}>🔥</Text>
+          </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          🔥 Live Debates
-        </Text>
-
-        <Text style={styles.sectionHint}>
-          Watch public debates happen live
-        </Text>
-      </View>
-
-      <TouchableOpacity
-        style={styles.challengeCard}
-        onPress={() =>
-          navigation.navigate("LiveDebates")
-        }
-      >
-        <View style={styles.challengeTop}>
-          <Text style={styles.challengeEmoji}>
-            🔥
-          </Text>
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.challengeTitle}>
-              Live Debate Feed
+          <View style={styles.debateInfo}>
+            <Text style={styles.debateTitle}>
+              Live Debates
             </Text>
 
-            <Text style={styles.challengeText}>
+            <Text style={styles.debateText}>
               {liveDebatesCount > 0
                 ? `${liveDebatesCount} debate${
                     liveDebatesCount === 1
                       ? ""
                       : "s"
-                  } happening live right now.`
-                : "No debates are live right now. Be the first to go public!"}
+                  } live right now`
+                : "Watch & vote on live debates"}
             </Text>
           </View>
 
@@ -753,172 +763,180 @@ students.push({
               </Text>
             </View>
           )}
-        </View>
 
-        <View style={styles.challengeBottom}>
-          <Text style={styles.challengeReward}>
-            🗳️ Vote for the winner
-          </Text>
-
-          <Text style={styles.challengeButton}>
-            Watch →
-          </Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* =========================================
-    YOUR STREAK
-========================================= */}
-
-<View style={styles.sectionHeader}>
-  <Text style={styles.sectionTitle}>
-    🔥 Your Progress
-  </Text>
-</View>
-
-<View style={styles.progressRow}>
-
-  {/* STREAK */}
-
-  <View style={styles.progressCard}>
-
-    <Text style={styles.progressEmoji}>
-      🔥
-    </Text>
-
-    <Text style={styles.progressNumber}>
-      {user.streak || 0}
-    </Text>
-
-    <Text style={styles.progressLabel}>
-      Day Streak
-    </Text>
-
-  </View>
-
-
-  {/* XP */}
-
-  <View style={styles.progressCard}>
-
-    <Text style={styles.progressEmoji}>
-      ⭐
-    </Text>
-
-    <Text style={styles.progressNumber}>
-      {user.xp || 0}
-    </Text>
-
-    <Text style={styles.progressLabel}>
-      XP
-    </Text>
-
-  </View>
-
-</View>
-
-{/* =========================================
-    WEEKLY RANKING
-========================================= */}
-
-<View style={styles.rankingCard}>
-
-  <View style={styles.rankingHeader}>
-
-    <View>
-      <Text style={styles.rankingTitle}>
-        🏆 Weekly Ranking
-      </Text>
-
-      <Text style={styles.rankingSubtitle}>
-        Top students this week
-      </Text>
-    </View>
-
-    <Text style={styles.trophy}>
-      🏆
-    </Text>
-
-  </View>
-
-  {/* TOP STUDENTS */}
-
-  {weeklyRanking.length === 0 ? (
-
-    <View style={styles.emptyRanking}>
-      <Text style={styles.emptyRankingText}>
-        No weekly XP yet.
-      </Text>
-
-      <Text style={styles.emptyRankingSubtext}>
-        Answer today's challenge to start climbing!
-      </Text>
-    </View>
-
-  ) : (
-
-    weeklyRanking.map((student, index) => (
-
-      <View
-        key={student.id}
-        style={styles.rankingStudent}
-      >
-
-        <Text style={styles.rankNumber}>
-          {index === 0
-            ? "🥇"
-            : index === 1
-            ? "🥈"
-            : index === 2
-            ? "🥉"
-            : `#${index + 1}`}
-        </Text>
-
-        <View style={styles.rankingStudentInfo}>
-
-          <Text style={styles.rankingStudentName}>
-            {student.id === auth.currentUser?.uid
-              ? "You"
-              : student.fullName}
-          </Text>
-
-          <Text style={styles.rankingStudentXP}>
-            ⭐ {student.weeklyXP} XP
-          </Text>
-
-        </View>
-
+          <Text style={styles.debateArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
-    ))
+      {/* =========================================
+          YOUR PROGRESS
+      ========================================= */}
 
-  )}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          Your Progress
+        </Text>
 
-  {/* YOUR POSITION */}
+        <Text style={styles.sectionHint}>
+          Keep your streak alive
+        </Text>
+      </View>
 
-  <View style={styles.myRankingBox}>
+      <View style={styles.progressCard}>
+        <View style={styles.progressRow}>
+          <View style={styles.progressBlock}>
+            <Text style={styles.progressEmoji}>🔥</Text>
 
-    <Text style={styles.myRankingPosition}>
-      {myWeeklyPosition
-        ? `#${myWeeklyPosition}`
-        : "—"}
-    </Text>
+            <Text style={styles.progressNumber}>
+              {user.streak || 0}
+            </Text>
 
-    <View style={{ flex: 1 }}>
+            <Text style={styles.progressLabel}>
+              Day Streak
+            </Text>
 
-      <Text style={styles.myRankingTitle}>
-        Your weekly position
-      </Text>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${Math.min(
+                      (user.streak || 0) / 14,
+                      1
+                    ) * 100}%`,
+                    backgroundColor: "#F59E0B",
+                  },
+                ]}
+              />
+            </View>
+          </View>
 
-      <Text style={styles.myRankingText}>
-        ⭐ {myWeeklyXP} XP this week
-      </Text>
+          <View style={styles.progressSeparator} />
 
-    </View>
+          <View style={styles.progressBlock}>
+            <Text style={styles.progressEmoji}>⭐</Text>
 
-  </View>
+            <Text style={styles.progressNumber}>
+              {user.xp || 0}
+            </Text>
 
-</View>
+            <Text style={styles.progressLabel}>
+              XP
+            </Text>
+
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${Math.min(
+                      (user.xp || 0) / 1000,
+                      1
+                    ) * 100}%`,
+                    backgroundColor: "#4F46E5",
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* =========================================
+          WEEKLY RANKING
+      ========================================= */}
+
+      <View style={styles.rankingCard}>
+        <View style={styles.rankingHeader}>
+          <View>
+            <Text style={styles.rankingTitle}>
+              Leaderboard
+            </Text>
+
+            <Text style={styles.rankingSubtitle}>
+              Top students this week
+            </Text>
+          </View>
+
+          <Text style={styles.rankingTrophy}>🏆</Text>
+        </View>
+
+        {/* TOP STUDENTS */}
+
+        {weeklyRanking.length === 0 ? (
+          <View style={styles.emptyRanking}>
+            <Text style={styles.emptyRankingText}>
+              No weekly XP yet.
+            </Text>
+
+            <Text style={styles.emptyRankingSubtext}>
+              Answer today's challenge to start climbing!
+            </Text>
+          </View>
+        ) : (
+          weeklyRanking.map((student, index) => (
+            <View
+              key={student.id}
+              style={styles.rankingStudent}
+            >
+              <Text style={styles.rankNumber}>
+                {index === 0
+                  ? "🥇"
+                  : index === 1
+                  ? "🥈"
+                  : index === 2
+                  ? "🥉"
+                  : `#${index + 1}`}
+              </Text>
+
+              <Text
+                numberOfLines={1}
+                style={styles.rankingStudentName}
+              >
+                {student.id === auth.currentUser?.uid
+                  ? "You"
+                  : student.fullName}
+              </Text>
+
+              <Text style={styles.rankingStudentXP}>
+                ⭐ {student.weeklyXP} XP
+              </Text>
+            </View>
+          ))
+        )}
+
+        {/* YOUR POSITION */}
+
+        <View style={styles.myRankingBox}>
+          <Text style={styles.myRankingPosition}>
+            {myWeeklyPosition
+              ? `#${myWeeklyPosition}`
+              : "—"}
+          </Text>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.myRankingTitle}>
+              Your weekly position
+            </Text>
+
+            <Text style={styles.myRankingText}>
+              ⭐ {myWeeklyXP} XP this week
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.rankingViewBtn}
+            onPress={() =>
+              navigation.navigate("WeeklyRanking")
+            }
+            activeOpacity={0.8}
+          >
+            <Text style={styles.rankingViewText}>
+              View →
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* =========================================
           MEMBERSHIP
@@ -1038,27 +1056,42 @@ const styles = {
 
   onlineCard: {
     backgroundColor: "#0F172A",
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 16,
+    padding: 12,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#1F2937",
-    marginBottom: 24,
+    marginBottom: 22,
   },
 
-  onlineIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#111827",
-    justifyContent: "center",
+  onlineAvatars: {
+    flexDirection: "row",
     alignItems: "center",
-    marginRight: 13,
+    width: 56,
+    marginRight: 12,
   },
 
-  onlineEmoji: {
-    fontSize: 25,
+  onlineAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: "#0F172A",
+  },
+
+  onlineAvatarOne: {
+    backgroundColor: "#4F46E5",
+  },
+
+  onlineAvatarTwo: {
+    backgroundColor: "#10B981",
+    marginLeft: -8,
+  },
+
+  onlineAvatarThree: {
+    backgroundColor: "#F59E0B",
+    marginLeft: -8,
   },
 
   onlineInfo: {
@@ -1067,19 +1100,27 @@ const styles = {
 
   onlineNumber: {
     color: "#FFFFFF",
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: "800",
   },
 
   onlineText: {
     color: "#9CA3AF",
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 12,
+    marginTop: 1,
   },
 
-  onlineArrow: {
-    color: "#6B7280",
-    fontSize: 30,
+  viewStudentsBtn: {
+    backgroundColor: "#1F2937",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  viewStudentsText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   /* SECTIONS */
@@ -1138,76 +1179,92 @@ const styles = {
     lineHeight: 15,
   },
 
-  /* CHALLENGE */
+  /* DAILY DUO (Challenge + Question) */
 
-  challengeCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 24,
+  duoRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 22,
+  },
+
+  duoTile: {
+    width: "48.5%",
+    backgroundColor: "#0F172A",
     borderWidth: 1,
     borderColor: "#1F2937",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
   },
 
-  challengeTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-
-  challengeEmoji: {
-    fontSize: 32,
-    marginRight: 14,
-  },
-
-  challengeTitle: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "800",
-    marginBottom: 5,
-  },
-
-  challengeText: {
-    color: "#9CA3AF",
-    fontSize: 13,
-    lineHeight: 19,
-  },
-
-  challengeBottom: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  duoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#111827",
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 17,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#1F2937",
+    marginBottom: 10,
   },
+
+  duoEmoji: {
+    fontSize: 20,
+  },
+
+  duoTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  duoText: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 3,
+    lineHeight: 15,
+  },
+
+  duoAction: {
+    backgroundColor: "#4F46E5",
+    borderRadius: 9,
+    paddingVertical: 7,
+    alignItems: "center",
+    marginTop: 12,
+  },
+
+  duoActionText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  /* BADGES */
 
   badge: {
     backgroundColor: "#4F46E5",
     borderRadius: 16,
-    minWidth: 26,
-    height: 26,
+    minWidth: 24,
+    height: 24,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 7,
+    paddingHorizontal: 6,
     marginLeft: 8,
   },
 
   badgeText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
   },
-
-  /* LIVE BADGE */
 
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#450A0A",
     borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     marginLeft: 8,
   },
 
@@ -1225,158 +1282,215 @@ const styles = {
     fontWeight: "900",
   },
 
-  challengeReward: {
-    color: "#FBBF24",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+  /* STUDY HALL */
 
-  challengeButton: {
-    color: "#818CF8",
-    fontWeight: "800",
-    fontSize: 13,
-  },
-
-  /* QUESTION */
-
-  questionCard: {
+  studyHallCard: {
     backgroundColor: "#0F172A",
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 24,
     borderWidth: 1,
     borderColor: "#1F2937",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    marginBottom: 22,
   },
 
-  questionEmoji: {
-    fontSize: 27,
-    marginBottom: 10,
+  roomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 13,
+    paddingHorizontal: 2,
   },
 
-  question: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 26,
+  roomRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#1F2937",
   },
 
-  questionButton: {
-    backgroundColor: "#1F2937",
+  roomIcon: {
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    padding: 13,
-    marginTop: 16,
-    alignItems: "center",
-  },
-
-  questionButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-
-  responses: {
-    color: "#6B7280",
-    fontSize: 11,
-    marginTop: 10,
-    textAlign: "center",
-  },
-
-  /* VIDEO */
-
-  videoGrid: {
-    marginBottom: 24,
-  },
-
-  videoCard: {
     backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 11,
+  },
+
+  roomEmoji: {
+    fontSize: 19,
+  },
+
+  roomInfo: {
+    flex: 1,
+  },
+
+  roomName: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  roomMeta: {
+    color: "#9CA3AF",
+    fontSize: 11,
+    marginTop: 3,
+  },
+
+  livePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#064E3B",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+
+  livePillText: {
+    color: "#6EE7B7",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+
+  roomJoin: {
+    color: "#818CF8",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  /* DEBATE & COMPETE */
+
+  debateCard: {
+    backgroundColor: "#0F172A",
     borderWidth: 1,
     borderColor: "#1F2937",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    marginBottom: 22,
   },
 
-  videoEmoji: {
-    fontSize: 30,
-    marginBottom: 9,
-  },
-
-  videoCardTitle: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 16,
-  },
-
-  videoCardHint: {
-    color: "#9CA3AF",
-    fontSize: 12,
-    marginTop: 6,
-  },
-
-  joinButton: {
-    backgroundColor: "#1F2937",
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 13,
+  debateRow: {
+    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 13,
+    paddingHorizontal: 2,
   },
 
-  joinButtonText: {
+  debateDivider: {
+    height: 1,
+    backgroundColor: "#1F2937",
+    marginHorizontal: 14,
+  },
+
+  debateIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "#111827",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 11,
+  },
+
+  debateEmoji: {
+    fontSize: 19,
+  },
+
+  debateInfo: {
+    flex: 1,
+  },
+
+  debateTitle: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  debateText: {
+    color: "#9CA3AF",
+    fontSize: 11,
+    marginTop: 3,
+  },
+
+  debateArrow: {
+    color: "#6B7280",
+    fontSize: 22,
     fontWeight: "700",
+    marginLeft: 6,
   },
 
   /* PROGRESS */
 
-  progressRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 24,
-  },
-
   progressCard: {
-    width: "48%",
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 17,
-    alignItems: "center",
+    backgroundColor: "#0F172A",
     borderWidth: 1,
     borderColor: "#1F2937",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 22,
+  },
+
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+
+  progressBlock: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  progressSeparator: {
+    width: 1,
+    backgroundColor: "#1F2937",
+    marginHorizontal: 14,
   },
 
   progressEmoji: {
-    fontSize: 26,
+    fontSize: 22,
   },
 
   progressNumber: {
     color: "#FFFFFF",
-    fontSize: 25,
+    fontSize: 22,
     fontWeight: "800",
     marginTop: 5,
   },
 
   progressLabel: {
     color: "#9CA3AF",
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
+  },
+
+  progressTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#1F2937",
+    marginTop: 9,
+    width: "82%",
+    overflow: "hidden",
+  },
+
+  progressFill: {
+    height: 5,
+    borderRadius: 3,
   },
 
   /* RANKING */
 
   rankingCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 24,
+    backgroundColor: "#0F172A",
     borderWidth: 1,
     borderColor: "#1F2937",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 22,
   },
 
   rankingHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 4,
   },
 
   rankingTitle: {
@@ -1391,39 +1505,16 @@ const styles = {
     marginTop: 4,
   },
 
-  trophy: {
-    fontSize: 30,
-  },
-
-  rankingPosition: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 17,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#1F2937",
-  },
-
-  rankingNumber: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    fontWeight: "800",
-    marginRight: 14,
-  },
-
-  rankingPositionTitle: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-
-    rankingPositionText: {
-    color: "#6B7280",
-    fontSize: 11,
-    marginTop: 4,
+  rankingTrophy: {
+    fontSize: 24,
   },
 
   emptyRanking: {
+    alignItems: "center",
+    paddingVertical: 18,
+  },
+
+  emptyRankingText: {
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "700",
@@ -1439,48 +1530,46 @@ const styles = {
   rankingStudent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#1F2937",
   },
 
   rankNumber: {
-    width: 45,
+    width: 38,
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
-  },
-
-  rankingStudentInfo: {
-    flex: 1,
   },
 
   rankingStudentName: {
     color: "#FFFFFF",
-    fontSize: 14,
+    flex: 1,
+    fontSize: 13,
     fontWeight: "700",
+    marginRight: 8,
   },
 
   rankingStudentXP: {
     color: "#FBBF24",
     fontSize: 11,
-    marginTop: 3,
+    fontWeight: "700",
   },
 
   myRankingBox: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 15,
-    paddingTop: 15,
+    marginTop: 13,
+    paddingTop: 13,
     borderTopWidth: 1,
     borderTopColor: "#1F2937",
   },
 
   myRankingPosition: {
     color: "#FFFFFF",
-    fontSize: 27,
+    fontSize: 26,
     fontWeight: "800",
-    width: 55,
+    width: 50,
   },
 
   myRankingTitle: {
@@ -1495,12 +1584,25 @@ const styles = {
     marginTop: 4,
   },
 
+  rankingViewBtn: {
+    backgroundColor: "#1F2937",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  rankingViewText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
   /* MEMBERSHIP */
 
   planCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 20,
+    backgroundColor: "#0F172A",
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 14,
     borderWidth: 1,
     borderColor: "#1F2937",
