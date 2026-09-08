@@ -19,6 +19,7 @@ import DailyChallengeScreen from "../screens/DailyChallengeScreen";
 import DebateBattleScreen from "../screens/DebateBattleScreen";
 import DebateChallengesScreen from "../screens/DebateChallengesScreen";
 import DebateLobbyScreen from "../screens/DebateLobbyScreen";
+import EditProfileScreen from "../screens/EditProfileScreen";
 import InboxScreen from "../screens/InboxScreen";
 import JobApplicationsScreen from "../screens/JobApplicationsScreen";
 import JobDetailScreen from "../screens/JobDetailScreen";
@@ -51,6 +52,7 @@ const screenMap = {
   DebateBattleScreen,
   DebateChallengesScreen,
   DebateLobbyScreen,
+  EditProfileScreen,
   InboxScreen,
   JobApplicationsScreen,
   JobDetailScreen,
@@ -196,6 +198,13 @@ export default function AppNavigator() {
               name="PrivateChat"
               component={PrivateChatScreen}
               options={{ title: "Private Chat" }}
+            />
+
+            {/* EDIT PROFILE */}
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{ title: "Edit Profile" }}
             />
 
             {/* INBOX */}
