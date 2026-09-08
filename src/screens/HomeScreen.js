@@ -426,8 +426,78 @@ students.push({
         </Text>
 
         <Text style={styles.subtitle}>
-          Your global student community is waiting for you 🌍
+          Study together, connect with students, and discover opportunities.
         </Text>
+      </View>
+
+      {/* =========================================
+          EXPLORE — MAIN EXPERIENCE
+      ========================================= */}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          Explore
+        </Text>
+
+        <Text style={styles.sectionHint}>
+          Study, connect, discover and compete
+        </Text>
+      </View>
+
+      <View style={styles.exploreRow}>
+        <TouchableOpacity
+          style={styles.exploreTile}
+          onPress={() => navigation.navigate("PastPapers")}
+        >
+          <Text style={styles.exploreTileEmoji}>📚</Text>
+          <Text style={styles.exploreTileTitle}>Study</Text>
+          <Text style={styles.exploreTileText}>Past papers & revision</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.exploreTile}
+          onPress={() => navigation.navigate("DiscoverTab")}
+        >
+          <Text style={styles.exploreTileEmoji}>🌍</Text>
+          <Text style={styles.exploreTileTitle}>Connect</Text>
+          <Text style={styles.exploreTileText}>Discover students</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.exploreTile}
+          onPress={() => navigation.navigate("GroupsTab")}
+        >
+          <Text style={styles.exploreTileEmoji}>👥</Text>
+          <Text style={styles.exploreTileTitle}>Groups</Text>
+          <Text style={styles.exploreTileText}>Study with your community</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.exploreTile}
+          onPress={() => navigation.navigate("Jobs")}
+        >
+          <Text style={styles.exploreTileEmoji}>💼</Text>
+          <Text style={styles.exploreTileTitle}>Careers</Text>
+          <Text style={styles.exploreTileText}>Job opportunities</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.exploreTile}
+          onPress={() => navigation.navigate("FriendsMatch")}
+        >
+          <Text style={styles.exploreTileEmoji}>❤️</Text>
+          <Text style={styles.exploreTileTitle}>Friends & Match</Text>
+          <Text style={styles.exploreTileText}>Connect with people</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.exploreTile}
+          onPress={() => navigation.navigate("DebateChallenges")}
+        >
+          <Text style={styles.exploreTileEmoji}>⚔️</Text>
+          <Text style={styles.exploreTileTitle}>Compete</Text>
+          <Text style={styles.exploreTileText}>Debates & challenges</Text>
+        </TouchableOpacity>
       </View>
 
       {/* =========================================
@@ -881,64 +951,6 @@ students.push({
       </View>
 
       {/* =========================================
-          FRIENDS & MATCH
-      ========================================= */}
-
-      <TouchableOpacity
-        style={styles.utilityCard}
-        onPress={() =>
-          navigation.navigate("FriendsMatch")
-        }
-      >
-        <Text style={styles.utilityEmoji}>
-          ❤️
-        </Text>
-
-        <View style={{ flex: 1 }}>
-          <Text style={styles.utilityTitle}>
-            Friends & Match
-          </Text>
-
-          <Text style={styles.utilityText}>
-            Find friends and matches who share your interests.
-          </Text>
-        </View>
-
-        <Text style={styles.utilityArrow}>
-          →
-        </Text>
-      </TouchableOpacity>
-
-      {/* =========================================
-          PAST PAPERS
-      ========================================= */}
-
-      <TouchableOpacity
-        style={styles.utilityCard}
-        onPress={() =>
-          navigation.navigate("PastPapers")
-        }
-      >
-        <Text style={styles.utilityEmoji}>
-          📄
-        </Text>
-
-        <View style={{ flex: 1 }}>
-          <Text style={styles.utilityTitle}>
-            Past Papers
-          </Text>
-
-          <Text style={styles.utilityText}>
-            Find academic papers to help you prepare.
-          </Text>
-        </View>
-
-        <Text style={styles.utilityArrow}>
-          →
-        </Text>
-      </TouchableOpacity>
-
-      {/* =========================================
           PREMIUM CTA
       ========================================= */}
 
@@ -1087,6 +1099,43 @@ const styles = {
     color: "#6B7280",
     fontSize: 12,
     marginTop: 3,
+  },
+
+  /* EXPLORE GRID */
+
+  exploreRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+
+  exploreTile: {
+    width: "48.5%",
+    backgroundColor: "#0F172A",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+
+  exploreTileEmoji: {
+    fontSize: 26,
+    marginBottom: 6,
+  },
+
+  exploreTileTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  exploreTileText: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 3,
+    lineHeight: 15,
   },
 
   /* CHALLENGE */

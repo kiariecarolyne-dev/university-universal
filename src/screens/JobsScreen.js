@@ -191,8 +191,8 @@ export default function JobsScreen({ navigation }) {
 
           <Text style={styles.lockSubtitle}>
             Find graduate jobs, internships and
-            career opportunities from trusted
-            employers around the world.
+            career opportunities from employers
+            around the world.
           </Text>
 
           <View style={styles.featureList}>
@@ -412,6 +412,12 @@ export default function JobsScreen({ navigation }) {
 
       </View>
 
+      {/* DISCLAIMER */}
+
+      <Text style={styles.disclaimer}>
+        Job opportunities vary and availability is not guaranteed. Always verify the employer and job details before applying.
+      </Text>
+
       {/* SEARCH */}
 
       <TextInput
@@ -610,6 +616,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     color: "#FFFFFF",
+    marginBottom: 12,
+  },
+
+  disclaimer: {
+    color: "#6B7280",
+    fontSize: 11,
+    lineHeight: 16,
     marginBottom: 12,
   },
 

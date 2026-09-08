@@ -292,16 +292,30 @@ export default function MatchSwipeScreen({ route, navigation }) {
           <Text style={styles.emptyEmoji}>
             {mode === "friend" ? "🤝" : "❤️"}
           </Text>
-          <Text style={styles.emptyTitle}>No more candidates</Text>
-          <Text style={styles.emptyHint}>
-            Check back later or try updating your interests.
+          <Text style={styles.emptyTitle}>
+            {mode === "friend"
+              ? "You are all caught up"
+              : "No more candidates"}
           </Text>
-          <TouchableOpacity
-            style={styles.refreshBtn}
-            onPress={loadCandidates}
-          >
-            <Text style={styles.refreshBtnText}>Refresh</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptyHint}>
+            New students may appear soon. Update your interests in Match
+            Preferences for more suggestions.
+          </Text>
+          <View style={styles.emptyBtnRow}>
+            <TouchableOpacity
+              style={styles.prefsBtn}
+              onPress={() => navigation.navigate("MatchPreferences")}
+            >
+              <Text style={styles.prefsBtnText}>Preferences</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.refreshBtn}
+              onPress={loadCandidates}
+            >
+              <Text style={styles.refreshBtnText}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : currentCandidate ? (
         <>
@@ -462,6 +476,23 @@ const styles = {
   },
   refreshBtnText: {
     color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  emptyBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  prefsBtn: {
+    backgroundColor: "#1F2937",
+    borderRadius: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  prefsBtnText: {
+    color: "#D1D5DB",
     fontWeight: "700",
     fontSize: 14,
   },

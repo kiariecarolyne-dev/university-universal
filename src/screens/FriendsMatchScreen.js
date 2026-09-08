@@ -63,6 +63,28 @@ export default function FriendsMatchScreen({ navigation }) {
         </Text>
       </View>
 
+      {/* FIND FRIENDS — recommended for first-time users */}
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate("MatchSwipe", { mode: "friend" })
+        }
+      >
+        <View style={styles.cardTop}>
+          <Text style={styles.cardEmoji}>🤝</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>Find Friends</Text>
+            <Text style={styles.cardText}>
+              Meet new people who share your interests, course, and university — no pressure, just connection.
+            </Text>
+          </View>
+        </View>
+        <View style={styles.cardBottom}>
+          <Text style={styles.cardHint}>Recommended for first-time users</Text>
+          <Text style={styles.cardAction}>Open →</Text>
+        </View>
+      </TouchableOpacity>
+
       {/* FIND YOUR MATCH */}
       <TouchableOpacity
         style={styles.card}
@@ -80,29 +102,7 @@ export default function FriendsMatchScreen({ navigation }) {
           </View>
         </View>
         <View style={styles.cardBottom}>
-          <Text style={styles.cardHint}>Compatibility-based suggestions</Text>
-          <Text style={styles.cardAction}>Open →</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* FIND FRIENDS */}
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() =>
-          navigation.navigate("MatchSwipe", { mode: "friend" })
-        }
-      >
-        <View style={styles.cardTop}>
-          <Text style={styles.cardEmoji}>🤝</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>Find Friends</Text>
-            <Text style={styles.cardText}>
-              Meet new people in friendship mode — same deck, same fun.
-            </Text>
-          </View>
-        </View>
-        <View style={styles.cardBottom}>
-          <Text style={styles.cardHint}>Recommended for first-time users</Text>
+          <Text style={styles.cardHint}>App-generated compatibility estimates</Text>
           <Text style={styles.cardAction}>Open →</Text>
         </View>
       </TouchableOpacity>

@@ -14,15 +14,25 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   query,
   serverTimestamp,
+  setDoc,
   where,
 } from "firebase/firestore";
 
 import { auth, db } from "../services/firebase";
 
 import { createPrivateRoomKey } from "../utils/calls";
+
+const REPORT_REASONS = [
+  "Inappropriate or offensive content",
+  "Harassment or bullying",
+  "Spam or fake account",
+  "Impersonation",
+  "Other",
+];
 
 export default function StudentProfileScreen({ route, navigation }) {
   const { member } = route.params;
@@ -147,6 +157,99 @@ export default function StudentProfileScreen({ route, navigation }) {
       );
     } finally {
       setStartingCall(false);
+    }
+  };
+
+  const blockStudent = async () => {
+    const currentUserId = auth.currentUser?.uid;
+    const otherUserId = member.id || member.userId;
+
+    if (!currentUserId || !otherUserId || currentUserId === otherUserId) {
+      return;
+    }
+
+    Alert.alert(
+      "Block Student",
+      `Block ${member.fullName || "this student"}? They won't be able to appear in your deck or match with you.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await setDoc(
+                doc(
+                  db,
+                  "users",
+                  currentUserId,
+                  "blocks",
+                  otherUserId
+                ),
+                {
+                  blockedUid: otherUserId,
+                  blockedAt: serverTimestamp(),
+                }
+              );
+
+              Alert.alert(
+                "Student Blocked",
+                "This student has been blocked and will not appear in your matches."
+              );
+            } catch (error) {
+              console.log("Block student error:", error);
+              Alert.alert(
+                "Block failed",
+                "We couldn't block this student right now. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const reportStudent = () => {
+    const currentUserId = auth.currentUser?.uid;
+    const otherUserId = member.id || member.userId;
+
+    if (!currentUserId || !otherUserId || currentUserId === otherUserId) {
+      return;
+    }
+
+    Alert.alert(
+      "Report Student",
+      `Why are you reporting ${member.fullName || "this student"}?`,
+      REPORT_REASONS.map((reason) => ({
+        text: reason,
+        onPress: () => submitReport(otherUserId, currentUserId, reason),
+      })).concat({
+        text: "Cancel",
+        style: "cancel",
+      }),
+      { cancelable: true }
+    );
+  };
+
+  const submitReport = async (reportedUid, reporterUid, reason) => {
+    try {
+      await addDoc(collection(db, "reports"), {
+        reporterId: reporterUid,
+        reportedUid,
+        reason,
+        createdAt: serverTimestamp(),
+      });
+
+      Alert.alert(
+        "Report Submitted",
+        "Thanks for letting us know. Our team will review this report."
+      );
+    } catch (error) {
+      console.log("Report student error:", error);
+      Alert.alert(
+        "Report failed",
+        "We couldn't submit your report right now. Please try again."
+      );
     }
   };
 
@@ -385,6 +488,28 @@ export default function StudentProfileScreen({ route, navigation }) {
           ⚔️ Challenge to Debate
         </Text>
       </TouchableOpacity>
+
+      {/* ===================================== */}
+      {/* SAFETY: BLOCK / REPORT */}
+      {/* ===================================== */}
+
+      <TouchableOpacity
+        style={styles.blockButton}
+        onPress={blockStudent}
+      >
+        <Text style={styles.dangerButtonText}>
+          🚫 Block Student
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.reportButton}
+        onPress={reportStudent}
+      >
+        <Text style={styles.dangerButtonText}>
+          ⚠️ Report Student
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -589,6 +714,32 @@ const styles = {
     borderRadius: 12,
     alignItems: "center",
     marginTop: 15,
+  },
+
+  blockButton: {
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#EF4444",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 25,
+  },
+
+  reportButton: {
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 12,
+  },
+
+  dangerButtonText: {
+    color: "#F87171",
+    fontWeight: "bold",
+    fontSize: 15,
   },
 
   buttonText: {

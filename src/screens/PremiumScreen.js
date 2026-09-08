@@ -155,48 +155,34 @@ export default function PremiumScreen({ navigation }) {
 
       <View style={styles.featuresCard}>
         <Text style={styles.cardTitle}>
-          Premium Features
-        </Text>
-
-        <Text style={styles.featureNote}>
-          Unlock more past papers for studying and exam
-          preparation, discover career and student
-          opportunities, and connect with a global student
-          community — all in one place.
+          What Premium unlocks
         </Text>
 
         <Text style={styles.feature}>
-          📚 Unlimited Past Papers
+          📚 Unlimited past paper downloads
         </Text>
 
         <Text style={styles.feature}>
-          💼 Discover Job Opportunities
-        </Text>
-
-        <Text style={styles.featureNote}>
-          Explore available job opportunities and discover
-          opportunities that may match your skills and
-          interests.
+          💼 Jobs & Careers opportunities
         </Text>
 
         <Text style={styles.feature}>
-          🎓 Discover & Connect with Students
+          💬 Private student chats
         </Text>
 
         <Text style={styles.feature}>
-          💬 Private Student Chats
+          🎥 Video study rooms
         </Text>
 
         <Text style={styles.feature}>
-          🎥 Global Study Hall
+          👥 Create student groups
         </Text>
 
-        <Text style={styles.feature}>
-          ⚔️ Debate Challenges
-        </Text>
-
-        <Text style={styles.feature}>
-          👥 Student Groups / Communities
+        <Text style={styles.freeNote}>
+          Browsing student profiles, joining study halls,
+          taking part in debates, and joining existing
+          groups are free for every student. Premium
+          unlocks the extras above.
         </Text>
       </View>
 
@@ -308,12 +294,13 @@ export default function PremiumScreen({ navigation }) {
       ========================= */}
       <View style={styles.warningBox}>
         <Text style={styles.warningTitle}>
-          Keep your Premium access
+          Premium access is worth it
         </Text>
 
         <Text style={styles.warningText}>
-          Upgrade today to enjoy the full University
-          Universal experience without restrictions.
+          Unlock unlimited past papers, career opportunities,
+          private chats, and more — all for one small
+          weekly or monthly payment.
         </Text>
       </View>
 
@@ -398,9 +385,10 @@ const styles = {
   },
 
   feature: {
-    color: "#9CA3AF",
+    color: "#FFFFFF",
     marginTop: 6,
     lineHeight: 20,
+    fontWeight: "600",
   },
 
   featureNote: {
@@ -408,6 +396,16 @@ const styles = {
     marginTop: 2,
     lineHeight: 18,
     fontSize: 12,
+  },
+
+  freeNote: {
+    color: "#9CA3AF",
+    marginTop: 14,
+    lineHeight: 19,
+    fontSize: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#1F2937",
+    paddingTop: 12,
   },
 
   sectionTitle: {

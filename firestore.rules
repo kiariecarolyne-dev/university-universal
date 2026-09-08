@@ -62,7 +62,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && request.resource.data.isAdmin == false
         && request.resource.data.isPremium == false
-        && request.resource.data.premiumUntil == false;
+        && request.resource.data.premiumUntil == null;
 
       allow update: if isLoggedIn()
         && request.auth.uid == uid

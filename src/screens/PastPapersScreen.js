@@ -58,10 +58,18 @@ export default function PastPapersScreen({ navigation }) {
   const searchPapers = (text) => {
   setSearch(text);
 
+  const q = text.toLowerCase().trim();
+
+  if (!q) {
+    setFilteredPapers(papers);
+    return;
+  }
+
   const results = papers.filter((paper) =>
-    (paper.name || "")
-      .toLowerCase()
-      .includes(text.toLowerCase())
+    Object.values(paper).some((value) =>
+      typeof value === "string" &&
+      value.toLowerCase().includes(q)
+    )
   );
 
   setFilteredPapers(results);
@@ -207,6 +215,16 @@ const downloadPDF = async (paper) => {
     📝 Past Papers
   </Text>
 
+  <Text
+    style={{
+      color: "#9CA3AF",
+      fontSize: 12,
+      marginTop: 4,
+    }}
+  >
+    Find past papers fast — search by university, course, unit, or year.
+  </Text>
+
   {user?.isAdmin && (
     <TouchableOpacity
       onPress={() => navigation.navigate("UploadPastPaper")}
@@ -247,6 +265,40 @@ const downloadPDF = async (paper) => {
       <FlatList
         data={filteredPapers}
         keyExtractor={(item)=>item.id}
+        ListEmptyComponent={
+  <View
+    style={{
+      alignItems: "center",
+      marginTop: 30,
+      padding: 20,
+    }}
+  >
+    <Text style={{ fontSize: 40, marginBottom: 10 }}>
+      📭
+    </Text>
+
+    <Text
+      style={{
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+      }}
+    >
+      No past papers found
+    </Text>
+
+    <Text
+      style={{
+        color: "#9CA3AF",
+        fontSize: 12,
+        textAlign: "center",
+        marginTop: 6,
+      }}
+    >
+      Try a different search term, or check back later.
+    </Text>
+  </View>
+}
         renderItem={({ item }) => (
   <View
     style={{

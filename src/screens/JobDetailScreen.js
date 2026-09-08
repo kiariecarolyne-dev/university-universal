@@ -23,7 +23,6 @@ import {
 import { auth, db } from "../services/firebase";
 
 import useUser from "../hooks/useUser";
-import useResolvedNames from "../hooks/useResolvedNames";
 
 const getDeadlineDate = (deadline) => {
   if (!deadline) return null;
@@ -63,12 +62,6 @@ export default function JobDetailScreen({
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [recording, setRecording] = useState(false);
-
-  const resolvedNames = useResolvedNames(
-    job?.postedBy
-      ? [{ userId: job.postedBy }]
-      : []
-  );
 
   /* ------------------------------------------------
      LOAD JOB
@@ -375,13 +368,11 @@ export default function JobDetailScreen({
         </Text>
       )}
 
-      {job.postedBy && (
-        <Text style={styles.source}>
-          🧑‍💼 Posted by:{" "}
-          {resolvedNames[job.postedBy] ||
-            "University Universal"}
-        </Text>
-      )}
+      {/* DISCLAIMER */}
+
+      <Text style={styles.source}>
+        Job opportunities vary and availability is not guaranteed. Always verify the employer and job details before applying.
+      </Text>
 
       {/* APPLY BUTTONS */}
 

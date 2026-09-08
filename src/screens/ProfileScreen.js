@@ -123,7 +123,7 @@ export default function ProfileScreen({ navigation }) {
 
           <Text style={styles.rowBtnText}>
             Update your name, university, course, year of
-            study and profile photo.
+            study, profile photo and match preferences.
           </Text>
 
           <Text style={styles.rowBtnArrow}>
@@ -177,7 +177,7 @@ export default function ProfileScreen({ navigation }) {
               ? "Admin access →"
               : isPremium
               ? "Explore Jobs →"
-              : "View Jobs →"}
+              : "Premium feature →"}
           </Text>
         </TouchableOpacity>
 
