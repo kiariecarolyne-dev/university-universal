@@ -8,7 +8,6 @@
     "icon": "./assets/expo.icon/Assets/assetsicon.png",
     "android": {
       "package": "com.universityuniversal.app",
-      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
