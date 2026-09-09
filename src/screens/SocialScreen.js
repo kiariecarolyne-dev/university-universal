@@ -1,4 +1,4 @@
-import { File, Paths } from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -53,6 +53,10 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 const MAX_VIDEO_DURATION_SECONDS = 5 * 60;
 const FEED_PAGE_SIZE = 20;
 
+const COMMENT_PREVIEW_COUNT = 3;
+const COMMENT_PREVIEW_ROTATE_MS = 3500;
+const COMMENT_PREVIEW_BOTTOM = 162;
+
 const EMOJI_QUICK = ["😊", "🔥", "🎉", "🤩", "😂"];
 
 const FEED_TABS = [
@@ -100,6 +104,66 @@ function postFromDoc(docSnap) {
     ...docSnap.data(),
   };
 }
+
+const SAVED_MEDIA_DIR_NAME = "saved-media";
+
+/* Detects the file extension of a post's media. The backend preserves the
+   original fileName (most reliable), so that is checked first, then the
+   download URL, and finally we fall back to the media type. */
+const detectMediaExtension = (post) => {
+  const candidates = [
+    post?.media?.fileName,
+    (post?.media?.uri || "").split("?")[0],
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    const match = /\.([A-Za-z0-9]{2,5})$/.exec(candidate);
+
+    if (match) {
+      return match[1].toLowerCase();
+    }
+  }
+
+  return post?.media?.type === "video" ? "mp4" : "jpg";
+};
+
+/* Best-effort MIME type for the native share sheet. Uses the stored
+   mimeType when available, otherwise maps a known extension. */
+const detectMimeType = (post, extension) => {
+  if (post?.media?.mimeType) {
+    return post.media.mimeType;
+  }
+
+  const mimeMap = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+    heic: "image/heic",
+    mov: "video/quicktime",
+    m4v: "video/x-m4v",
+    webm: "video/webm",
+  };
+
+  return (
+    mimeMap[extension] ||
+    (post?.media?.type === "video"
+      ? "video/mp4"
+      : "image/jpeg")
+  );
+};
+
+const buildMediaFileName = (extension, purpose) => {
+  const prefix =
+    purpose === "save"
+      ? "UniversityUniversal-Saved"
+      : "UniversityUniversal";
+
+  return `${prefix}-${Date.now()}.${extension}`;
+};
 
 /* =========================================================
    POST VIDEO — visibility-aware
@@ -225,6 +289,7 @@ function InteractionBar({
   onComment,
   onShare,
   onMore,
+  isShareBusy,
   style,
 }) {
   const likes = Array.isArray(post.likes)
@@ -285,13 +350,21 @@ function InteractionBar({
       <TouchableOpacity
         style={styles.interactionButton}
         onPress={onShare}
+        disabled={isShareBusy}
         activeOpacity={0.7}
         accessibilityLabel="Share post"
       >
         <View style={styles.interactionIconCircle}>
-          <Text style={styles.interactionEmoji}>
-            ↗️
-          </Text>
+          {isShareBusy ? (
+            <ActivityIndicator
+              size="small"
+              color="#FFFFFF"
+            />
+          ) : (
+            <Text style={styles.interactionEmoji}>
+              ↗️
+            </Text>
+          )}
         </View>
         <Text style={styles.interactionLabel}>
           Share
@@ -375,6 +448,185 @@ function FeedBottomGradient() {
 const FeedBottomGradientMemo = memo(FeedBottomGradient);
 
 /* =========================================================
+   COMMENT PREVIEW — rotating comment chip for video posts
+
+   Reuses the existing posts/{postId}/comments structure (same
+   fields the Comments screen writes: userId/fullName/country/
+   photo/text/createdAt). Data is fetched with a one-shot getDocs
+   only while the feed item is active, and rotation timers are
+   cleaned up whenever the item becomes inactive or unmounts.
+========================================================= */
+
+function CommentPreview({
+  postId,
+  active,
+  bottom,
+  onOpenComments,
+}) {
+  const [comments, setComments] = useState([]);
+  const [commentIndex, setCommentIndex] =
+    useState(0);
+  const [previewAnim] = useState(
+    () => new Animated.Value(0)
+  );
+  const cancelledRef = useRef(false);
+
+  useEffect(() => {
+    if (!active || !postId) return;
+
+    cancelledRef.current = false;
+    let isMounted = true;
+
+    getDocs(
+      query(
+        collection(db, "posts", postId, "comments"),
+        orderBy("createdAt", "desc"),
+        limit(COMMENT_PREVIEW_COUNT)
+      )
+    )
+      .then((snapshot) => {
+        if (!isMounted) return;
+
+        const loaded = snapshot.docs
+          .map(postFromDoc)
+          .filter(
+            (comment) =>
+              comment.text &&
+              comment.text.trim().length > 0
+          );
+
+        setComments(loaded);
+        setCommentIndex(0);
+        previewAnim.setValue(0);
+        Animated.timing(previewAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      })
+      .catch((error) => {
+        console.log(
+          "Comment preview error:",
+          error
+        );
+      });
+
+    return () => {
+      isMounted = false;
+      cancelledRef.current = true;
+    };
+  }, [active, postId, previewAnim]);
+
+  useEffect(() => {
+    if (!active || comments.length < 2) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      previewAnim.stopAnimation();
+
+      Animated.timing(previewAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished || cancelledRef.current) {
+          return;
+        }
+
+        setCommentIndex(
+          (prev) => (prev + 1) % comments.length
+        );
+
+        Animated.timing(previewAnim, {
+          toValue: 1,
+          duration: 260,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, COMMENT_PREVIEW_ROTATE_MS);
+
+    return () => clearInterval(interval);
+  }, [active, comments, previewAnim]);
+
+  if (!active) {
+    return null;
+  }
+
+  const currentComment = comments[commentIndex];
+
+  if (!currentComment) {
+    return null;
+  }
+
+  return (
+    <Animated.View
+      pointerEvents="box-none"
+      style={[
+        styles.commentPreview,
+        { bottom },
+        {
+          opacity: previewAnim,
+          transform: [
+            {
+              translateY: previewAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [10, 0],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
+      <TouchableOpacity
+        style={styles.commentPreviewCard}
+        onPress={onOpenComments}
+        activeOpacity={0.8}
+        accessibilityLabel="See comments"
+      >
+        {currentComment.photo ? (
+          <Image
+            source={{ uri: currentComment.photo }}
+            style={styles.commentPreviewAvatar}
+          />
+        ) : (
+          <View
+            style={
+              styles.commentPreviewAvatarPlaceholder
+            }
+          >
+            <Text
+              style={styles.commentPreviewAvatarText}
+            >
+              {currentComment.fullName
+                ?.charAt(0)
+                ?.toUpperCase() || "S"}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.commentPreviewBody}>
+          <Text
+            style={styles.commentPreviewName}
+            numberOfLines={1}
+          >
+            {currentComment.fullName ||
+              "University Student"}
+          </Text>
+          <Text
+            style={styles.commentPreviewText}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {currentComment.text}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+/* =========================================================
    FEED ITEM — full-screen card for each post
 ========================================================= */
 
@@ -391,6 +643,7 @@ const FeedItem = memo(
     isVideoMuted,
     onToggleMute,
     formatTime,
+    isShareBusy,
   }) {
     const heartAnim = useRef(
       new Animated.Value(0)
@@ -578,6 +831,7 @@ const FeedItem = memo(
         onComment={onComment}
         onShare={onShare}
         onMore={onMore}
+        isShareBusy={isShareBusy}
         style={{
           bottom: insets.bottom + INTERACTION_BAR_BOTTOM,
         }}
@@ -667,6 +921,21 @@ const FeedItem = memo(
           {formatTime(item.createdAt)}
         </Text>
       </TouchableOpacity>
+
+      {/* ============================
+          COMMENT PREVIEW (video posts only)
+      ============================ */}
+
+      {isVideo && (
+        <CommentPreview
+          postId={item.id}
+          active={isActive}
+          bottom={
+            insets.bottom + COMMENT_PREVIEW_BOTTOM
+          }
+          onOpenComments={onComment}
+        />
+      )}
     </View>
   );
   }
@@ -713,6 +982,14 @@ export default function SocialScreen({
   const [createVisible, setCreateVisible] =
     useState(false);
   const [feedMuted, setFeedMuted] = useState(true);
+
+  // Media download operations (Share / Save). Synchronous refs prevent
+  // duplicate simultaneous downloads; the state drives the small
+  // non-blocking busy indicator.
+  const shareBusyRef = useRef(false);
+  const saveBusyRef = useRef(false);
+  const [busyMediaAction, setBusyMediaAction] =
+    useState(null);
 
   /* =========================================================
      FEED ORDERING — For You / Latest
@@ -1536,15 +1813,32 @@ export default function SocialScreen({
   ========================================================= */
 
   const sharePost = async (post) => {
-    try {
-      if (!post?.media?.uri) {
-        Alert.alert(
-          "Nothing to share",
-          "This post does not contain a photo or video."
-        );
-        return;
-      }
+    if (!post?.media?.uri) {
+      Alert.alert(
+        "Nothing to share",
+        "This post does not contain a photo or video."
+      );
+      return;
+    }
 
+    if (
+      shareBusyRef.current ||
+      saveBusyRef.current
+    ) {
+      return;
+    }
+
+    shareBusyRef.current = true;
+
+    setBusyMediaAction({
+      kind: "share",
+      postId: post.id,
+      label: "Preparing share…",
+    });
+
+    let localFile = null;
+
+    try {
       const available =
         await Sharing.isAvailableAsync();
 
@@ -1564,14 +1858,19 @@ export default function SocialScreen({
       );
 
       const extension =
-        post.media.type === "video"
-          ? "mp4"
-          : "jpg";
+        detectMediaExtension(post);
 
-      const fileName =
-        `UniversityUniversal-${Date.now()}.${extension}`;
+      const mimeType = detectMimeType(
+        post,
+        extension
+      );
 
-      const localFile = new File(
+      const fileName = buildMediaFileName(
+        extension,
+        "cache"
+      );
+
+      localFile = new File(
         Paths.cache,
         fileName
       );
@@ -1580,19 +1879,11 @@ export default function SocialScreen({
         "DOWNLOADING MEDIA FOR SHARING..."
       );
 
-      const downloadResponse =
-        await fetch(remoteUrl);
-
-      if (!downloadResponse.ok) {
-        throw new Error(
-          "Unable to download the media."
-        );
-      }
-
-      const bytes =
-        await downloadResponse.bytes();
-
-      localFile.write(bytes);
+      await File.downloadFileAsync(
+        remoteUrl,
+        localFile,
+        { idempotent: true }
+      );
 
       console.log(
         "MEDIA SAVED LOCALLY:",
@@ -1604,11 +1895,7 @@ export default function SocialScreen({
         {
           dialogTitle:
             "Share this student post",
-
-          mimeType:
-            post.media.type === "video"
-              ? "video/mp4"
-              : "image/jpeg",
+          mimeType,
         }
       );
 
@@ -1623,6 +1910,117 @@ export default function SocialScreen({
         "Share failed",
         "We couldn't share this post. Please try again."
       );
+    } finally {
+      if (localFile && localFile.exists) {
+        try {
+          localFile.delete();
+        } catch (cleanupError) {
+          console.log(
+            "Share temp file cleanup error:",
+            cleanupError
+          );
+        }
+      }
+
+      shareBusyRef.current = false;
+      setBusyMediaAction(null);
+    }
+  };
+
+  /* =========================================================
+     SAVE POST MEDIA (video or image)
+  ========================================================= */
+
+  const savePostMedia = async (post) => {
+    if (!post?.media?.uri) {
+      return;
+    }
+
+    const isVideo =
+      post.media.type === "video";
+
+    if (
+      shareBusyRef.current ||
+      saveBusyRef.current
+    ) {
+      return;
+    }
+
+    saveBusyRef.current = true;
+
+    setBusyMediaAction({
+      kind: "save",
+      postId: post.id,
+      label: isVideo
+        ? "Saving video…"
+        : "Saving image…",
+    });
+
+    try {
+      const remoteUrl = post.media.uri;
+
+      const extension =
+        detectMediaExtension(post);
+
+      const fileName = buildMediaFileName(
+        extension,
+        "save"
+      );
+
+      const savedDirectory = new Directory(
+        Paths.document,
+        SAVED_MEDIA_DIR_NAME
+      );
+
+      savedDirectory.create({
+        idempotent: true,
+        intermediates: true,
+      });
+
+      const destination = new File(
+        savedDirectory,
+        fileName
+      );
+
+      console.log(
+        "SAVING MEDIA TO:",
+        destination.uri
+      );
+
+      await File.downloadFileAsync(
+        remoteUrl,
+        destination,
+        { idempotent: true }
+      );
+
+      console.log(
+        "MEDIA SAVED:",
+        destination.uri
+      );
+
+      Alert.alert(
+        isVideo
+          ? "Video saved successfully"
+          : "Image saved successfully",
+        isVideo
+          ? "The video was saved to your device."
+          : "The image was saved to your device."
+      );
+    } catch (error) {
+      console.log(
+        "Save media error:",
+        error
+      );
+
+      Alert.alert(
+        "Save failed",
+        isVideo
+          ? "We couldn't save this video. Please try again."
+          : "We couldn't save this image. Please try again."
+      );
+    } finally {
+      saveBusyRef.current = false;
+      setBusyMediaAction(null);
     }
   };
 
@@ -1756,8 +2154,22 @@ export default function SocialScreen({
         post.userId ===
           auth.currentUser.uid;
 
+      const saveAction = post?.media?.uri
+        ? [
+            {
+              text:
+                post.media.type === "video"
+                  ? "⬇ Save Video"
+                  : "⬇ Save Image",
+              onPress: () =>
+                savePostMedia(post),
+            },
+          ]
+        : [];
+
       const options = isOwnPost
         ? [
+            ...saveAction,
             {
               text: "Delete",
               style: "destructive",
@@ -1770,6 +2182,7 @@ export default function SocialScreen({
             },
           ]
         : [
+            ...saveAction,
             {
               text: "Report",
               onPress: () => {
@@ -1846,6 +2259,10 @@ export default function SocialScreen({
             );
           }}
           onShare={() => sharePost(item)}
+          isShareBusy={
+            busyMediaAction?.kind === "share" &&
+            busyMediaAction.postId === item.id
+          }
           onMore={() =>
             showMoreMenu(item)
           }
@@ -1885,6 +2302,7 @@ export default function SocialScreen({
       showMoreMenu,
       feedMuted,
       toggleLike,
+      busyMediaAction,
     ]
   );
 
@@ -2081,6 +2499,29 @@ export default function SocialScreen({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* ============================
+          MEDIA OPERATION BUSY INDICATOR
+      ============================ */}
+
+      {busyMediaAction && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.mediaBusyChip,
+            { top: insets.top + 64 },
+          ]}
+        >
+          <ActivityIndicator
+            size="small"
+            color="#FFFFFF"
+          />
+
+          <Text style={styles.mediaBusyChipText}>
+            {busyMediaAction.label}
+          </Text>
+        </View>
+      )}
 
       {/* ============================
           CREATE POST MODAL
@@ -2392,6 +2833,33 @@ const styles = {
     backgroundColor: "rgba(5, 7, 10, 0.45)",
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
+  },
+
+  mediaBusyChip: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 30,
+    shadowColor: "#000000",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    elevation: 6,
+  },
+
+  mediaBusyChipText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 9,
   },
 
   tabBar: {
@@ -2986,6 +3454,72 @@ const styles = {
       height: 1,
     },
     textShadowRadius: 3,
+  },
+
+  /* COMMENT PREVIEW */
+
+  commentPreview: {
+    position: "absolute",
+    left: 14,
+    right: 66,
+    zIndex: 22,
+  },
+
+  commentPreviewCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.42)",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    shadowColor: "#000000",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    elevation: 4,
+  },
+
+  commentPreviewAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    marginRight: 9,
+  },
+
+  commentPreviewAvatarPlaceholder: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#4F46E5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 9,
+  },
+
+  commentPreviewAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+
+  commentPreviewBody: {
+    flex: 1,
+  },
+
+  commentPreviewName: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+    marginBottom: 1,
+  },
+
+  commentPreviewText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    lineHeight: 15,
   },
 
   /* LOADING */
